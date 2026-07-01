@@ -1,6 +1,6 @@
 /data
 /models
-/Docs
+/docs
 __pycache__
 *.pyc
 node_modules
