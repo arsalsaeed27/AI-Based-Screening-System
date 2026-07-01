@@ -42,3 +42,4 @@ class RetinopathyCNN(nn.Module):
         num_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print(f"Total trainable parameters: {num_params:,}")
         return num_params
+RetinalCNN = RetinopathyCNN
