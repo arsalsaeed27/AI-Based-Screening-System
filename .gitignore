@@ -1,1 +1,7 @@
-/py
+/data
+/models
+/Docs
+__pycache__
+*.pyc
+node_modules
+*.onnx
