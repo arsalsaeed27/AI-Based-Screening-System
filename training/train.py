@@ -20,6 +20,8 @@ def parse_args():
     parser.add_argument("--images", type=str, required=True, help="path to images folder")
     parser.add_argument("--batch", type=int, default=16, help="batch size")
     parser.add_argument("--epochs", type=int, default=30, help="number of epochs")
+    parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from")
+    parser.add_argument("--start_epoch", type=int, default=1, help="epoch to start from")
     return parser.parse_args()
 
 
@@ -39,7 +41,7 @@ def run_epoch(model, loader, criterion, optimizer, device, train):
     total = 0
 
     torch.set_grad_enabled(train)
-    for images, labels in loader:
+    for batch_idx, (images, labels) in enumerate(loader):
         images = images.to(device)
         labels = labels.to(device)
 
@@ -57,10 +59,14 @@ def run_epoch(model, loader, criterion, optimizer, device, train):
         preds = outputs.argmax(dim=1)
         correct += (preds == labels).sum().item()
         total += labels.size(0)
+
+        # print every 10 batches so you know it's alive
+        if train and batch_idx % 10 == 0:
+            print(f"  Batch {batch_idx}/{len(loader)} | "
+                  f"Loss: {loss.item():.4f}", flush=True)
+
     torch.set_grad_enabled(True)
-
     return total_loss / total, correct / total
-
 
 def main():
     args = parse_args()
@@ -74,6 +80,9 @@ def main():
 
     num_classes = 5
     model = RetinalCNN(num_classes=num_classes).to(device)
+    if args.resume:
+        model.load_state_dict(torch.load(args.resume, map_location=device))
+        print(f"Resumed from checkpoint: {args.resume}")
 
     class_weights = compute_class_weights(args.csv, num_classes, device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
@@ -82,7 +91,7 @@ def main():
     best_val_loss = float("inf")
     start_time = time.time()
 
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         train_loss, train_acc = run_epoch(model, train_loader, criterion, optimizer, device, train=True)
         val_loss, val_acc = run_epoch(model, val_loader, criterion, optimizer, device, train=False)
 
