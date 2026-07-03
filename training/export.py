@@ -29,13 +29,15 @@ def main():
         model,
         dummy_input,
         args.output,
-        opset_version=11,
+        opset_version=18,
         input_names=["input"],
         output_names=["output"],
     )
 
-    os.makedirs(os.path.dirname(SMOKE_TEST_PATH), exist_ok=True)
-    shutil.copy(args.output, SMOKE_TEST_PATH)
+    # only copy if output and destination are different paths
+    if os.path.abspath(args.output) != os.path.abspath(SMOKE_TEST_PATH):
+        os.makedirs(os.path.dirname(SMOKE_TEST_PATH), exist_ok=True)
+        shutil.copy(args.output, SMOKE_TEST_PATH)
 
     print("Export complete")
 
