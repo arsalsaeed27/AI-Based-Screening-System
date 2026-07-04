@@ -39,11 +39,17 @@ def apply_clahe(image):
 
 
 class AptosDataset(Dataset):
-    def __init__(self, csv_path, images_path, image_size=224, augment=False):
+    def __init__(self, csv_path, images_path=None, image_size=224, augment=False):
         self.df = pd.read_csv(csv_path)
         self.images_path = images_path
         self.image_size = image_size
         self.augment = augment
+        self.has_image_path = "image_path" in self.df.columns
+
+        if not self.has_image_path and images_path is None:
+            raise ValueError(
+                "images_path is required when the CSV has no 'image_path' column"
+            )
 
     def __len__(self):
         return len(self.df)
@@ -69,10 +75,13 @@ class AptosDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        filename = row["id_code"] + ".png"
         label = int(row["diagnosis"])
 
-        image_path = os.path.join(self.images_path, filename)
+        if self.has_image_path:
+            image_path = row["image_path"]
+        else:
+            image_path = os.path.join(self.images_path, row["id_code"] + ".png")
+
         image = cv2.imread(image_path)
         if image is None:
             raise FileNotFoundError(f"Could not read image: {image_path}")
@@ -91,7 +100,7 @@ class AptosDataset(Dataset):
         return tensor, label
 
 
-def get_dataloaders(csv_path, images_path, batch_size=16):
+def get_dataloaders(csv_path, images_path=None, batch_size=16):
     full_train = AptosDataset(csv_path, images_path, augment=True)
     full_val = AptosDataset(csv_path, images_path, augment=False)
 
