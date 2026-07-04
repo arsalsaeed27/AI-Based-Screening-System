@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RetinalScan AI — Clinical Screening System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --navy: #0a2647;
+        --navy-mid: #144272;
+        --blue: #205295;
+        --blue-light: #2c74b3;
+        --cyan: #0ea5e9;
+        --bg: #f0f4f8;
+        --surface: #ffffff;
+        --surface-2: #f8fafc;
+        --border: #d1dce8;
+        --border-strong: #a8bdd0;
+        --text: #0f172a;
+        --text-mid: #334155;
+        --text-muted: #64748b;
+        --green: #065f46;
+        --green-bg: #d1fae5;
+        --yellow: #92400e;
+        --yellow-bg: #fef3c7;
+        --orange: #9a3412;
+        --orange-bg: #ffedd5;
+        --red: #991b1b;
+        --red-bg: #fee2e2;
+        --pink: #831843;
+        --pink-bg: #fce7f3;
+        --radius: 6px;
+      }
+
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      header {
+        background: var(--navy);
+        padding: 0 2rem;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        background: var(--blue-light);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-mark svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .logo-text {
+        color: white;
+      }
+      .logo-name {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        display: block;
+        line-height: 1.1;
+      }
+      .logo-sub {
+        font-size: 10px;
+        color: #93c5fd;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .system-badge {
+        font-size: 11px;
+        color: #93c5fd;
+        border: 1px solid #1e40af;
+        border-radius: 3px;
+        padding: 3px 8px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      .timestamp {
+        font-size: 11px;
+        color: #7dd3fc;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .layout {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .panel-header {
+        background: var(--navy-mid);
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .panel-header svg {
+        width: 14px;
+        height: 14px;
+        stroke: #93c5fd;
+        fill: none;
+        stroke-width: 2;
+        flex-shrink: 0;
+      }
+      .panel-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .panel-body {
+        padding: 1rem;
+      }
+
+      .field-group {
+        margin-bottom: 12px;
+      }
+      .field-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        display: block;
+      }
+      .field-input {
+        width: 100%;
+        padding: 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 13px;
+        color: var(--text);
+        background: var(--surface-2);
+        font-family: inherit;
+        transition: border-color 0.15s;
+      }
+      .field-input:focus {
+        outline: none;
+        border-color: var(--blue-light);
+        background: white;
+      }
+
+      .upload-zone {
+        border: 2px dashed var(--border-strong);
+        border-radius: 4px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        background: var(--surface-2);
+        position: relative;
+        margin-bottom: 12px;
+      }
+
+      .upload-zone:hover,
+      .upload-zone.drag-over {
+        border-color: var(--blue-light);
+        background: #eff6ff;
+      }
+
+      .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+
+      .upload-zone svg {
+        width: 28px;
+        height: 28px;
+        stroke: var(--blue-light);
+        fill: none;
+        stroke-width: 1.5;
+        margin-bottom: 8px;
+      }
+      .upload-zone-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-mid);
+        margin-bottom: 3px;
+      }
+      .upload-zone-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .preview-img-wrap {
+        display: none;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        background: #0f172a;
+        aspect-ratio: 1;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .preview-img-wrap.visible {
+        display: flex;
+      }
+      .preview-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .file-meta {
+        display: none;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin-bottom: 12px;
+        font-size: 12px;
+      }
+
+      .file-meta.visible {
+        display: block;
+      }
+      .file-meta-name {
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 2px;
+        word-break: break-all;
+      }
+      .file-meta-size {
+        color: var(--text-muted);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 9px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        width: 100%;
+        font-family: inherit;
+        transition: all 0.15s;
+        letter-spacing: 0.01em;
+      }
+
+      .btn-analyse {
+        background: var(--blue);
+        color: white;
+        margin-bottom: 8px;
+      }
+      .btn-analyse:hover {
+        background: var(--navy-mid);
+      }
+      .btn-analyse:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .btn-clear {
+        background: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        padding: 7px;
+      }
+      .btn-clear:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+
+      .btn svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        flex-shrink: 0;
+      }
+
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: none;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .loading .spinner {
+        display: block;
+      }
+      .loading .btn-icon {
+        display: none;
+      }
+
+      .right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .status-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        flex-shrink: 0;
+      }
+      .status-dot.waiting {
+        background: #94a3b8;
+      }
+      .status-dot.processing {
+        background: #f59e0b;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      .result-section {
+        display: none;
+      }
+      .result-section.visible {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .result-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .metric-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px;
+      }
+
+      .metric-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .metric-label svg {
+        width: 12px;
+        height: 12px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+
+      .severity-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .severity-dot-sm {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .s0 {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .s0 .severity-dot-sm {
+        background: #16a34a;
+      }
+      .s1 {
+        background: var(--yellow-bg);
+        color: var(--yellow);
+      }
+      .s1 .severity-dot-sm {
+        background: #d97706;
+      }
+      .s2 {
+        background: var(--orange-bg);
+        color: var(--orange);
+      }
+      .s2 .severity-dot-sm {
+        background: #ea580c;
+      }
+      .s3 {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .s3 .severity-dot-sm {
+        background: #dc2626;
+      }
+      .s4 {
+        background: var(--pink-bg);
+        color: var(--pink);
+      }
+      .s4 .severity-dot-sm {
+        background: #db2777;
+      }
+
+      .grade-text {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .confidence-big {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1;
+        margin-bottom: 4px;
+        font-variant-numeric: tabular-nums;
+      }
+      .confidence-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .iop-indicator {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .iop-bar-track {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .iop-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .referral-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px;
+        border-left: 4px solid var(--blue);
+      }
+
+      .referral-card.urgent {
+        border-left-color: #dc2626;
+      }
+      .referral-card.warning {
+        border-left-color: #ea580c;
+      }
+      .referral-card.caution {
+        border-left-color: #d97706;
+      }
+      .referral-card.ok {
+        border-left-color: #16a34a;
+      }
+
+      .referral-heading {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .referral-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .referral-icon-wrap {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .referral-icon-wrap svg {
+        width: 16px;
+        height: 16px;
+        stroke: white;
+        fill: none;
+        stroke-width: 2;
+      }
+      .referral-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .referral-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .scores-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .scores-table-head {
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 14px;
+        display: grid;
+        grid-template-columns: 150px 1fr 70px 60px;
+        gap: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+      }
+
+      .score-row-item {
+        padding: 10px 14px;
+        display: grid;
+        grid-template-columns: 150px 1fr 70px 60px;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .score-row-item:last-child {
+        border-bottom: none;
+      }
+      .score-row-item.is-top {
+        background: #f0f7ff;
+      }
+
+      .score-class {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .score-class.is-top {
+        font-weight: 700;
+        color: var(--navy);
+      }
+
+      .bar-track {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #cbd5e1;
+      }
+      .bar-fill.is-top {
+        background: var(--blue);
+      }
+
+      .score-pct {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .score-pct.is-top {
+        color: var(--blue);
+      }
+
+      .score-status {
+        text-align: center;
+      }
+      .score-status .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: inline-block;
+      }
+      .score-status .dot.is-top {
+        background: var(--blue);
+      }
+
+      .info-row {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        font-size: 11px;
+      }
+
+      .info-item {
+        color: var(--text-muted);
+      }
+      .info-item strong {
+        color: var(--text-mid);
+        font-weight: 600;
+      }
+
+      .disclaimer-bar {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        font-size: 11px;
+        color: #92400e;
+        line-height: 1.6;
+      }
+
+      .action-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-mid);
+        font-family: inherit;
+        transition: all 0.15s;
+      }
+
+      .btn-action:hover {
+        background: var(--surface-2);
+        border-color: var(--border-strong);
+      }
+      .btn-action svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .btn-action.primary {
+        background: var(--navy);
+        color: white;
+        border-color: var(--navy);
+      }
+      .btn-action.primary:hover {
+        background: var(--navy-mid);
+      }
+
+      .error-box {
+        display: none;
+        padding: 10px 14px;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        border-radius: var(--radius);
+        font-size: 12px;
+        color: var(--red);
+      }
+
+      .error-box.visible {
+        display: block;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 12px 2rem;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text-muted);
+        background: var(--surface);
+        margin-top: 2rem;
+      }
+
+      @media (max-width: 700px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .result-top {
+          grid-template-columns: 1fr 1fr;
+        }
+        .scores-table-head,
+        .score-row-item {
+          grid-template-columns: 1fr 1fr 50px;
+        }
+        .scores-table-head > *:last-child,
+        .score-row-item > *:last-child {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="#">
+        <div class="logo-mark">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" fill="white" stroke="none" />
+            <line x1="12" y1="2" x2="12" y2="5" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="5" y2="12" />
+            <line x1="19" y1="12" x2="22" y2="12" />
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">RetinalScan AI</span>
+          <span class="logo-sub">Clinical Screening System</span>
+        </div>
+      </a>
+      <div class="header-right">
+        <span class="system-badge">MCS · NUST</span>
+        <span class="timestamp" id="clockDisplay"></span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- LEFT PANEL -->
+      <div>
+        <div class="panel" style="margin-bottom: 1rem">
+          <div class="panel-header">
+            <svg
+              viewBox="0 0 24 24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span class="panel-title">Patient Information</span>
+          </div>
+          <div class="panel-body">
+            <div class="field-group">
+              <label class="field-label">Patient ID</label>
+              <input
+                class="field-input"
+                type="text"
+                id="patientId"
+                placeholder="e.g. PT-2026-0042"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Full name</label>
+              <input
+                class="field-input"
+                type="text"
+                id="patientName"
+                placeholder="Optional"
+              />
+            </div>
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px"
+            >
+              <div class="field-group">
+                <label class="field-label">Age</label>
+                <input
+                  class="field-input"
+                  type="number"
+                  id="patientAge"
+                  placeholder="—"
+                  min="1"
+                  max="120"
+                />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Eye</label>
+                <select class="field-input" id="patientEye">
+                  <option value="">—</option>
+                  <option value="Right (OD)">Right (OD)</option>
+                  <option value="Left (OS)">Left (OS)</option>
+                  <option value="Both (OU)">Both (OU)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-group" style="margin-bottom: 0">
+              <label class="field-label">Referring clinician</label>
+              <input
+                class="field-input"
+                type="text"
+                id="clinician"
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <svg
+              viewBox="0 0 24 24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <span class="panel-title">Fundus Image Upload</span>
+          </div>
+          <div class="panel-body">
+            <div class="preview-img-wrap" id="previewWrap">
+              <img id="previewImg" src="" alt="Fundus image preview" />
+            </div>
+
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" id="fileInput" accept="image/*" />
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="16 16 12 12 8 16" />
+                <line x1="12" y1="12" x2="12" y2="21" />
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+              </svg>
+              <p class="upload-zone-text">Upload fundus photograph</p>
+              <p class="upload-zone-hint">PNG or JPG · Fundus images only</p>
+            </div>
+
+            <div class="file-meta" id="fileMeta">
+              <p class="file-meta-name" id="fileName">—</p>
+              <p class="file-meta-size" id="fileSize">—</p>
+            </div>
+
+            <button
+              class="btn btn-analyse"
+              id="analyseBtn"
+              onclick="runPrediction()"
+            >
+              <span class="btn-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke: white;
+                    fill: none;
+                    stroke-width: 2;
+                  "
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span class="spinner"></span>
+              Run analysis
+            </button>
+            <button class="btn btn-clear" onclick="resetForm()">
+              Clear and reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COL -->
+      <div class="right-col">
+        <div class="status-bar" id="statusBar">
+          <span class="status-dot waiting" id="statusDot"></span>
+          <span id="statusText"
+            >Awaiting image upload — fill in patient details and upload a fundus
+            photograph to begin.</span
+          >
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="result-section" id="resultSection">
+          <div class="action-row">
+            <button class="btn-action primary" onclick="generateReport()">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              Export PDF report
+            </button>
+            <button class="btn-action" onclick="resetForm()">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 .49-3.1" />
+              </svg>
+              New scan
+            </button>
+          </div>
+
+          <div class="result-top">
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                Diagnosis
+              </div>
+              <div class="severity-pill s0" id="severityPill">
+                <span class="severity-dot-sm"></span>
+                <span id="severityLabel">—</span>
+              </div>
+              <p class="grade-text" id="gradeDesc">—</p>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                Model confidence
+              </div>
+              <p class="confidence-big" id="confBig">—</p>
+              <p class="confidence-sub">top class probability</p>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Risk level
+              </div>
+              <div class="iop-indicator" id="riskIndicator">
+                <p
+                  style="font-size: 15px; font-weight: 700; color: var(--navy)"
+                  id="riskLabel"
+                >
+                  —
+                </p>
+                <div class="iop-bar-track">
+                  <div
+                    class="iop-bar-fill"
+                    id="riskBar"
+                    style="width: 0%; background: #16a34a"
+                  ></div>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted)">
+                  based on DR severity grade
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="referral-card" id="referralCard">
+            <p class="referral-heading">Clinical recommendation</p>
+            <div class="referral-content">
+              <div
+                class="referral-icon-wrap"
+                id="referralIconWrap"
+                style="background: var(--blue)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.85 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.8 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p class="referral-text" id="referralMain">—</p>
+                <p class="referral-sub" id="referralSub">—</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="scores-card">
+            <div class="scores-table-head">
+              <span>Classification</span>
+              <span>Probability</span>
+              <span style="text-align: right">Score</span>
+              <span style="text-align: center">Top</span>
+            </div>
+            <div id="scoresBody"></div>
+          </div>
+
+          <div class="info-row" id="infoRow">
+            <span class="info-item"
+              >Scan ID: <strong id="infoScanId">—</strong></span
+            >
+            <span class="info-item"
+              >Date: <strong id="infoDate">—</strong></span
+            >
+            <span class="info-item"
+              >Model: <strong>RetinalCNN v1.0</strong></span
+            >
+            <span class="info-item">Dataset: <strong>APTOS 2019</strong></span>
+            <span class="info-item">System: <strong>MCS NUST</strong></span>
+          </div>
+
+          <div class="disclaimer-bar">
+            <strong>Clinical disclaimer:</strong> This AI-assisted screening
+            result is intended to support, not replace, the judgment of a
+            qualified ophthalmologist. All findings must be reviewed and
+            confirmed by a licensed clinician before any clinical decision is
+            made. Not approved for standalone diagnostic use.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      RetinalScan AI &nbsp;·&nbsp; AI-Based Retinal Disease Screening System
+      &nbsp;·&nbsp; Military College of Signals, NUST &nbsp;·&nbsp; Built by
+      Arsal and Mashal
+    </footer>
+
+    <script>
+      const LABELS = [
+        "No DR",
+        "Mild DR",
+        "Moderate DR",
+        "Severe DR",
+        "Proliferative DR",
+      ];
+      const GRADE_DESC = [
+        "No diabetic retinopathy detected (ICDR Grade 0)",
+        "Mild non-proliferative DR — early microaneurysms (ICDR Grade 1)",
+        "Moderate non-proliferative DR — vessel changes present (ICDR Grade 2)",
+        "Severe non-proliferative DR — significant vessel damage (ICDR Grade 3)",
+        "Proliferative DR — neovascularisation detected (ICDR Grade 4)",
+      ];
+      const REFERRAL_MAIN = [
+        "Re-screen in 12 months",
+        "Re-screen in 6 months",
+        "Refer to ophthalmologist within 6 months",
+        "Urgent referral — review within 2 to 4 weeks",
+        "Emergency referral — immediate specialist review required",
+      ];
+      const REFERRAL_SUB = [
+        "No signs of retinopathy. Continue routine annual screening.",
+        "Early changes detected. Closer monitoring is recommended.",
+        "Moderate changes require specialist evaluation.",
+        "Significant retinal damage. Timely intervention is critical.",
+        "High risk of vision loss. Do not delay specialist review.",
+      ];
+      const REFERRAL_URGENCY = ["ok", "caution", "warning", "urgent", "urgent"];
+      const REFERRAL_COLORS = [
+        "#16a34a",
+        "#d97706",
+        "#ea580c",
+        "#dc2626",
+        "#db2777",
+      ];
+      const RISK_LABELS = [
+        "Low",
+        "Low-Moderate",
+        "Moderate",
+        "High",
+        "Very High",
+      ];
+      const RISK_PCT = [10, 28, 52, 76, 95];
+
+      let selectedFile = null;
+      let lastResult = null;
+      let scanId = null;
+
+      function clock() {
+        const d = new Date();
+        document.getElementById("clockDisplay").textContent =
+          d.toLocaleDateString("en-GB") + "  " + d.toLocaleTimeString("en-GB");
+      }
+      clock();
+      setInterval(clock, 1000);
+
+      const fileInput = document.getElementById("fileInput");
+      const uploadZone = document.getElementById("uploadZone");
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+      });
+      uploadZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadZone.classList.add("drag-over");
+      });
+      uploadZone.addEventListener("dragleave", () =>
+        uploadZone.classList.remove("drag-over"),
+      );
+      uploadZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove("drag-over");
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+      });
+
+      function handleFile(file) {
+        selectedFile = file;
+        document.getElementById("fileName").textContent = file.name;
+        document.getElementById("fileSize").textContent =
+          (file.size / 1024).toFixed(1) + " KB · " + file.type;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById("previewImg").src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        document.getElementById("previewWrap").classList.add("visible");
+        document.getElementById("fileMeta").classList.add("visible");
+        document.getElementById("uploadZone").style.display = "none";
+        document.getElementById("resultSection").classList.remove("visible");
+        setStatus(
+          "ready",
+          "Image loaded — click Run analysis to begin screening.",
+        );
+      }
+
+      function setStatus(type, msg) {
+        const dot = document.getElementById("statusDot");
+        const txt = document.getElementById("statusText");
+        dot.className =
+          "status-dot " +
+          (type === "ready"
+            ? ""
+            : type === "processing"
+              ? "processing"
+              : type === "done"
+                ? ""
+                : "waiting");
+        if (type === "done") dot.style.background = "#16a34a";
+        else dot.style.background = "";
+        txt.textContent = msg;
+      }
+
+      async function runPrediction() {
+        if (!selectedFile) return;
+        const btn = document.getElementById("analyseBtn");
+        btn.disabled = true;
+        btn.classList.add("loading");
+        document.getElementById("errorBox").classList.remove("visible");
+        document.getElementById("resultSection").classList.remove("visible");
+        setStatus("processing", "Analysing image — please wait...");
+        try {
+          const form = new FormData();
+          form.append("image", selectedFile);
+          const res = await fetch("/predict", { method: "POST", body: form });
+          if (!res.ok) throw new Error("Server returned " + res.status);
+          const data = await res.json();
+          lastResult = data;
+          scanId = "SCN-" + Date.now().toString(36).toUpperCase();
+          showResult(data);
+          setStatus("done", "Analysis complete — results displayed below.");
+        } catch (err) {
+          const box = document.getElementById("errorBox");
+          box.textContent =
+            "Analysis failed: " +
+            err.message +
+            ". Ensure the server is running on port 3000.";
+          box.classList.add("visible");
+          setStatus("waiting", "Analysis failed. Check the error above.");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("loading");
+        }
+      }
+
+      function showResult(data) {
+        const cls = data.predicted_class;
+        const pill = document.getElementById("severityPill");
+        pill.className = "severity-pill s" + cls;
+        document.getElementById("severityLabel").textContent =
+          data.severity_label;
+        document.getElementById("gradeDesc").textContent = GRADE_DESC[cls];
+        document.getElementById("confBig").textContent =
+          Math.round(data.confidence * 100) + "%";
+        document.getElementById("riskLabel").textContent = RISK_LABELS[cls];
+        document.getElementById("riskBar").style.width = RISK_PCT[cls] + "%";
+        document.getElementById("riskBar").style.background =
+          REFERRAL_COLORS[cls];
+        const rc = document.getElementById("referralCard");
+        rc.className = "referral-card " + REFERRAL_URGENCY[cls];
+        document.getElementById("referralMain").textContent =
+          REFERRAL_MAIN[cls];
+        document.getElementById("referralSub").textContent = REFERRAL_SUB[cls];
+        document.getElementById("referralIconWrap").style.background =
+          REFERRAL_COLORS[cls];
+
+        const body = document.getElementById("scoresBody");
+        body.innerHTML = "";
+        data.scores.forEach((s, i) => {
+          const pct = Math.round(s * 100);
+          const top = i === cls;
+          body.innerHTML += `<div class="score-row-item${top ? " is-top" : ""}">
+      <span class="score-class${top ? " is-top" : ""}">${LABELS[i]}</span>
+      <div class="bar-track"><div class="bar-fill${top ? " is-top" : ""}" style="width:${pct}%"></div></div>
+      <span class="score-pct${top ? " is-top" : ""}" style="text-align:right;">${pct}%</span>
+      <span class="score-status"><span class="dot${top ? " is-top" : ""}"></span></span>
+    </div>`;
+        });
+
+        const now = new Date();
+        document.getElementById("infoScanId").textContent = scanId;
+        document.getElementById("infoDate").textContent =
+          now.toLocaleString("en-GB");
+        document.getElementById("resultSection").classList.add("visible");
+        document
+          .getElementById("resultSection")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function resetForm() {
+        selectedFile = null;
+        lastResult = null;
+        document.getElementById("fileInput").value = "";
+        document.getElementById("previewWrap").classList.remove("visible");
+        document.getElementById("fileMeta").classList.remove("visible");
+        document.getElementById("uploadZone").style.display = "";
+        document.getElementById("resultSection").classList.remove("visible");
+        document.getElementById("errorBox").classList.remove("visible");
+        setStatus(
+          "waiting",
+          "Awaiting image upload — fill in patient details and upload a fundus photograph to begin.",
+        );
+      }
+
+      function generateReport() {
+        if (!lastResult) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        });
+        const W = 210,
+          M = 18;
+        let y = 0;
+
+        const navy = [10, 38, 71];
+        const blue = [32, 82, 149];
+        const teal = [2, 128, 144];
+        const lightGray = [240, 244, 248];
+        const midGray = [100, 116, 139];
+        const borderGray = [209, 220, 232];
+        const black = [15, 23, 42];
+
+        function line(x1, y1, x2, y2, color, w) {
+          doc.setDrawColor(...(color || borderGray));
+          doc.setLineWidth(w || 0.3);
+          doc.line(x1, y1, x2, y2);
+        }
+
+        function rect(x, y, w, h, fill, stroke) {
+          if (fill) {
+            doc.setFillColor(...fill);
+            doc.rect(x, y, w, h, "F");
+          }
+          if (stroke) {
+            doc.setDrawColor(...stroke);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, w, h, "S");
+          }
+        }
+
+        function text(str, x, y, size, color, style, align) {
+          doc.setFontSize(size || 10);
+          doc.setTextColor(...(color || black));
+          doc.setFont("helvetica", style || "normal");
+          doc.text(str, x, y, { align: align || "left" });
+        }
+
+        // — Header bar —
+        rect(0, 0, W, 28, navy);
+        text("RETINALSCAN AI", M, 10, 8, [147, 197, 253], "bold");
+        text("Clinical Screening Report", M, 17, 14, [255, 255, 255], "bold");
+        text(
+          "Military College of Signals · NUST",
+          M,
+          23,
+          7,
+          [125, 211, 252],
+          "normal",
+        );
+        text(
+          "CONFIDENTIAL MEDICAL DOCUMENT",
+          W - M,
+          10,
+          7,
+          [147, 197, 253],
+          "bold",
+          "right",
+        );
+        text(
+          "Not for standalone diagnostic use",
+          W - M,
+          16,
+          7,
+          [125, 211, 252],
+          "normal",
+          "right",
+        );
+        y = 35;
+
+        // — Scan info row —
+        rect(M, y, W - M * 2, 14, lightGray, borderGray);
+        const now = new Date();
+        const scanMeta = [
+          ["Scan ID", scanId],
+          ["Date", now.toLocaleDateString("en-GB")],
+          ["Time", now.toLocaleTimeString("en-GB")],
+          ["Model", "RetinalCNN v1.0"],
+        ];
+        const colW = (W - M * 2) / 4;
+        scanMeta.forEach(([label, val], i) => {
+          const x = M + i * colW + 4;
+          text(label.toUpperCase(), x, y + 5, 6, midGray, "bold");
+          text(val, x, y + 11, 8, black, "bold");
+        });
+        y += 20;
+
+        // — Patient info —
+        text("PATIENT INFORMATION", M, y, 7, midGray, "bold");
+        line(M, y + 2, W - M, y + 2);
+        y += 7;
+        const pName =
+          document.getElementById("patientName").value || "Not provided";
+        const pId =
+          document.getElementById("patientId").value || "Not provided";
+        const pAge =
+          document.getElementById("patientAge").value || "Not provided";
+        const pEye =
+          document.getElementById("patientEye").value || "Not provided";
+        const pClin =
+          document.getElementById("clinician").value || "Not provided";
+        const patFields = [
+          ["Patient name", pName],
+          ["Patient ID", pId],
+          ["Age", pAge],
+          ["Eye examined", pEye],
+          ["Referring clinician", pClin],
+        ];
+        const pColW = (W - M * 2) / 3;
+        patFields.forEach(([lbl, val], i) => {
+          const col = i % 3,
+            row = Math.floor(i / 3);
+          const px = M + col * pColW,
+            py = y + row * 10;
+          text(lbl.toUpperCase(), px, py, 6, midGray, "bold");
+          text(val, px, py + 5, 9, black, "normal");
+        });
+        y += 28;
+
+        // — Main result box —
+        const cls = lastResult.predicted_class;
+        const severityColors = [
+          [6, 95, 70],
+          [146, 64, 14],
+          [154, 52, 18],
+          [153, 27, 27],
+          [131, 24, 67],
+        ];
+        const severityBg = [
+          [209, 250, 229],
+          [254, 243, 199],
+          [255, 237, 213],
+          [254, 226, 226],
+          [252, 231, 243],
+        ];
+        rect(M, y, W - M * 2, 26, severityBg[cls], borderGray);
+        const sc = severityColors[cls];
+        doc.setFillColor(...sc);
+        doc.rect(M, y, 3, 26, "F");
+        text("PRIMARY DIAGNOSIS", M + 7, y + 7, 6, midGray, "bold");
+        text(lastResult.severity_label, M + 7, y + 16, 16, sc, "bold");
+        text(GRADE_DESC[cls], M + 7, y + 22, 7, [...sc], "normal");
+        text("CONFIDENCE", W - M - 35, y + 7, 6, midGray, "bold");
+        text(
+          Math.round(lastResult.confidence * 100) + "%",
+          W - M - 35,
+          y + 18,
+          18,
+          sc,
+          "bold",
+        );
+        y += 32;
+
+        // — Referral box —
+        rect(M, y, W - M * 2, 20, lightGray, borderGray);
+        doc.setFillColor(...sc);
+        doc.rect(M, y, 3, 20, "F");
+        text("CLINICAL RECOMMENDATION", M + 7, y + 7, 6, midGray, "bold");
+        text(REFERRAL_MAIN[cls], M + 7, y + 13, 10, black, "bold");
+        text(REFERRAL_SUB[cls], M + 7, y + 18, 7.5, midGray, "normal");
+        y += 26;
+
+        // — Probability table —
+        text("CLASS PROBABILITY SCORES", M, y, 7, midGray, "bold");
+        line(M, y + 2, W - M, y + 2);
+        y += 7;
+
+        const tW = W - M * 2;
+        const cols = [50, tW - 80, 20, 20];
+        rect(M, y, tW, 7, navy);
+        ["Classification", "Probability", "Score", "Top"].forEach((h, i) => {
+          const x = M + cols.slice(0, i).reduce((a, b) => a + b, 0) + 2;
+          text(h, x, y + 4.5, 6, [255, 255, 255], "bold");
+        });
+        y += 7;
+
+        lastResult.scores.forEach((s, i) => {
+          const pct = Math.round(s * 100);
+          const isTop = i === cls;
+          if (isTop) rect(M, y, tW, 8, [240, 247, 255], borderGray);
+          else if (i % 2 === 0) rect(M, y, tW, 8, [248, 250, 252]);
+          text(
+            LABELS[i],
+            M + 2,
+            y + 5.5,
+            isTop ? 8 : 7.5,
+            isTop ? blue : black,
+            isTop ? "bold" : "normal",
+          );
+          const barX = M + cols[0] + 2,
+            barY = y + 2.5,
+            barW = cols[1] - 4,
+            barH = 3;
+          rect(barX, barY, barW, barH, [226, 232, 240]);
+          rect(
+            barX,
+            barY,
+            (barW * pct) / 100,
+            barH,
+            isTop ? blue : [148, 163, 184],
+          );
+          text(
+            pct + "%",
+            M + cols[0] + cols[1] + 2,
+            y + 5.5,
+            7.5,
+            isTop ? blue : midGray,
+            isTop ? "bold" : "normal",
+            "right",
+          );
+          if (isTop)
+            text(
+              "✓",
+              M + cols[0] + cols[1] + cols[2] + 10,
+              y + 5.5,
+              8,
+              blue,
+              "bold",
+              "center",
+            );
+          y += 8;
+        });
+        y += 6;
+
+        // — Disclaimer —
+        rect(M, y, W - M * 2, 20, [255, 251, 235], [253, 230, 138]);
+        text("CLINICAL DISCLAIMER", M + 4, y + 5, 6, [146, 64, 14], "bold");
+        const disc =
+          "This AI-assisted report is intended to support qualified healthcare professionals and does not replace a full ophthalmological examination. All findings must be reviewed and confirmed by a licensed clinician before any clinical or therapeutic decision is made. This system has not received regulatory approval for standalone diagnostic use.";
+        const lines = doc.splitTextToSize(disc, W - M * 2 - 8);
+        doc.setFontSize(6.5);
+        doc.setTextColor(146, 64, 14);
+        doc.setFont("helvetica", "normal");
+        doc.text(lines, M + 4, y + 10);
+        y += 26;
+
+        // — Footer —
+        line(M, y, W - M, y, navy, 0.5);
+        y += 4;
+        text(
+          "RetinalScan AI  ·  Military College of Signals, NUST  ·  Built by Arsal and Mashal",
+          W / 2,
+          y,
+          7,
+          midGray,
+          "normal",
+          "center",
+        );
+        text("Page 1 of 1", W - M, y, 7, midGray, "normal", "right");
+
+        doc.save(
+          "RetinalScan_Report_" +
+            (pId !== "Not provided" ? pId + "_" : "") +
+            scanId +
+            ".pdf",
+        );
+      }
+    </script>
+  </body>
+</html>
