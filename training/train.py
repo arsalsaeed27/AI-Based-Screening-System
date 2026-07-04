@@ -11,7 +11,7 @@ from torch.optim import Adam
 from training.dataset import get_dataloaders
 from training.model import RetinalCNN
 
-CHECKPOINT_DIR = "/content/drive/MyDrive/retinal-models"
+CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/content/drive/MyDrive/retinal-models")
 
 
 def parse_args():
