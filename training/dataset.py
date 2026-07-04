@@ -116,7 +116,7 @@ def get_dataloaders(csv_path, images_path=None, batch_size=16):
     train_dataset = torch.utils.data.Subset(full_train, train_indices.indices)
     val_dataset = torch.utils.data.Subset(full_val, val_indices.indices)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     return train_loader, val_loader
