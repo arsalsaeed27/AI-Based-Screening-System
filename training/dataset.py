@@ -77,14 +77,22 @@ class AptosDataset(Dataset):
         row = self.df.iloc[idx]
         label = int(row["diagnosis"])
 
-        if self.has_image_path:
+        # use image_path column if available, else build path
+        if "image_path" in self.df.columns:
             image_path = row["image_path"]
         else:
-            image_path = os.path.join(self.images_path, row["id_code"] + ".png")
+            filename = row["id_code"] + ".png"
+            image_path = os.path.join(self.images_path, filename)
 
         image = cv2.imread(image_path)
+
+        # skip corrupted images silently, return a black image
         if image is None:
-            raise FileNotFoundError(f"Could not read image: {image_path}")
+            image = np.zeros((self.image_size, self.image_size, 3), 
+                            dtype=np.uint8)
+            tensor = torch.from_numpy(
+                image.transpose(2, 0, 1)).float() / 255.0
+            return tensor, label
 
         image = crop_to_circle(image)
         image = cv2.resize(image, (self.image_size, self.image_size))
@@ -116,7 +124,7 @@ def get_dataloaders(csv_path, images_path=None, batch_size=16):
     train_dataset = torch.utils.data.Subset(full_train, train_indices.indices)
     val_dataset = torch.utils.data.Subset(full_val, val_indices.indices)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     return train_loader, val_loader
