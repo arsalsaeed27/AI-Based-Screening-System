@@ -25,11 +25,7 @@ const REFERRAL_GUIDANCE = {
 
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
-<<<<<<< HEAD
 app.use(express.static(path.join(__dirname, "public")));
-=======
-app.use(express.static(path.join(__dirname, 'public')));
->>>>>>> 9b406e185c2982a6271b679c0741cdec2b098305
 
 let session;
 
