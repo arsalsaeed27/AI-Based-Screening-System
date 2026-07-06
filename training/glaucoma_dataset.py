@@ -68,8 +68,8 @@ class GlaucomaSegDataset(Dataset):
         if self.augment:
             image, mask = self._augment(image, mask)
 
-        disc = (mask > 50).astype(np.float32)
-        cup = ((mask > 100) & (mask < 200)).astype(np.float32)
+        disc = (mask >= 1).astype(np.float32)
+        cup = (mask == 2).astype(np.float32)
         mask_tensor = torch.from_numpy(np.stack([disc, cup], axis=0)).float()
 
         image = image.astype(np.float32) / 255.0
