@@ -769,6 +769,59 @@
         display: block;
       }
 
+      .cdr-gauge-track {
+        height: 14px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+      }
+      .cdr-gauge-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition:
+          width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+          background 0.3s;
+      }
+      .cdr-scale-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .risk-box {
+        border-radius: var(--radius);
+        padding: 14px;
+        border: 1px solid var(--border);
+      }
+      .risk-box.risk-normal {
+        background: var(--green-bg);
+        border-color: #16a34a;
+      }
+      .risk-box.risk-monitor {
+        background: var(--orange-bg);
+        border-color: #f59e0b;
+      }
+      .risk-box.risk-suspicious {
+        background: #ffedd5;
+        border-color: #c2410c;
+      }
+      .risk-box.risk-high {
+        background: var(--red-bg);
+        border-color: #dc2626;
+      }
+      .risk-box-label {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .risk-box-detail {
+        font-size: 12px;
+        color: var(--text-mid);
+      }
+
       footer {
         border-top: 1px solid var(--border);
         padding: 12px 2rem;
@@ -1137,6 +1190,141 @@
             made. Not approved for standalone diagnostic use.
           </div>
         </div>
+
+        <!-- GLAUCOMA SCREENING PANEL -->
+        <div class="panel">
+          <div class="panel-header">
+            <svg
+              viewBox="0 0 24 24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="3.5" />
+            </svg>
+            <span class="panel-title">Glaucoma Screening</span>
+          </div>
+          <div class="panel-body">
+            <button
+              class="btn btn-analyse"
+              id="glaucomaBtn"
+              onclick="runGlaucomaPrediction()"
+              disabled
+              style="margin-bottom: 12px"
+            >
+              <span class="btn-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke: white;
+                    fill: none;
+                    stroke-width: 2;
+                  "
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span class="spinner"></span>
+              Analyse for glaucoma
+            </button>
+
+            <div class="error-box" id="glaucomaErrorBox"></div>
+
+            <div class="result-section" id="glaucomaResultSection">
+              <div class="result-top" style="grid-template-columns: 1fr 1fr">
+                <div class="metric-card">
+                  <div class="metric-label">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="4" />
+                    </svg>
+                    Cup-to-Disc Ratio
+                  </div>
+                  <p class="confidence-big" id="cdrBig">—</p>
+                  <p class="confidence-sub">CDR (0 – 1 scale)</p>
+                  <p
+                    style="
+                      font-size: 12px;
+                      color: var(--text-mid);
+                      margin-top: 8px;
+                      line-height: 1.5;
+                    "
+                    id="cdrExplanation"
+                  >
+                    —
+                  </p>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-label">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                    </svg>
+                    Segmentation
+                  </div>
+                  <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px">
+                    Disc pixels: <span id="discPixels">—</span>
+                  </p>
+                  <p style="font-size: 11px; color: var(--text-muted)">
+                    Cup pixels: <span id="cupPixels">—</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-label">CDR gauge</div>
+                <div class="cdr-gauge-track">
+                  <div
+                    class="cdr-gauge-fill"
+                    id="cdrGaugeFill"
+                    style="width: 0%; background: #16a34a"
+                  ></div>
+                </div>
+                <div class="cdr-scale-labels">
+                  <span>0.0</span>
+                  <span>0.3</span>
+                  <span>0.5</span>
+                  <span>0.7</span>
+                  <span>1.0</span>
+                </div>
+              </div>
+
+              <div class="risk-box risk-normal" id="glaucomaRiskBox">
+                <p class="referral-heading">Risk assessment</p>
+                <p class="risk-box-label" id="glaucomaRiskLabel">—</p>
+                <p class="risk-box-detail" id="glaucomaRiskDetail">—</p>
+              </div>
+
+              <div class="referral-card" id="glaucomaMeaningCard">
+                <p class="referral-heading">What this means</p>
+                <p class="referral-text" style="margin-bottom: 6px">
+                  Next step:
+                  <span id="glaucomaNextStep" style="font-weight: 700"
+                    >—</span
+                  >
+                </p>
+                <p class="referral-sub">
+                  Note: This result is based on optic nerve analysis only. A
+                  full glaucoma diagnosis requires intraocular pressure
+                  measurement and visual field testing by a specialist.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1237,6 +1425,11 @@
         document.getElementById("fileMeta").classList.add("visible");
         document.getElementById("uploadZone").style.display = "none";
         document.getElementById("resultSection").classList.remove("visible");
+        document.getElementById("glaucomaBtn").disabled = false;
+        document
+          .getElementById("glaucomaResultSection")
+          .classList.remove("visible");
+        document.getElementById("glaucomaErrorBox").classList.remove("visible");
         setStatus(
           "ready",
           "Image loaded — click Run analysis to begin screening.",
@@ -1345,10 +1538,116 @@
         document.getElementById("uploadZone").style.display = "";
         document.getElementById("resultSection").classList.remove("visible");
         document.getElementById("errorBox").classList.remove("visible");
+        document.getElementById("glaucomaBtn").disabled = true;
+        document
+          .getElementById("glaucomaResultSection")
+          .classList.remove("visible");
+        document.getElementById("glaucomaErrorBox").classList.remove("visible");
         setStatus(
           "waiting",
           "Awaiting image upload — fill in patient details and upload a fundus photograph to begin.",
         );
+      }
+
+      const GLAUCOMA_COLORS = {
+        Normal: "#16a34a",
+        Monitor: "#f59e0b",
+        Suspicious: "#c2410c",
+        "High risk": "#dc2626",
+      };
+      const GLAUCOMA_BOX_CLASS = {
+        Normal: "risk-normal",
+        Monitor: "risk-monitor",
+        Suspicious: "risk-suspicious",
+        "High risk": "risk-high",
+      };
+
+      function glaucomaColorKey(riskLevel) {
+        return (
+          Object.keys(GLAUCOMA_COLORS).find((key) =>
+            riskLevel.startsWith(key),
+          ) || "Normal"
+        );
+      }
+
+      function cdrExplanation(cdr) {
+        if (cdr < 0.3)
+          return "The optic nerve appears healthy with no signs of glaucomatous damage.";
+        if (cdr < 0.5)
+          return "Mild enlargement of the optic cup detected. Not immediately concerning but warrants monitoring.";
+        if (cdr < 0.7)
+          return "Significant cup enlargement detected. This may indicate early to moderate glaucoma. Specialist review is recommended.";
+        return "Severe optic nerve damage detected. High probability of advanced glaucoma. Urgent referral required.";
+      }
+
+      const GLAUCOMA_NEXT_STEP = {
+        Normal: "Schedule routine eye check in 12 months",
+        Monitor: "Re-screen in 6 months and check eye pressure",
+        Suspicious: "Book appointment with ophthalmologist within 4 to 6 weeks",
+        "High risk": "Seek urgent ophthalmology review within 1 to 2 weeks",
+      };
+
+      async function runGlaucomaPrediction() {
+        if (!selectedFile) return;
+        const btn = document.getElementById("glaucomaBtn");
+        btn.disabled = true;
+        btn.classList.add("loading");
+        document.getElementById("glaucomaErrorBox").classList.remove("visible");
+        document
+          .getElementById("glaucomaResultSection")
+          .classList.remove("visible");
+        try {
+          const form = new FormData();
+          form.append("image", selectedFile);
+          const res = await fetch("/predict-glaucoma", {
+            method: "POST",
+            body: form,
+          });
+          if (!res.ok) throw new Error("Server returned " + res.status);
+          const data = await res.json();
+          showGlaucomaResult(data);
+        } catch (err) {
+          const box = document.getElementById("glaucomaErrorBox");
+          box.textContent =
+            "Glaucoma analysis failed: " +
+            err.message +
+            ". Ensure the server is running on port 3000.";
+          box.classList.add("visible");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("loading");
+        }
+      }
+
+      function showGlaucomaResult(data) {
+        const key = glaucomaColorKey(data.risk_level);
+        const color = GLAUCOMA_COLORS[key];
+
+        document.getElementById("cdrBig").textContent = data.cdr.toFixed(2);
+        document.getElementById("cdrExplanation").textContent =
+          cdrExplanation(data.cdr);
+        document.getElementById("discPixels").textContent = data.disc_pixels;
+        document.getElementById("cupPixels").textContent = data.cup_pixels;
+
+        const gaugeFill = document.getElementById("cdrGaugeFill");
+        gaugeFill.style.width = Math.min(data.cdr, 1) * 100 + "%";
+        gaugeFill.style.background = color;
+
+        const box = document.getElementById("glaucomaRiskBox");
+        box.className = "risk-box " + GLAUCOMA_BOX_CLASS[key];
+        document.getElementById("glaucomaRiskLabel").textContent =
+          data.risk_level;
+        document.getElementById("glaucomaRiskDetail").textContent =
+          data.risk_detail;
+
+        document.getElementById("glaucomaNextStep").textContent =
+          GLAUCOMA_NEXT_STEP[key];
+        document.getElementById("glaucomaMeaningCard").style.borderLeftColor =
+          color;
+
+        document
+          .getElementById("glaucomaResultSection")
+          .classList.add("visible");
       }
 
       function generateReport() {
