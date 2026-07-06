@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--resume", type=str, default=None)
     parser.add_argument("--start_epoch", type=int, default=1)
+    parser.add_argument("--best_val_loss", type=float, default=float("inf"), help="best val loss from previous run")
     return parser.parse_args()
 
 
@@ -108,7 +109,8 @@ def main():
         optimizer, mode='min', factor=0.5, patience=5
     )
 
-    best_val_loss = float("inf")
+    best_val_loss = args.best_val_loss
+    print(f"Starting with best val loss: {best_val_loss:.4f}")
     start_time = time.time()
 
     for epoch in range(args.start_epoch, args.epochs + 1):
