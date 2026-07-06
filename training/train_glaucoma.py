@@ -105,7 +105,7 @@ def main():
     bce_criterion = nn.BCELoss()
     optimizer = Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+        optimizer, mode='min', factor=0.5, patience=5
     )
 
     best_val_loss = float("inf")
