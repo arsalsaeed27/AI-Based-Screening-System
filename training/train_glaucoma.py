@@ -9,7 +9,7 @@ from torch.optim import Adam
 from training.glaucoma_dataset import get_dataloaders
 from training.unet import UNet
 
-CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/content/drive/MyDrive/retinal-models")
+CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/kaggle/working/glaucoma-models")
 
 
 def parse_args():
