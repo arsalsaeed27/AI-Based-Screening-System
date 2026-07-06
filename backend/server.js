@@ -6,6 +6,7 @@ const ort = require("onnxruntime-node");
 
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
+const GLAUCOMA_MODEL_PATH = path.join(__dirname, "..", "models", "glaucoma_model.onnx");
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -28,6 +29,7 @@ const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 
 let session;
+let glaucomaSession;
 
 async function preprocessImage(buffer) {
   const { data } = await sharp(buffer)
@@ -54,6 +56,39 @@ function softmax(scores) {
   const exps = scores.map((s) => Math.exp(s - max));
   const sum = exps.reduce((a, b) => a + b, 0);
   return exps.map((e) => e / sum);
+}
+
+async function preprocessGlaucomaImage(buffer) {
+  const { data } = await sharp(buffer)
+    .resize(512, 512)
+    .removeAlpha()
+    .toColorspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const float32Data = new Float32Array(3 * 512 * 512);
+  const pixelCount = 512 * 512;
+
+  for (let i = 0; i < pixelCount; i++) {
+    float32Data[i] = data[i * 3] / 255;
+    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
+    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
+  }
+
+  return new ort.Tensor("float32", float32Data, [1, 3, 512, 512]);
+}
+
+function getRiskLevel(cdr) {
+  if (cdr < 0.3) {
+    return { risk_level: "Normal", risk_detail: "CDR within normal range" };
+  }
+  if (cdr < 0.5) {
+    return { risk_level: "Monitor", risk_detail: "CDR slightly elevated, monitor over time" };
+  }
+  if (cdr < 0.7) {
+    return { risk_level: "Suspicious", risk_detail: "Suspicious — refer for IOP testing" };
+  }
+  return { risk_level: "High risk", risk_detail: "High risk — urgent referral" };
 }
 
 app.get("/health", (req, res) => {
@@ -87,8 +122,47 @@ app.post("/predict", upload.single("image"), async (req, res) => {
   }
 });
 
+app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file uploaded" });
+  }
+
+  try {
+    const inputTensor = await preprocessGlaucomaImage(req.file.buffer);
+    const feeds = { [glaucomaSession.inputNames[0]]: inputTensor };
+    const results = await glaucomaSession.run(feeds);
+    const outputTensor = results[glaucomaSession.outputNames[0]];
+
+    const data = outputTensor.data;
+    const pixelCount = 512 * 512;
+
+    let discPixels = 0;
+    let cupPixels = 0;
+
+    for (let i = 0; i < pixelCount; i++) {
+      if (data[i] >= 0.5) discPixels++;
+      if (data[pixelCount + i] >= 0.5) cupPixels++;
+    }
+
+    const cdr = discPixels === 0 ? 0 : cupPixels / discPixels;
+    const { risk_level, risk_detail } = getRiskLevel(cdr);
+
+    res.json({
+      cdr: Number(cdr.toFixed(2)),
+      risk_level,
+      risk_detail,
+      disc_pixels: discPixels,
+      cup_pixels: cupPixels,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Inference failed" });
+  }
+});
+
 async function start() {
   session = await ort.InferenceSession.create(MODEL_PATH);
+  glaucomaSession = await ort.InferenceSession.create(GLAUCOMA_MODEL_PATH);
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
