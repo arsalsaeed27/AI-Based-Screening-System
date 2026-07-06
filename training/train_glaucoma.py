@@ -14,22 +14,20 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/content/drive/MyDrive/retina
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train UNet for optic disc/cup segmentation")
-    parser.add_argument("--images", type=str, required=True, help="path to images folder")
-    parser.add_argument("--masks", type=str, required=True, help="path to masks folder")
-    parser.add_argument("--batch", type=int, default=4, help="batch size")
-    parser.add_argument("--epochs", type=int, default=50, help="number of epochs")
-    parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from")
-    parser.add_argument("--start_epoch", type=int, default=1, help="epoch to start from")
+    parser.add_argument("--images", type=str, required=True)
+    parser.add_argument("--masks", type=str, required=True)
+    parser.add_argument("--batch", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--resume", type=str, default=None)
+    parser.add_argument("--start_epoch", type=int, default=1)
     return parser.parse_args()
 
 
 def dice_loss(preds, targets, smooth=1.0):
     preds = preds.contiguous().view(preds.size(0), preds.size(1), -1)
     targets = targets.contiguous().view(targets.size(0), targets.size(1), -1)
-
     intersection = (preds * targets).sum(dim=2)
     union = preds.sum(dim=2) + targets.sum(dim=2)
-
     dice = (2 * intersection + smooth) / (union + smooth)
     return 1 - dice.mean()
 
@@ -37,10 +35,8 @@ def dice_loss(preds, targets, smooth=1.0):
 def dice_score(preds, targets, smooth=1.0):
     preds = (preds > 0.5).float().contiguous().view(preds.size(0), -1)
     targets = targets.contiguous().view(targets.size(0), -1)
-
     intersection = (preds * targets).sum(dim=1)
     union = preds.sum(dim=1) + targets.sum(dim=1)
-
     dice = (2 * intersection + smooth) / (union + smooth)
     return dice.mean().item()
 
@@ -77,7 +73,6 @@ def run_epoch(model, loader, bce_criterion, optimizer, device, train):
             cup_dice_sum += dice_score(outputs[:, 1], masks[:, 1])
             num_batches += 1
 
-        # print every 10 batches so you know it's alive
         if train and batch_idx % 10 == 0:
             print(f"  Batch {batch_idx}/{len(loader)} | "
                   f"Loss: {loss.item():.4f}", flush=True)
@@ -98,7 +93,9 @@ def main():
 
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-    train_loader, val_loader = get_dataloaders(args.images, args.masks, batch_size=args.batch)
+    train_loader, val_loader = get_dataloaders(
+        args.images, args.masks, batch_size=args.batch
+    )
 
     model = UNet(in_channels=3, out_channels=2).to(device)
     if args.resume:
@@ -107,13 +104,20 @@ def main():
 
     bce_criterion = nn.BCELoss()
     optimizer = Adam(model.parameters(), lr=0.001)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+    )
 
     best_val_loss = float("inf")
     start_time = time.time()
 
     for epoch in range(args.start_epoch, args.epochs + 1):
-        train_loss, _, _ = run_epoch(model, train_loader, bce_criterion, optimizer, device, train=True)
-        val_loss, disc_dice, cup_dice = run_epoch(model, val_loader, bce_criterion, optimizer, device, train=False)
+        train_loss, _, _ = run_epoch(
+            model, train_loader, bce_criterion, optimizer, device, train=True
+        )
+        val_loss, disc_dice, cup_dice = run_epoch(
+            model, val_loader, bce_criterion, optimizer, device, train=False
+        )
 
         print(
             f"Epoch {epoch}/{args.epochs} | "
@@ -121,8 +125,12 @@ def main():
             f"Val Dice Disc: {disc_dice:.4f} | Val Dice Cup: {cup_dice:.4f}"
         )
 
+        scheduler.step(val_loss)
+
         if epoch % 10 == 0:
-            checkpoint_path = os.path.join(CHECKPOINT_DIR, f"checkpoint_epoch_{epoch}.pth")
+            checkpoint_path = os.path.join(
+                CHECKPOINT_DIR, f"checkpoint_epoch_{epoch}.pth"
+            )
             torch.save(model.state_dict(), checkpoint_path)
             print(f"Saved checkpoint: {checkpoint_path}")
 
