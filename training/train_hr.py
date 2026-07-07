@@ -103,7 +103,8 @@ def main():
         model.load_state_dict(torch.load(args.resume, map_location=device))
         print(f"Resumed from checkpoint: {args.resume}")
 
-    pos_weight = (class_weights[1] / class_weights[0]).to(device)
+    # use a mild pos_weight instead of the full inverse ratio
+    pos_weight = torch.tensor([1.5], device=device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
