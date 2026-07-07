@@ -96,7 +96,7 @@ def main():
         args.hrdc_hyp_csv, args.hrdc_hyp_images,
     )
 
-    train_loader, val_loader, class_weights = get_dataloaders(df, batch_size=args.batch)
+    train_loader, val_loader = get_dataloaders(df, batch_size=args.batch)
 
     model = RetinalCNN(num_classes=1).to(device)
     if args.resume:
@@ -104,7 +104,6 @@ def main():
         print(f"Resumed from checkpoint: {args.resume}")
 
     # use a mild pos_weight instead of the full inverse ratio
-    train_loader, val_loader = get_dataloaders(df, batch_size=args.batch)
     criterion = nn.BCEWithLogitsLoss()
     optimizer = Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
