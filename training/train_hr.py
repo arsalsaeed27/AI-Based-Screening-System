@@ -4,6 +4,7 @@ import time
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import Adam
 
 from training.hr_dataset import build_merged_dataframe, get_dataloaders
@@ -56,7 +57,10 @@ def run_epoch(model, loader, criterion, optimizer, device, train):
             optimizer.step()
 
         total_loss += loss.item() * images.size(0)
-        preds = (outputs > 0).float()
+        if train:
+            preds = (outputs > 0).float()
+        else:
+            preds = (torch.sigmoid(outputs) > 0.3).long().squeeze()
         correct += (preds == labels).sum().item()
         total += labels.size(0)
 
