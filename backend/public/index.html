@@ -1325,6 +1325,93 @@
             </div>
           </div>
         </div>
+
+        <!-- HYPERTENSIVE RETINOPATHY SCREENING PANEL -->
+        <div class="panel">
+          <div class="panel-header">
+            <svg
+              viewBox="0 0 24 24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              />
+            </svg>
+            <span class="panel-title">Hypertensive Retinopathy Screening</span>
+          </div>
+          <div class="panel-body">
+            <button
+              class="btn btn-analyse"
+              id="hrBtn"
+              onclick="runHrPrediction()"
+              disabled
+              style="margin-bottom: 12px"
+            >
+              <span class="btn-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke: white;
+                    fill: none;
+                    stroke-width: 2;
+                  "
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span class="spinner"></span>
+              Analyse for hypertensive retinopathy
+            </button>
+
+            <div class="error-box" id="hrErrorBox"></div>
+
+            <div class="result-section" id="hrResultSection">
+              <div class="metric-card">
+                <div class="metric-label">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  HR probability
+                </div>
+                <p class="confidence-big" id="hrProbBig">—</p>
+                <p class="confidence-sub">
+                  probability of hypertensive retinopathy
+                </p>
+                <div class="iop-bar-track" style="margin-top: 8px">
+                  <div
+                    class="iop-bar-fill"
+                    id="hrProbBar"
+                    style="width: 0%; background: #16a34a"
+                  ></div>
+                </div>
+              </div>
+
+              <div
+                class="risk-box"
+                id="hrRiskBox"
+                style="margin-top: 1rem"
+              >
+                <p class="referral-heading">Risk assessment</p>
+                <p class="risk-box-label" id="hrRiskLabel">—</p>
+                <p class="risk-box-detail" id="hrRecommendation">—</p>
+              </div>
+
+              <div class="referral-sub" style="margin-top: 8px">
+                <span id="hrNote">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1430,6 +1517,9 @@
           .getElementById("glaucomaResultSection")
           .classList.remove("visible");
         document.getElementById("glaucomaErrorBox").classList.remove("visible");
+        document.getElementById("hrBtn").disabled = false;
+        document.getElementById("hrResultSection").classList.remove("visible");
+        document.getElementById("hrErrorBox").classList.remove("visible");
         setStatus(
           "ready",
           "Image loaded — click Run analysis to begin screening.",
@@ -1543,6 +1633,9 @@
           .getElementById("glaucomaResultSection")
           .classList.remove("visible");
         document.getElementById("glaucomaErrorBox").classList.remove("visible");
+        document.getElementById("hrBtn").disabled = true;
+        document.getElementById("hrResultSection").classList.remove("visible");
+        document.getElementById("hrErrorBox").classList.remove("visible");
         setStatus(
           "waiting",
           "Awaiting image upload — fill in patient details and upload a fundus photograph to begin.",
@@ -1648,6 +1741,56 @@
         document
           .getElementById("glaucomaResultSection")
           .classList.add("visible");
+      }
+
+      async function runHrPrediction() {
+        if (!selectedFile) return;
+        const btn = document.getElementById("hrBtn");
+        btn.disabled = true;
+        btn.classList.add("loading");
+        document.getElementById("hrErrorBox").classList.remove("visible");
+        document.getElementById("hrResultSection").classList.remove("visible");
+        try {
+          const form = new FormData();
+          form.append("image", selectedFile);
+          const res = await fetch("/predict-hr", {
+            method: "POST",
+            body: form,
+          });
+          if (!res.ok) throw new Error("Server returned " + res.status);
+          const data = await res.json();
+          showHrResult(data);
+        } catch (err) {
+          const box = document.getElementById("hrErrorBox");
+          box.textContent =
+            "Hypertensive retinopathy analysis failed: " +
+            err.message +
+            ". Ensure the server is running on port 3000.";
+          box.classList.add("visible");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("loading");
+        }
+      }
+
+      function showHrResult(data) {
+        const color = data.hr_detected ? "#dc2626" : "#16a34a";
+        const boxClass = data.hr_detected ? "risk-high" : "risk-normal";
+
+        document.getElementById("hrProbBig").textContent =
+          Math.round(data.probability * 100) + "%";
+        document.getElementById("hrProbBar").style.width =
+          Math.round(data.probability * 100) + "%";
+        document.getElementById("hrProbBar").style.background = color;
+
+        const box = document.getElementById("hrRiskBox");
+        box.className = "risk-box " + boxClass;
+        document.getElementById("hrRiskLabel").textContent = data.risk_level;
+        document.getElementById("hrRecommendation").textContent =
+          data.recommendation;
+        document.getElementById("hrNote").textContent = data.note;
+
+        document.getElementById("hrResultSection").classList.add("visible");
       }
 
       function generateReport() {
