@@ -51,13 +51,33 @@ def _load_hrdc_csv(csv_path, images_dir, label_column):
     return df[["image_path", "label"]]
 
 
+def _load_eyepacs_healthy(csv_path, images_dir, n):
+    df = pd.read_csv(csv_path)
+    df = df[df["level"] == 0]
+    df = df.sample(n=min(n, len(df)), random_state=42)
+
+    df["image_path"] = df["image"].apply(
+        lambda x: os.path.abspath(os.path.join(images_dir, x + ".png"))
+    )
+    df = df[df["image_path"].apply(os.path.isfile)]
+    df["label"] = 0
+
+    return df[["image_path", "label"]]
+
+
 def build_merged_dataframe(zoya_hr_path, zoya_normal_path, hrdc_hr_csv, hrdc_hr_images,
-                            hrdc_hyp_csv, hrdc_hyp_images):
+                            hrdc_hyp_csv, hrdc_hyp_images,
+                            eyepacs_csv=None, eyepacs_images=None, eyepacs_n=600):
     zoya_df = _load_zoya(zoya_hr_path, zoya_normal_path)
     hrdc_hr_df = _load_hrdc_csv(hrdc_hr_csv, hrdc_hr_images, "Hypertensive Retinopathy")
     hrdc_hyp_df = _load_hrdc_csv(hrdc_hyp_csv, hrdc_hyp_images, "Hypertensive")
 
-    merged_df = pd.concat([zoya_df, hrdc_hr_df, hrdc_hyp_df], ignore_index=True)
+    dfs = [zoya_df, hrdc_hr_df, hrdc_hyp_df]
+
+    if eyepacs_csv is not None and eyepacs_images is not None:
+        dfs.append(_load_eyepacs_healthy(eyepacs_csv, eyepacs_images, eyepacs_n))
+
+    merged_df = pd.concat(dfs, ignore_index=True)
 
     merged_df["filename"] = merged_df["image_path"].apply(os.path.basename)
     merged_df = merged_df.drop_duplicates(subset="filename").drop(columns="filename")
