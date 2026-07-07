@@ -103,8 +103,10 @@ def main():
         model.load_state_dict(torch.load(args.resume, map_location=device))
         print(f"Resumed from checkpoint: {args.resume}")
 
-    # use a mild pos_weight instead of the full inverse ratio
-    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.5], device=device))
+    counts = df['label'].value_counts().sort_index().values
+    ratio = counts[0] / counts[1]
+    pos_weight = torch.tensor([min(ratio, 2.0)], device=device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=5

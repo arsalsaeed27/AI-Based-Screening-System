@@ -5,12 +5,11 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, random_split
+from torch.utils.data import Dataset, DataLoader, random_split
 
 from training.dataset import apply_clahe, crop_to_circle
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
-NUM_CLASSES = 2
 
 
 def _list_images(folder):
@@ -141,17 +140,7 @@ def get_dataloaders(df, batch_size=16):
     train_dataset = HRDataset(train_df, augment=True)
     val_dataset = HRDataset(val_df, augment=False)
 
-    class_counts = np.bincount(train_df["label"].values, minlength=NUM_CLASSES)
-    class_counts = np.maximum(class_counts, 1)
-    class_weights = class_counts.sum() / (NUM_CLASSES * class_counts)
-
-    # gentler weighting — square root instead of full inverse
-    sample_weights = np.sqrt(class_weights[train_df["label"].values])
-    sampler = WeightedRandomSampler(
-        weights=sample_weights, num_samples=len(sample_weights), replacement=True
-    )
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, num_workers=2, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     return train_loader, val_loader
