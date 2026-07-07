@@ -150,9 +150,9 @@ def get_dataloaders(df, batch_size=16):
         weights=sample_weights, num_samples=len(sample_weights), replacement=True
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, num_workers=2, pin_memory=True)
+    train_loader = DataLoader( train_dataset, batch_size=batch_size, shuffle=True,num_workers=2, pin_memory=True )
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     class_weights = torch.tensor(class_weights, dtype=torch.float32)
 
-    return train_loader, val_loader, class_weights
+    return train_loader, val_loader
