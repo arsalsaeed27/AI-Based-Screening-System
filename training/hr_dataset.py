@@ -145,14 +145,13 @@ def get_dataloaders(df, batch_size=16):
     class_counts = np.maximum(class_counts, 1)
     class_weights = class_counts.sum() / (NUM_CLASSES * class_counts)
 
-    sample_weights = class_weights[train_df["label"].values]
+    # gentler weighting — square root instead of full inverse
+    sample_weights = np.sqrt(class_weights[train_df["label"].values])
     sampler = WeightedRandomSampler(
         weights=sample_weights, num_samples=len(sample_weights), replacement=True
     )
 
-    train_loader = DataLoader( train_dataset, batch_size=batch_size, shuffle=True,num_workers=2, pin_memory=True )
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
-
-    class_weights = torch.tensor(class_weights, dtype=torch.float32)
 
     return train_loader, val_loader

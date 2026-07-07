@@ -104,7 +104,7 @@ def main():
         print(f"Resumed from checkpoint: {args.resume}")
 
     # use a mild pos_weight instead of the full inverse ratio
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.5], device=device))
     optimizer = Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=5
