@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--hrdc_hr_images", type=str, required=True, help="path to HRDC HR Classification images")
     parser.add_argument("--hrdc_hyp_csv", type=str, required=True, help="path to HRDC Hypertensive Classification CSV")
     parser.add_argument("--hrdc_hyp_images", type=str, required=True, help="path to HRDC Hypertensive Classification images")
+    parser.add_argument("--eyepacs_csv", type=str, default=None, help="path to EyePACS CSV (optional, adds healthy images)")
+    parser.add_argument("--eyepacs_images", type=str, default=None, help="path to EyePACS images (optional, adds healthy images)")
     parser.add_argument("--batch", type=int, default=16, help="batch size")
     parser.add_argument("--epochs", type=int, default=50, help="number of epochs")
     parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from")
@@ -94,6 +96,7 @@ def main():
         args.zoya_hr, args.zoya_normal,
         args.hrdc_hr_csv, args.hrdc_hr_images,
         args.hrdc_hyp_csv, args.hrdc_hyp_images,
+        eyepacs_csv=args.eyepacs_csv, eyepacs_images=args.eyepacs_images,
     )
 
     train_loader, val_loader = get_dataloaders(df, batch_size=args.batch)
