@@ -7,6 +7,7 @@ const ort = require("onnxruntime-node");
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
 const GLAUCOMA_MODEL_PATH = path.join(__dirname, "..", "models", "glaucoma_model.onnx");
+const HR_MODEL_PATH = path.join(__dirname, "..", "models", "hr_model.onnx");
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 let session;
 let glaucomaSession;
+let hrSession;
 
 async function preprocessImage(buffer) {
   const { data } = await sharp(buffer)
@@ -56,6 +58,10 @@ function softmax(scores) {
   const exps = scores.map((s) => Math.exp(s - max));
   const sum = exps.reduce((a, b) => a + b, 0);
   return exps.map((e) => e / sum);
+}
+
+function sigmoid(logit) {
+  return 1 / (1 + Math.exp(-logit));
 }
 
 async function preprocessGlaucomaImage(buffer) {
@@ -160,9 +166,40 @@ app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
   }
 });
 
+app.post("/predict-hr", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file uploaded" });
+  }
+
+  try {
+    const inputTensor = await preprocessImage(req.file.buffer);
+    const feeds = { [hrSession.inputNames[0]]: inputTensor };
+    const results = await hrSession.run(feeds);
+    const outputTensor = results[hrSession.outputNames[0]];
+
+    const logit = outputTensor.data[0];
+    const probability = sigmoid(logit);
+    const hrDetected = probability > 0.3;
+
+    res.json({
+      hr_detected: hrDetected,
+      probability: Number(probability.toFixed(2)),
+      risk_level: hrDetected ? "HR Detected" : "No HR Detected",
+      recommendation: hrDetected
+        ? "Refer to ophthalmologist — signs of hypertensive retinopathy detected"
+        : "No signs of hypertensive retinopathy. Monitor blood pressure regularly.",
+      note: "This is a preliminary screening result. Confirmation requires blood pressure measurement and specialist review.",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Inference failed" });
+  }
+});
+
 async function start() {
   session = await ort.InferenceSession.create(MODEL_PATH);
   glaucomaSession = await ort.InferenceSession.create(GLAUCOMA_MODEL_PATH);
+  hrSession = await ort.InferenceSession.create(HR_MODEL_PATH);
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
