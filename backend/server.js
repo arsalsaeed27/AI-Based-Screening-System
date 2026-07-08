@@ -84,6 +84,66 @@ async function preprocessGlaucomaImage(buffer) {
   return new ort.Tensor("float32", float32Data, [1, 3, 512, 512]);
 }
 
+async function validateFundusImage(imageBuffer) {
+  const { data } = await sharp(imageBuffer)
+    .resize(224, 224)
+    .removeAlpha()
+    .toColorspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const totalValues = data.length;
+  let sum = 0;
+  for (let i = 0; i < totalValues; i++) sum += data[i];
+  const mean = sum / totalValues;
+
+  if (mean < 20) {
+    return {
+      valid: false,
+      error:
+        "Image appears to be blank or too dark. Please upload a clear fundus photograph.",
+    };
+  }
+
+  let varianceSum = 0;
+  for (let i = 0; i < totalValues; i++) {
+    const diff = data[i] - mean;
+    varianceSum += diff * diff;
+  }
+  const variance = varianceSum / totalValues;
+
+  if (variance < 100) {
+    return {
+      valid: false,
+      error: "Image quality too low. Please upload a clear fundus photograph.",
+    };
+  }
+
+  const pixelCount = 224 * 224;
+  const DARK_THRESHOLD = 20;
+  const BRIGHT_THRESHOLD = 235;
+  let extremeCount = 0;
+
+  for (let i = 0; i < pixelCount; i++) {
+    const intensity = (data[i * 3] + data[i * 3 + 1] + data[i * 3 + 2]) / 3;
+    if (intensity < DARK_THRESHOLD || intensity > BRIGHT_THRESHOLD) {
+      extremeCount++;
+    }
+  }
+
+  const extremeRatio = extremeCount / pixelCount;
+
+  if (extremeRatio > 0.95) {
+    return {
+      valid: false,
+      error:
+        "This does not appear to be a fundus photograph. Please upload a retinal image.",
+    };
+  }
+
+  return { valid: true };
+}
+
 function getRiskLevel(cdr) {
   if (cdr < 0.3) {
     return { risk_level: "Normal", risk_detail: "CDR within normal range" };
@@ -104,6 +164,11 @@ app.get("/health", (req, res) => {
 app.post("/predict", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No image file uploaded" });
+  }
+
+  const validation = await validateFundusImage(req.file.buffer);
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.error });
   }
 
   try {
@@ -131,6 +196,11 @@ app.post("/predict", upload.single("image"), async (req, res) => {
 app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No image file uploaded" });
+  }
+
+  const validation = await validateFundusImage(req.file.buffer);
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.error });
   }
 
   try {
@@ -169,6 +239,11 @@ app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
 app.post("/predict-hr", upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No image file uploaded" });
+  }
+
+  const validation = await validateFundusImage(req.file.buffer);
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.error });
   }
 
   try {
