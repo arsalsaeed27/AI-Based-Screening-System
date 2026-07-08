@@ -750,7 +750,7 @@
       .viewer-wrap img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         transition: opacity 0.3s;
       }
       #heatmapImg {
@@ -758,7 +758,7 @@
         inset: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         opacity: 0;
         transition: opacity 0.3s;
       }
@@ -1023,6 +1023,196 @@
         color: #92400e;
       }
 
+      /* ── SCREENING SELECTOR ── */
+      .screening-selector {
+        margin-bottom: 14px;
+      }
+      .screening-selector-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .screening-checks {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        cursor: pointer;
+        transition: all 0.15s;
+        user-select: none;
+      }
+      .check-item:hover {
+        background: #fff;
+        border-color: var(--border-2);
+      }
+      .check-item.checked {
+        background: var(--blue-50);
+        border-color: #93c5fd;
+      }
+      .check-item input[type="checkbox"] {
+        display: none;
+      }
+      .check-box {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid var(--border-2);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;
+      }
+      .check-item.checked .check-box {
+        background: var(--blue-500);
+        border-color: var(--blue-500);
+      }
+      .check-box svg {
+        width: 11px;
+        height: 11px;
+        stroke: #fff;
+        fill: none;
+        stroke-width: 3;
+        display: none;
+      }
+      .check-item.checked .check-box svg {
+        display: block;
+      }
+      .check-info {
+        flex: 1;
+      }
+      .check-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .check-desc {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+      .check-badge {
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 20px;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+      }
+      .check-badge.dr {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .check-badge.gl {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .check-badge.hr {
+        background: #fce7f3;
+        color: #831843;
+      }
+
+      /* dynamic results grid */
+      .results-grid.cols-1 {
+        grid-template-columns: 1fr;
+      }
+      .results-grid.cols-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .results-grid.cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .result-card.hidden {
+        display: none;
+      }
+
+      /* detailed scores panel */
+      .scores-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        display: none;
+      }
+      .scores-panel.visible {
+        display: block;
+      }
+      .scores-panel .card-header {
+        background: var(--navy-800);
+      }
+      .scores-table-head {
+        display: grid;
+        grid-template-columns: 160px 1fr 60px;
+        gap: 10px;
+        padding: 8px 14px;
+        background: var(--surface-3);
+        border-bottom: 1px solid var(--border);
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .score-row {
+        display: grid;
+        grid-template-columns: 160px 1fr 60px;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        align-items: center;
+        transition: background 0.1s;
+      }
+      .score-row:last-child {
+        border-bottom: none;
+      }
+      .score-row.top-score {
+        background: var(--blue-50);
+      }
+      .score-class {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+      .score-class.top {
+        font-weight: 800;
+        color: var(--navy-900);
+      }
+      .score-bar-track {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .score-bar-inner {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .score-pct-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .score-pct-val.top {
+        color: var(--blue-500);
+        font-weight: 800;
+      }
+
       /* ── RESPONSIVE ── */
       @media (max-width: 900px) {
         .workspace {
@@ -1183,6 +1373,97 @@
                   type="text"
                   placeholder="Dr. Name / Clinic"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- Screening selector -->
+          <div class="card">
+            <div class="card-header">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="9 11 12 14 22 4" />
+                <path
+                  d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                />
+              </svg>
+              <span class="card-header-title">Screening Selection</span>
+              <span class="card-header-badge">Select conditions</span>
+            </div>
+            <div class="card-body" style="padding-bottom: 12px">
+              <div class="screening-checks">
+                <label
+                  class="check-item checked"
+                  id="chk-dr-wrap"
+                  onclick="toggleCheck('dr')"
+                >
+                  <input type="checkbox" id="chk-dr" checked />
+                  <div class="check-box">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div class="check-info">
+                    <div class="check-name">Diabetic Retinopathy</div>
+                    <div class="check-desc">
+                      5-class ICDR severity grading with Grad-CAM
+                    </div>
+                  </div>
+                  <span class="check-badge dr">DR</span>
+                </label>
+                <label
+                  class="check-item checked"
+                  id="chk-gl-wrap"
+                  onclick="toggleCheck('gl')"
+                >
+                  <input type="checkbox" id="chk-gl" checked />
+                  <div class="check-box">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div class="check-info">
+                    <div class="check-name">Glaucoma</div>
+                    <div class="check-desc">
+                      Cup-to-Disc Ratio via optic disc segmentation
+                    </div>
+                  </div>
+                  <span class="check-badge gl">CDR</span>
+                </label>
+                <label
+                  class="check-item checked"
+                  id="chk-hr-wrap"
+                  onclick="toggleCheck('hr')"
+                >
+                  <input type="checkbox" id="chk-hr" checked />
+                  <div class="check-box">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div class="check-info">
+                    <div class="check-name">Hypertensive Retinopathy</div>
+                    <div class="check-desc">
+                      Binary HR detection with probability score
+                    </div>
+                  </div>
+                  <span class="check-badge hr">HR</span>
+                </label>
               </div>
             </div>
           </div>
@@ -1373,7 +1654,7 @@
             <!-- 3 result cards -->
             <div class="results-grid">
               <!-- DR card -->
-              <div class="result-card">
+              <div class="result-card" id="drResultCard">
                 <div class="result-card-head">
                   <svg
                     viewBox="0 0 24 24"
@@ -1417,7 +1698,7 @@
               </div>
 
               <!-- Glaucoma card -->
-              <div class="result-card">
+              <div class="result-card" id="glResultCard">
                 <div class="result-card-head">
                   <svg
                     viewBox="0 0 24 24"
@@ -1455,7 +1736,7 @@
               </div>
 
               <!-- HR card -->
-              <div class="result-card">
+              <div class="result-card" id="hrResultCard">
                 <div class="result-card-head">
                   <svg
                     viewBox="0 0 24 24"
@@ -1489,6 +1770,29 @@
                   </p>
                 </div>
               </div>
+            </div>
+
+            <!-- detailed DR scores panel (shown only when DR selected) -->
+            <div class="scores-panel" id="drScoresPanel">
+              <div class="card-header">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span class="card-header-title"
+                  >DR — Class Probability Distribution</span
+                >
+              </div>
+              <div class="scores-table-head">
+                <span>Classification</span><span>Probability</span
+                ><span style="text-align: right">Score</span>
+              </div>
+              <div id="drScoresBody"></div>
             </div>
 
             <!-- TRIAGE ALERT -->
@@ -1680,65 +1984,93 @@
         d.className = "s-dot " + type;
       }
 
+      // ── CHECKBOX TOGGLE ──
+      function toggleCheck(type) {
+        const wrap = document.getElementById("chk-" + type + "-wrap");
+        const cb = document.getElementById("chk-" + type);
+        cb.checked = !cb.checked;
+        wrap.classList.toggle("checked", cb.checked);
+      }
+
+      function getSelected() {
+        return {
+          dr: document.getElementById("chk-dr").checked,
+          gl: document.getElementById("chk-gl").checked,
+          hr: document.getElementById("chk-hr").checked,
+        };
+      }
+
       // ── ANALYSIS ──
       async function runAnalysis() {
         if (!selectedFile) {
           alert("Please upload a fundus image first.");
           return;
         }
+        const sel = getSelected();
+        if (!sel.dr && !sel.gl && !sel.hr) {
+          alert("Please select at least one condition to screen for.");
+          return;
+        }
+
         const btn = document.getElementById("analyseBtn");
         btn.disabled = true;
         btn.classList.add("loading");
         document.getElementById("errorBox").classList.remove("visible");
         document.getElementById("dashboard").classList.remove("visible");
-        setStatus(
-          "running",
-          "Running AI analysis across all three models — please wait...",
-        );
+
+        const names = [];
+        if (sel.dr) names.push("Diabetic Retinopathy");
+        if (sel.gl) names.push("Glaucoma");
+        if (sel.hr) names.push("Hypertensive Retinopathy");
+        setStatus("running", "Analysing for " + names.join(", ") + "...");
 
         try {
-          const form = new FormData();
-          form.append("image", selectedFile);
+          const calls = [];
+          if (sel.dr) {
+            const f = new FormData();
+            f.append("image", selectedFile);
+            calls.push(
+              fetch("/predict", { method: "POST", body: f }).then((r) =>
+                r.json(),
+              ),
+            );
+          } else calls.push(Promise.resolve(null));
+          if (sel.gl) {
+            const f = new FormData();
+            f.append("image", selectedFile);
+            calls.push(
+              fetch("/predict-glaucoma", { method: "POST", body: f }).then(
+                (r) => r.json(),
+              ),
+            );
+          } else calls.push(Promise.resolve(null));
+          if (sel.hr) {
+            const f = new FormData();
+            f.append("image", selectedFile);
+            calls.push(
+              fetch("/predict-hr", { method: "POST", body: f }).then((r) =>
+                r.json(),
+              ),
+            );
+          } else calls.push(Promise.resolve(null));
 
-          const [drRes, gRes, hrRes] = await Promise.all([
-            fetch("/predict", { method: "POST", body: form }),
-            fetch("/predict-glaucoma", {
-              method: "POST",
-              body: new FormData().append("image", selectedFile) || buildForm(),
-            }),
-            fetch("/predict-hr", { method: "POST", body: buildForm() }),
-          ]);
+          const [r1, r2, r3] = await Promise.all(calls);
 
-          // Build forms fresh for each
-          const f1 = new FormData();
-          f1.append("image", selectedFile);
-          const f2 = new FormData();
-          f2.append("image", selectedFile);
-          const f3 = new FormData();
-          f3.append("image", selectedFile);
-
-          const [r1, r2, r3] = await Promise.all([
-            fetch("/predict", { method: "POST", body: f1 }).then((r) =>
-              r.json(),
-            ),
-            fetch("/predict-glaucoma", { method: "POST", body: f2 }).then((r) =>
-              r.json(),
-            ),
-            fetch("/predict-hr", { method: "POST", body: f3 }).then((r) =>
-              r.json(),
-            ),
-          ]);
-
-          if (r1.error) throw new Error(r1.error);
+          // check for errors in selected results
+          if (r1 && r1.error) throw new Error(r1.error);
+          if (r2 && r2.error) throw new Error(r2.error);
+          if (r3 && r3.error) throw new Error(r3.error);
 
           lastResults = { dr: r1, glaucoma: r2, hr: r3 };
-          heatmapB64 = r1.heatmap || null;
+          heatmapB64 = (r1 && r1.heatmap) || null;
           scanId = "SCN-" + Date.now().toString(36).toUpperCase();
 
-          showDashboard(r1, r2, r3);
+          showDashboard(r1, r2, r3, sel);
           setStatus(
             "done",
-            "Analysis complete. Review findings and generate PDF report.",
+            "Analysis complete for " +
+              names.join(", ") +
+              ". Review findings and generate PDF report.",
           );
         } catch (err) {
           const b = document.getElementById("errorBox");
@@ -1754,20 +2086,14 @@
         }
       }
 
-      function buildForm() {
-        const f = new FormData();
-        f.append("image", selectedFile);
-        return f;
-      }
-
-      function showDashboard(dr, gl, hr) {
+      function showDashboard(dr, gl, hr, sel) {
         // Quality gate
         const blur = (70 + Math.random() * 25).toFixed(1);
         document.getElementById("blurIndex").textContent =
           "Blur index: " + blur;
 
         // Heatmap
-        if (heatmapB64) {
+        if (heatmapB64 && sel.dr) {
           document.getElementById("heatmapImg").src =
             "data:image/png;base64," + heatmapB64;
           document.getElementById("heatmapToggle").style.opacity = "1";
@@ -1777,74 +2103,125 @@
           document.getElementById("heatmapToggle").style.pointerEvents = "none";
         }
 
-        // DR
-        const cls = dr.predicted_class;
-        const rk = DR_RISK[cls];
-        const rc = RISK_COLORS[rk];
-        const pill = document.getElementById("drPill");
-        pill.style.background = rc.bg;
-        pill.style.color = rc.text;
-        document.getElementById("drDot").style.background = rc.dot;
-        document.getElementById("drLabel").textContent =
-          dr.severity_label || DR_LABELS[cls];
-        document.getElementById("drGrade").textContent = DR_GRADES[cls];
-        const pct = Math.round(dr.confidence * 100);
-        document.getElementById("drConfPct").textContent = pct + "%";
-        document.getElementById("drConfBar").style.width = pct + "%";
-        document.getElementById("drConfBar").style.background = DR_COLORS[cls];
-        document.getElementById("drDesc").textContent = DR_DESCS[cls];
+        // ── DR ──
+        const drCard = document.getElementById("drResultCard");
+        const drScores = document.getElementById("drScoresPanel");
+        if (sel.dr && dr) {
+          drCard.classList.remove("hidden");
+          drScores.classList.add("visible");
+          const cls = dr.predicted_class;
+          const rk = DR_RISK[cls];
+          const rc = RISK_COLORS[rk];
+          const pill = document.getElementById("drPill");
+          pill.style.background = rc.bg;
+          pill.style.color = rc.text;
+          document.getElementById("drDot").style.background = rc.dot;
+          document.getElementById("drLabel").textContent =
+            dr.severity_label || DR_LABELS[cls];
+          document.getElementById("drGrade").textContent = DR_GRADES[cls];
+          const pct = Math.round(dr.confidence * 100);
+          document.getElementById("drConfPct").textContent = pct + "%";
+          document.getElementById("drConfBar").style.width = pct + "%";
+          document.getElementById("drConfBar").style.background =
+            DR_COLORS[cls];
+          document.getElementById("drDesc").textContent = DR_DESCS[cls];
+          // detailed scores
+          const body = document.getElementById("drScoresBody");
+          body.innerHTML = "";
+          (dr.scores || []).forEach((s, i) => {
+            const p = Math.round(s * 100);
+            const top = i === cls;
+            body.innerHTML += `<div class="score-row${top ? " top-score" : ""}">
+        <span class="score-class${top ? " top" : ""}">${DR_LABELS[i]}</span>
+        <div class="score-bar-track"><div class="score-bar-inner" style="width:${p}%;background:${top ? DR_COLORS[cls] : "#94a3b8"};"></div></div>
+        <span class="score-pct-val${top ? " top" : ""}">${p}%</span>
+      </div>`;
+          });
+        } else {
+          drCard.classList.add("hidden");
+          drScores.classList.remove("visible");
+        }
 
-        // Glaucoma
-        const cdr = gl.cdr || 0;
-        document.getElementById("cdrVal").textContent = cdr.toFixed(2);
-        document.getElementById("cdrVal").style.color =
-          cdr > 0.7
+        // ── GLAUCOMA ──
+        const glCard = document.getElementById("glResultCard");
+        if (sel.gl && gl) {
+          glCard.classList.remove("hidden");
+          const cdr = gl.cdr || 0;
+          document.getElementById("cdrVal").textContent = cdr.toFixed(2);
+          document.getElementById("cdrVal").style.color =
+            cdr > 0.7
+              ? "#dc2626"
+              : cdr > 0.5
+                ? "#ea580c"
+                : cdr > 0.3
+                  ? "#ca8a04"
+                  : "#16a34a";
+          const cdrPct = Math.min(cdr * 100, 100);
+          const cdrBar = document.getElementById("cdrBar");
+          cdrBar.style.width = cdrPct + "%";
+          cdrBar.style.background =
+            cdr > 0.7
+              ? "#dc2626"
+              : cdr > 0.5
+                ? "#ea580c"
+                : cdr > 0.3
+                  ? "#ca8a04"
+                  : "#16a34a";
+          const cdrRk =
+            cdr > 0.7
+              ? "sev"
+              : cdr > 0.5
+                ? "mod"
+                : cdr > 0.3
+                  ? "mild"
+                  : "normal";
+          const cdrRc = RISK_COLORS[cdrRk];
+          const cdrPill = document.getElementById("cdrPill");
+          cdrPill.style.background = cdrRc.bg;
+          cdrPill.style.color = cdrRc.text;
+          document.getElementById("cdrDot").style.background = cdrRc.dot;
+          document.getElementById("cdrLabel").textContent =
+            gl.risk_level || "Normal";
+        } else {
+          glCard.classList.add("hidden");
+        }
+
+        // ── HR ──
+        const hrCard = document.getElementById("hrResultCard");
+        if (sel.hr && hr) {
+          hrCard.classList.remove("hidden");
+          const hrProb = Math.round((hr.probability || 0) * 100);
+          const hrDet = hr.hr_detected || false;
+          document.getElementById("hrProb").textContent = hrProb + "%";
+          document.getElementById("hrProb").style.color = hrDet
             ? "#dc2626"
-            : cdr > 0.5
-              ? "#ea580c"
-              : cdr > 0.3
-                ? "#ca8a04"
-                : "#16a34a";
-        const cdrPct = Math.min(cdr * 100, 100);
-        const cdrBar = document.getElementById("cdrBar");
-        cdrBar.style.width = cdrPct + "%";
-        cdrBar.style.background =
-          cdr > 0.7
-            ? "#dc2626"
-            : cdr > 0.5
-              ? "#ea580c"
-              : cdr > 0.3
-                ? "#ca8a04"
-                : "#16a34a";
-        const cdrRk =
-          cdr > 0.7 ? "sev" : cdr > 0.5 ? "mod" : cdr > 0.3 ? "mild" : "normal";
-        const cdrRc = RISK_COLORS[cdrRk];
-        const cdrPill = document.getElementById("cdrPill");
-        cdrPill.style.background = cdrRc.bg;
-        cdrPill.style.color = cdrRc.text;
-        document.getElementById("cdrDot").style.background = cdrRc.dot;
-        document.getElementById("cdrLabel").textContent =
-          gl.risk_level || "Normal";
+            : "#16a34a";
+          const hrRk = hrDet ? (hrProb > 70 ? "sev" : "mod") : "normal";
+          const hrRc = RISK_COLORS[hrRk];
+          const hrPill = document.getElementById("hrPill");
+          hrPill.style.background = hrRc.bg;
+          hrPill.style.color = hrRc.text;
+          document.getElementById("hrDot").style.background = hrRc.dot;
+          document.getElementById("hrLabel").textContent =
+            hr.risk_level || (hrDet ? "HR Detected" : "No HR Detected");
+          document.getElementById("hrDesc").textContent =
+            hr.recommendation || "";
+        } else {
+          hrCard.classList.add("hidden");
+        }
 
-        // HR
-        const hrProb = Math.round((hr.probability || 0) * 100);
-        const hrDet = hr.hr_detected || false;
-        document.getElementById("hrProb").textContent = hrProb + "%";
-        document.getElementById("hrProb").style.color = hrDet
-          ? "#dc2626"
-          : "#16a34a";
-        const hrRk = hrDet ? (hrProb > 70 ? "sev" : "mod") : "normal";
-        const hrRc = RISK_COLORS[hrRk];
-        const hrPill = document.getElementById("hrPill");
-        hrPill.style.background = hrRc.bg;
-        hrPill.style.color = hrRc.text;
-        document.getElementById("hrDot").style.background = hrRc.dot;
-        document.getElementById("hrLabel").textContent =
-          hr.risk_level || (hrDet ? "HR Detected" : "No HR Detected");
-        document.getElementById("hrDesc").textContent = hr.recommendation || "";
+        // dynamic grid columns
+        const count = [sel.dr, sel.gl, sel.hr].filter(Boolean).length;
+        const grid = document.querySelector(".results-grid");
+        grid.className = "results-grid cols-" + count;
 
-        // Triage
-        buildTriage(cls, cdr, hrDet, hrProb);
+        // Triage — only for selected conditions
+        const drCls = sel.dr && dr ? dr.predicted_class : 0;
+        const cdr = sel.gl && gl ? gl.cdr || 0 : 0;
+        const hrDet = sel.hr && hr ? hr.hr_detected || false : false;
+        const hrProb =
+          sel.hr && hr ? Math.round((hr.probability || 0) * 100) : 0;
+        buildTriage(drCls, cdr, hrDet, hrProb, sel);
 
         // Meta
         const now = new Date();
@@ -1860,7 +2237,7 @@
           .scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
-      function buildTriage(drCls, cdr, hrDet, hrProb) {
+      function buildTriage(drCls, cdr, hrDet, hrProb, sel) {
         const alert = document.getElementById("triageAlert");
         const icon = document.getElementById("triageIcon");
         let level, main, desc, bg, border, text, dotColor, iconBg;
@@ -2093,119 +2470,128 @@
         y += 34;
 
         // ── DR RESULT ──
-        const drCls = lastResults.dr.predicted_class;
-        const drColors = [
-          [6, 95, 70],
-          [146, 64, 14],
-          [154, 52, 18],
-          [153, 27, 27],
-          [131, 24, 67],
-        ];
-        const drBgs = [
-          [209, 250, 229],
-          [254, 243, 199],
-          [255, 237, 213],
-          [254, 226, 226],
-          [252, 231, 243],
-        ];
-        const sc = drColors[drCls];
-        const sbg = drBgs[drCls];
-        box(M, y, W - M * 2, 26, sbg[0], sbg[1], sbg[2], 208, 217, 229);
-        doc.setFillColor(...sc);
-        doc.rect(M, y, 3, 26, "F");
-        t("DIABETIC RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
-        t(
-          lastResults.dr.severity_label || DR_LABELS[drCls],
-          M + 7,
-          y + 16,
-          16,
-          ...sc,
-          "bold",
-        );
-        t(
-          "ICDR Grade " +
-            drCls +
-            " / 4 · Confidence " +
-            Math.round(lastResults.dr.confidence * 100) +
-            "%",
-          M + 7,
-          y + 22,
-          7,
-          ...sc,
-        );
-        t("CONFIDENCE", W - M - 38, y + 7, 6, 96, 125, 139, "bold");
-        t(
-          Math.round(lastResults.dr.confidence * 100) + "%",
-          W - M - 38,
-          y + 18,
-          18,
-          ...sc,
-          "bold",
-        );
-        y += 32;
+        if (lastResults.dr) {
+          const drCls = lastResults.dr.predicted_class;
+          const drColors = [
+            [6, 95, 70],
+            [146, 64, 14],
+            [154, 52, 18],
+            [153, 27, 27],
+            [131, 24, 67],
+          ];
+          const drBgs = [
+            [209, 250, 229],
+            [254, 243, 199],
+            [255, 237, 213],
+            [254, 226, 226],
+            [252, 231, 243],
+          ];
+          const sc = drColors[drCls];
+          const sbg = drBgs[drCls];
+          box(M, y, W - M * 2, 26, sbg[0], sbg[1], sbg[2], 208, 217, 229);
+          doc.setFillColor(...sc);
+          doc.rect(M, y, 3, 26, "F");
+          t("DIABETIC RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+          t(
+            lastResults.dr.severity_label || DR_LABELS[drCls],
+            M + 7,
+            y + 16,
+            16,
+            ...sc,
+            "bold",
+          );
+          t(
+            "ICDR Grade " +
+              drCls +
+              " / 4 · Confidence " +
+              Math.round(lastResults.dr.confidence * 100) +
+              "%",
+            M + 7,
+            y + 22,
+            7,
+            ...sc,
+          );
+          t("CONFIDENCE", W - M - 38, y + 7, 6, 96, 125, 139, "bold");
+          t(
+            Math.round(lastResults.dr.confidence * 100) + "%",
+            W - M - 38,
+            y + 18,
+            18,
+            ...sc,
+            "bold",
+          );
+          y += 32;
+        }
 
         // ── GLAUCOMA RESULT ──
-        const cdr = lastResults.glaucoma.cdr || 0;
-        const cdrC =
-          cdr > 0.7
-            ? [153, 27, 27]
-            : cdr > 0.5
-              ? [154, 52, 18]
-              : cdr > 0.3
-                ? [146, 64, 14]
-                : [6, 95, 70];
-        const cdrBg =
-          cdr > 0.7
-            ? [254, 226, 226]
-            : cdr > 0.5
-              ? [255, 237, 213]
-              : cdr > 0.3
-                ? [254, 243, 199]
-                : [209, 250, 229];
-        box(M, y, W - M * 2, 22, cdrBg[0], cdrBg[1], cdrBg[2], 208, 217, 229);
-        doc.setFillColor(...cdrC);
-        doc.rect(M, y, 3, 22, "F");
-        t(
-          "GLAUCOMA — CUP-TO-DISC RATIO",
-          M + 7,
-          y + 7,
-          6,
-          96,
-          125,
-          139,
-          "bold",
-        );
-        t(
-          "CDR " + cdr.toFixed(2) + " · " + lastResults.glaucoma.risk_level,
-          M + 7,
-          y + 15,
-          12,
-          ...cdrC,
-          "bold",
-        );
-        y += 28;
+        if (lastResults.glaucoma) {
+          const cdr = lastResults.glaucoma.cdr || 0;
+          const cdrC =
+            cdr > 0.7
+              ? [153, 27, 27]
+              : cdr > 0.5
+                ? [154, 52, 18]
+                : cdr > 0.3
+                  ? [146, 64, 14]
+                  : [6, 95, 70];
+          const cdrBg =
+            cdr > 0.7
+              ? [254, 226, 226]
+              : cdr > 0.5
+                ? [255, 237, 213]
+                : cdr > 0.3
+                  ? [254, 243, 199]
+                  : [209, 250, 229];
+          box(M, y, W - M * 2, 22, cdrBg[0], cdrBg[1], cdrBg[2], 208, 217, 229);
+          doc.setFillColor(...cdrC);
+          doc.rect(M, y, 3, 22, "F");
+          t(
+            "GLAUCOMA — CUP-TO-DISC RATIO",
+            M + 7,
+            y + 7,
+            6,
+            96,
+            125,
+            139,
+            "bold",
+          );
+          t(
+            "CDR " +
+              cdr.toFixed(2) +
+              " · " +
+              (lastResults.glaucoma.risk_level || "Normal"),
+            M + 7,
+            y + 15,
+            12,
+            ...cdrC,
+            "bold",
+          );
+          y += 28;
+        }
 
         // ── HR RESULT ──
-        const hrDet = lastResults.hr.hr_detected || false;
-        const hrP = Math.round((lastResults.hr.probability || 0) * 100);
-        const hrC = hrDet ? [153, 27, 27] : [6, 95, 70];
-        const hrBg = hrDet ? [254, 226, 226] : [209, 250, 229];
-        box(M, y, W - M * 2, 22, hrBg[0], hrBg[1], hrBg[2], 208, 217, 229);
-        doc.setFillColor(...hrC);
-        doc.rect(M, y, 3, 22, "F");
-        t("HYPERTENSIVE RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
-        t(
-          (hrDet ? "HR DETECTED" : "NO HR DETECTED") +
-            " · Probability " +
-            hrP +
-            "%",
-          M + 7,
-          y + 15,
-          12,
-          ...hrC,
-          "bold",
-        );
-        y += 28;
+        if (lastResults.hr) {
+          const hrDet = lastResults.hr.hr_detected || false;
+          const hrP = Math.round((lastResults.hr.probability || 0) * 100);
+          const hrC = hrDet ? [153, 27, 27] : [6, 95, 70];
+          const hrBg = hrDet ? [254, 226, 226] : [209, 250, 229];
+          box(M, y, W - M * 2, 22, hrBg[0], hrBg[1], hrBg[2], 208, 217, 229);
+          doc.setFillColor(...hrC);
+          doc.rect(M, y, 3, 22, "F");
+          t("HYPERTENSIVE RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+          t(
+            (hrDet ? "HR DETECTED" : "NO HR DETECTED") +
+              " · Probability " +
+              hrP +
+              "%",
+            M + 7,
+            y + 15,
+            12,
+            ...hrC,
+            "bold",
+          );
+          y += 28;
+        }
 
         // ── HEATMAP (if available) ──
         if (heatmapB64) {
