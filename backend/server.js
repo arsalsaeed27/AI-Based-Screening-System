@@ -3,11 +3,14 @@ const express = require("express");
 const multer = require("multer");
 const sharp = require("sharp");
 const ort = require("onnxruntime-node");
+const FormData = require("form-data");
+const fetch = require("node-fetch");
 
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
 const GLAUCOMA_MODEL_PATH = path.join(__dirname, "..", "models", "glaucoma_model.onnx");
 const HR_MODEL_PATH = path.join(__dirname, "..", "models", "hr_model.onnx");
+const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -203,6 +206,27 @@ async function validateFundusImage(imageBuffer) {
   return { valid: true };
 }
 
+async function fetchGradCam(imageBuffer, filename) {
+  try {
+    const form = new FormData();
+    form.append("image", imageBuffer, filename || "image.png");
+
+    const res = await fetch(GRADCAM_SERVICE_URL, {
+      method: "POST",
+      body: form,
+      headers: form.getHeaders(),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data.heatmap || null;
+  } catch (err) {
+    console.error("Grad-CAM service unavailable:", err.message);
+    return null;
+  }
+}
+
 function getRiskLevel(cdr) {
   if (cdr < 0.3) {
     return { risk_level: "Normal", risk_detail: "CDR within normal range" };
@@ -239,12 +263,15 @@ app.post("/predict", upload.single("image"), async (req, res) => {
     const scores = softmax(Array.from(outputTensor.data));
     const predictedClass = scores.indexOf(Math.max(...scores));
 
+    const heatmap = await fetchGradCam(req.file.buffer, req.file.originalname);
+
     res.json({
       predicted_class: predictedClass,
       severity_label: CLASS_LABELS[predictedClass],
       confidence: Number(scores[predictedClass].toFixed(2)),
       scores: scores.map((s) => Number(s.toFixed(2))),
       referral: REFERRAL_GUIDANCE[predictedClass],
+      heatmap,
     });
   } catch (err) {
     console.error(err);
