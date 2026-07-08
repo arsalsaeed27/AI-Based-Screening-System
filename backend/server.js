@@ -99,6 +99,25 @@ function regionBrightness(data, imageSize, startX, startY, regionSize) {
   return sum / count;
 }
 
+function regionAverageColor(data, imageSize, startX, startY, regionSize) {
+  let sumR = 0;
+  let sumG = 0;
+  let sumB = 0;
+  let count = 0;
+
+  for (let y = startY; y < startY + regionSize; y++) {
+    for (let x = startX; x < startX + regionSize; x++) {
+      const idx = (y * imageSize + x) * 3;
+      sumR += data[idx];
+      sumG += data[idx + 1];
+      sumB += data[idx + 2];
+      count++;
+    }
+  }
+
+  return { r: sumR / count, g: sumG / count, b: sumB / count };
+}
+
 async function validateFundusImage(imageBuffer) {
   const IMAGE_SIZE = 224;
 
@@ -154,6 +173,30 @@ async function validateFundusImage(imageBuffer) {
       valid: false,
       error:
         "This does not appear to be a fundus photograph. Please upload a retinal fundus image.",
+    };
+  }
+
+  const { r: rAvg, b: bAvg } = regionAverageColor(
+    data,
+    IMAGE_SIZE,
+    centerStart,
+    centerStart,
+    CENTER_SIZE,
+  );
+
+  if (rAvg < 80) {
+    return {
+      valid: false,
+      error:
+        "Image does not appear to be a retinal fundus photograph. Fundus images have a characteristic red/orange tone.",
+    };
+  }
+
+  if (rAvg - bAvg < 15) {
+    return {
+      valid: false,
+      error:
+        "Image does not appear to be a retinal fundus photograph. Fundus images have a characteristic red/orange tone.",
     };
   }
 
