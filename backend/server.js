@@ -84,60 +84,76 @@ async function preprocessGlaucomaImage(buffer) {
   return new ort.Tensor("float32", float32Data, [1, 3, 512, 512]);
 }
 
+function regionBrightness(data, imageSize, startX, startY, regionSize) {
+  let sum = 0;
+  let count = 0;
+
+  for (let y = startY; y < startY + regionSize; y++) {
+    for (let x = startX; x < startX + regionSize; x++) {
+      const idx = (y * imageSize + x) * 3;
+      sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      count++;
+    }
+  }
+
+  return sum / count;
+}
+
 async function validateFundusImage(imageBuffer) {
+  const IMAGE_SIZE = 224;
+
   const { data } = await sharp(imageBuffer)
-    .resize(224, 224)
+    .resize(IMAGE_SIZE, IMAGE_SIZE)
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const totalValues = data.length;
-  let sum = 0;
-  for (let i = 0; i < totalValues; i++) sum += data[i];
-  const mean = sum / totalValues;
+  const CORNER_SIZE = 10;
+  const corners = [
+    regionBrightness(data, IMAGE_SIZE, 0, 0, CORNER_SIZE),
+    regionBrightness(data, IMAGE_SIZE, IMAGE_SIZE - CORNER_SIZE, 0, CORNER_SIZE),
+    regionBrightness(data, IMAGE_SIZE, 0, IMAGE_SIZE - CORNER_SIZE, CORNER_SIZE),
+    regionBrightness(
+      data,
+      IMAGE_SIZE,
+      IMAGE_SIZE - CORNER_SIZE,
+      IMAGE_SIZE - CORNER_SIZE,
+      CORNER_SIZE,
+    ),
+  ];
+  const cornerBrightness = corners.reduce((a, b) => a + b, 0) / corners.length;
 
-  if (mean < 20) {
+  if (cornerBrightness > 60) {
     return {
       valid: false,
       error:
-        "Image appears to be blank or too dark. Please upload a clear fundus photograph.",
+        "This does not appear to be a fundus photograph. Fundus images have a dark circular border.",
     };
   }
 
-  let varianceSum = 0;
-  for (let i = 0; i < totalValues; i++) {
-    const diff = data[i] - mean;
-    varianceSum += diff * diff;
-  }
-  const variance = varianceSum / totalValues;
+  const CENTER_SIZE = 80;
+  const centerStart = (IMAGE_SIZE - CENTER_SIZE) / 2;
+  const centerBrightness = regionBrightness(
+    data,
+    IMAGE_SIZE,
+    centerStart,
+    centerStart,
+    CENTER_SIZE,
+  );
 
-  if (variance < 100) {
+  if (centerBrightness < 40) {
     return {
       valid: false,
-      error: "Image quality too low. Please upload a clear fundus photograph.",
+      error: "Image is too dark. Please upload a clear fundus photograph.",
     };
   }
 
-  const pixelCount = 224 * 224;
-  const DARK_THRESHOLD = 20;
-  const BRIGHT_THRESHOLD = 235;
-  let extremeCount = 0;
-
-  for (let i = 0; i < pixelCount; i++) {
-    const intensity = (data[i * 3] + data[i * 3 + 1] + data[i * 3 + 2]) / 3;
-    if (intensity < DARK_THRESHOLD || intensity > BRIGHT_THRESHOLD) {
-      extremeCount++;
-    }
-  }
-
-  const extremeRatio = extremeCount / pixelCount;
-
-  if (extremeRatio > 0.95) {
+  if (centerBrightness - cornerBrightness < 30) {
     return {
       valid: false,
       error:
-        "This does not appear to be a fundus photograph. Please upload a retinal image.",
+        "This does not appear to be a fundus photograph. Please upload a retinal fundus image.",
     };
   }
 

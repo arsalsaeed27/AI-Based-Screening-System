@@ -1471,6 +1471,26 @@
       let lastResult = null;
       let scanId = null;
 
+      async function extractErrorMessage(res) {
+        try {
+          const data = await res.json();
+          if (data && data.error) return data.error;
+        } catch (e) {
+          // response body wasn't JSON — fall through to generic message
+        }
+        return "Server returned " + res.status;
+      }
+
+      function showFetchError(boxId, err) {
+        const box = document.getElementById(boxId);
+        const isConnectivityIssue =
+          err.message && err.message.toLowerCase().includes("failed to fetch");
+        box.textContent = isConnectivityIssue
+          ? err.message + ". Ensure the server is running on port 3000."
+          : err.message;
+        box.classList.add("visible");
+      }
+
       function clock() {
         const d = new Date();
         document.getElementById("clockDisplay").textContent =
@@ -1555,19 +1575,14 @@
           const form = new FormData();
           form.append("image", selectedFile);
           const res = await fetch("/predict", { method: "POST", body: form });
-          if (!res.ok) throw new Error("Server returned " + res.status);
+          if (!res.ok) throw new Error(await extractErrorMessage(res));
           const data = await res.json();
           lastResult = data;
           scanId = "SCN-" + Date.now().toString(36).toUpperCase();
           showResult(data);
           setStatus("done", "Analysis complete — results displayed below.");
         } catch (err) {
-          const box = document.getElementById("errorBox");
-          box.textContent =
-            "Analysis failed: " +
-            err.message +
-            ". Ensure the server is running on port 3000.";
-          box.classList.add("visible");
+          showFetchError("errorBox", err);
           setStatus("waiting", "Analysis failed. Check the error above.");
         } finally {
           btn.disabled = false;
@@ -1696,16 +1711,11 @@
             method: "POST",
             body: form,
           });
-          if (!res.ok) throw new Error("Server returned " + res.status);
+          if (!res.ok) throw new Error(await extractErrorMessage(res));
           const data = await res.json();
           showGlaucomaResult(data);
         } catch (err) {
-          const box = document.getElementById("glaucomaErrorBox");
-          box.textContent =
-            "Glaucoma analysis failed: " +
-            err.message +
-            ". Ensure the server is running on port 3000.";
-          box.classList.add("visible");
+          showFetchError("glaucomaErrorBox", err);
         } finally {
           btn.disabled = false;
           btn.classList.remove("loading");
@@ -1757,16 +1767,11 @@
             method: "POST",
             body: form,
           });
-          if (!res.ok) throw new Error("Server returned " + res.status);
+          if (!res.ok) throw new Error(await extractErrorMessage(res));
           const data = await res.json();
           showHrResult(data);
         } catch (err) {
-          const box = document.getElementById("hrErrorBox");
-          box.textContent =
-            "Hypertensive retinopathy analysis failed: " +
-            err.message +
-            ". Ensure the server is running on port 3000.";
-          box.classList.add("visible");
+          showFetchError("hrErrorBox", err);
         } finally {
           btn.disabled = false;
           btn.classList.remove("loading");
