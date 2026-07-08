@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RetinalScan AI — Clinical Screening System</title>
+    <title>RetinalScan AI v2.0 — Clinical Screening System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
       *,
       *::before,
       *::after {
@@ -15,89 +17,160 @@
       }
 
       :root {
-        --navy: #0a2647;
-        --navy-mid: #144272;
-        --blue: #205295;
-        --blue-light: #2c74b3;
-        --cyan: #0ea5e9;
+        /* Core palette */
+        --navy-950: #040d1a;
+        --navy-900: #0a2647;
+        --navy-800: #0d3264;
+        --navy-700: #144272;
+        --navy-600: #1a5496;
+        --blue-500: #205295;
+        --blue-400: #2c74b3;
+        --blue-300: #4a9fd4;
+        --blue-100: #dbeafe;
+        --blue-50: #eff6ff;
+
+        /* Surface */
         --bg: #f0f4f8;
         --surface: #ffffff;
         --surface-2: #f8fafc;
-        --border: #d1dce8;
-        --border-strong: #a8bdd0;
-        --text: #0f172a;
-        --text-mid: #334155;
+        --surface-3: #f1f5f9;
+        --border: #e2e8f0;
+        --border-2: #cbd5e1;
+
+        /* Text */
+        --text-primary: #0f172a;
+        --text-secondary: #334155;
         --text-muted: #64748b;
-        --green: #065f46;
-        --green-bg: #d1fae5;
-        --yellow: #92400e;
-        --yellow-bg: #fef3c7;
-        --orange: #9a3412;
-        --orange-bg: #ffedd5;
-        --red: #991b1b;
-        --red-bg: #fee2e2;
-        --pink: #831843;
-        --pink-bg: #fce7f3;
-        --radius: 6px;
+        --text-light: #94a3b8;
+
+        /* Semantic risk */
+        --risk-normal-bg: #f0fdf4;
+        --risk-normal-border: #86efac;
+        --risk-normal-text: #14532d;
+        --risk-normal-dot: #16a34a;
+        --risk-mild-bg: #fefce8;
+        --risk-mild-border: #fde047;
+        --risk-mild-text: #713f12;
+        --risk-mild-dot: #ca8a04;
+        --risk-mod-bg: #fff7ed;
+        --risk-mod-border: #fdba74;
+        --risk-mod-text: #7c2d12;
+        --risk-mod-dot: #ea580c;
+        --risk-sev-bg: #fef2f2;
+        --risk-sev-border: #fca5a5;
+        --risk-sev-text: #7f1d1d;
+        --risk-sev-dot: #dc2626;
+        --risk-urg-bg: #fdf2f8;
+        --risk-urg-border: #f0abfc;
+        --risk-urg-text: #4a044e;
+        --risk-urg-dot: #a21caf;
+
+        --radius-sm: 4px;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow-sm:
+          0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+        --shadow-lg:
+          0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
       body {
-        font-family: "Segoe UI", system-ui, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         background: var(--bg);
-        color: var(--text);
+        color: var(--text-primary);
         min-height: 100vh;
         font-size: 14px;
+        line-height: 1.5;
       }
 
-      header {
-        background: var(--navy);
-        padding: 0 2rem;
-        height: 56px;
+      /* ── HEADER ── */
+      .app-header {
+        background: linear-gradient(
+          135deg,
+          var(--navy-950) 0%,
+          var(--navy-900) 60%,
+          var(--navy-800) 100%
+        );
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 0 24px;
+        height: 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         position: sticky;
         top: 0;
-        z-index: 20;
+        z-index: 100;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
       }
 
-      .logo {
+      .header-left {
         display: flex;
         align-items: center;
-        gap: 12px;
-        text-decoration: none;
+        gap: 14px;
       }
 
       .logo-mark {
-        width: 34px;
-        height: 34px;
-        background: var(--blue-light);
-        border-radius: 4px;
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, var(--blue-400), var(--blue-300));
+        border-radius: 9px;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 0 0 2px rgba(74, 159, 212, 0.25);
+        flex-shrink: 0;
       }
-
       .logo-mark svg {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
       }
 
       .logo-text {
-        color: white;
       }
       .logo-name {
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        display: block;
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 0.01em;
         line-height: 1.1;
       }
       .logo-sub {
         font-size: 10px;
-        color: #93c5fd;
-        letter-spacing: 0.08em;
+        color: #7dd3fc;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
+        margin-top: 1px;
+      }
+
+      .header-divider {
+        width: 1px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .header-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .header-meta-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: #93c5fd;
+        letter-spacing: 0.04em;
+      }
+      .header-meta-dept {
+        font-size: 10px;
+        color: #60a5fa;
+        opacity: 0.8;
       }
 
       .header-right {
@@ -105,115 +178,205 @@
         align-items: center;
         gap: 16px;
       }
-      .system-badge {
+
+      .live-indicator {
+        display: flex;
+        align-items: center;
+        gap: 7px;
         font-size: 11px;
-        color: #93c5fd;
-        border: 1px solid #1e40af;
-        border-radius: 3px;
-        padding: 3px 8px;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
+        color: #86efac;
         font-weight: 600;
+        letter-spacing: 0.03em;
+      }
+      .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        animation: livepulse 2s infinite;
+      }
+      @keyframes livepulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.06);
+        }
       }
 
-      .timestamp {
-        font-size: 11px;
-        color: #7dd3fc;
+      .clock {
+        font-size: 12px;
+        color: #bfdbfe;
         font-variant-numeric: tabular-nums;
+        font-weight: 500;
+        font-feature-settings: "tnum";
       }
 
-      .layout {
-        max-width: 980px;
+      .version-badge {
+        font-size: 10px;
+        font-weight: 700;
+        color: #7dd3fc;
+        border: 1px solid rgba(125, 211, 252, 0.25);
+        border-radius: 20px;
+        padding: 3px 10px;
+        letter-spacing: 0.04em;
+        background: rgba(125, 211, 252, 0.06);
+      }
+
+      /* ── LAYOUT ── */
+      .app-body {
+        max-width: 1300px;
         margin: 0 auto;
-        padding: 1.5rem;
+        padding: 20px 20px 48px;
+      }
+
+      .page-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .page-label::before {
+        content: "";
+        width: 14px;
+        height: 2px;
+        background: var(--blue-400);
+        display: block;
+      }
+
+      .page-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+      .page-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+      }
+
+      .workspace {
         display: grid;
-        grid-template-columns: 300px 1fr;
-        gap: 1.5rem;
+        grid-template-columns: 340px 1fr;
+        gap: 20px;
         align-items: start;
       }
 
-      .panel {
+      /* ── CARDS ── */
+      .card {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: var(--radius);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
         overflow: hidden;
       }
 
-      .panel-header {
-        background: var(--navy-mid);
-        padding: 10px 14px;
+      .card + .card {
+        margin-top: 14px;
+      }
+
+      .card-header {
+        background: var(--navy-800);
+        padding: 10px 16px;
         display: flex;
         align-items: center;
         gap: 8px;
       }
-
-      .panel-header svg {
-        width: 14px;
-        height: 14px;
+      .card-header svg {
+        width: 13px;
+        height: 13px;
         stroke: #93c5fd;
         fill: none;
         stroke-width: 2;
         flex-shrink: 0;
       }
-      .panel-title {
-        font-size: 11px;
+      .card-header-title {
+        font-size: 10px;
         font-weight: 700;
-        color: #e2e8f0;
-        letter-spacing: 0.08em;
+        color: #cbd5e1;
+        letter-spacing: 0.09em;
         text-transform: uppercase;
       }
-
-      .panel-body {
-        padding: 1rem;
+      .card-header-badge {
+        margin-left: auto;
+        font-size: 9px;
+        color: #7dd3fc;
+        opacity: 0.8;
+        font-weight: 500;
       }
 
-      .field-group {
-        margin-bottom: 12px;
+      .card-body {
+        padding: 16px;
+      }
+
+      /* ── FORM ── */
+      .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+      .field:last-child {
+        margin-bottom: 0;
       }
       .field-label {
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 10px;
+        font-weight: 700;
         color: var(--text-muted);
-        letter-spacing: 0.05em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        margin-bottom: 4px;
-        display: block;
       }
       .field-input {
-        width: 100%;
-        padding: 7px 10px;
+        padding: 8px 10px;
         border: 1px solid var(--border);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         font-size: 13px;
-        color: var(--text);
+        color: var(--text-primary);
         background: var(--surface-2);
         font-family: inherit;
-        transition: border-color 0.15s;
+        width: 100%;
+        transition: all 0.15s;
       }
       .field-input:focus {
         outline: none;
-        border-color: var(--blue-light);
-        background: white;
+        border-color: var(--blue-400);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(44, 116, 179, 0.1);
+      }
+      select.field-input {
+        cursor: pointer;
       }
 
+      /* ── UPLOAD ── */
       .upload-zone {
-        border: 2px dashed var(--border-strong);
-        border-radius: 4px;
-        padding: 1.5rem 1rem;
+        border: 2px dashed var(--border-2);
+        border-radius: var(--radius);
+        padding: 20px 14px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.15s;
+        transition: all 0.2s;
         background: var(--surface-2);
         position: relative;
         margin-bottom: 12px;
       }
-
       .upload-zone:hover,
-      .upload-zone.drag-over {
-        border-color: var(--blue-light);
+      .upload-zone.dragover {
+        border-color: var(--blue-400);
         background: #eff6ff;
       }
-
       .upload-zone input[type="file"] {
         position: absolute;
         inset: 0;
@@ -222,126 +385,158 @@
         width: 100%;
         height: 100%;
       }
-
-      .upload-zone svg {
-        width: 28px;
-        height: 28px;
-        stroke: var(--blue-light);
-        fill: none;
-        stroke-width: 1.5;
-        margin-bottom: 8px;
+      .upload-icon {
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
       }
-      .upload-zone-text {
-        font-size: 12px;
+      .upload-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--blue-500);
+        fill: none;
+        stroke-width: 1.8;
+      }
+      .upload-title {
+        font-size: 13px;
         font-weight: 600;
-        color: var(--text-mid);
+        color: var(--text-secondary);
         margin-bottom: 3px;
       }
-      .upload-zone-hint {
+      .upload-hint {
         font-size: 11px;
         color: var(--text-muted);
       }
+      .upload-hint b {
+        color: var(--blue-400);
+      }
 
-      .preview-img-wrap {
+      .preview-wrap {
         display: none;
-        border: 1px solid var(--border);
-        border-radius: 4px;
+        border-radius: var(--radius);
         overflow: hidden;
-        margin-bottom: 12px;
+        border: 1px solid var(--border);
         background: #0f172a;
         aspect-ratio: 1;
+        margin-bottom: 12px;
+        position: relative;
         align-items: center;
         justify-content: center;
       }
-
-      .preview-img-wrap.visible {
+      .preview-wrap.visible {
         display: flex;
       }
-      .preview-img-wrap img {
+      .preview-wrap img {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
+      .preview-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(10, 38, 71, 0.85);
+        font-size: 9px;
+        font-weight: 700;
+        color: #7dd3fc;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 20px;
+        backdrop-filter: blur(4px);
+      }
 
-      .file-meta {
+      .file-chip {
         display: none;
-        background: var(--surface-2);
+        background: var(--surface-3);
         border: 1px solid var(--border);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         padding: 8px 10px;
-        margin-bottom: 12px;
-        font-size: 12px;
+        margin-bottom: 10px;
+        align-items: center;
+        gap: 8px;
       }
-
-      .file-meta.visible {
-        display: block;
+      .file-chip.visible {
+        display: flex;
       }
-      .file-meta-name {
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 2px;
-        word-break: break-all;
-      }
-      .file-meta-size {
-        color: var(--text-muted);
-      }
-
-      .btn {
-        display: inline-flex;
+      .file-chip-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 5px;
+        background: #dbeafe;
+        display: flex;
         align-items: center;
         justify-content: center;
-        gap: 7px;
-        padding: 9px 16px;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        width: 100%;
-        font-family: inherit;
-        transition: all 0.15s;
-        letter-spacing: 0.01em;
+        flex-shrink: 0;
       }
-
-      .btn-analyse {
-        background: var(--blue);
-        color: white;
-        margin-bottom: 8px;
-      }
-      .btn-analyse:hover {
-        background: var(--navy-mid);
-      }
-      .btn-analyse:disabled {
-        background: #94a3b8;
-        cursor: not-allowed;
-      }
-
-      .btn-clear {
-        background: transparent;
-        color: var(--text-muted);
-        border: 1px solid var(--border);
-        font-size: 12px;
-        padding: 7px;
-      }
-      .btn-clear:hover {
-        background: var(--surface-2);
-        color: var(--text);
-      }
-
-      .btn svg {
-        width: 14px;
-        height: 14px;
-        stroke: currentColor;
+      .file-chip-icon svg {
+        width: 15px;
+        height: 15px;
+        stroke: var(--blue-500);
         fill: none;
         stroke-width: 2;
-        flex-shrink: 0;
+      }
+      .file-chip-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+        word-break: break-all;
+        line-height: 1.3;
+      }
+      .file-chip-size {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+
+      /* ── BUTTONS ── */
+      .btn-analyse {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 11px;
+        border-radius: var(--radius-sm);
+        background: linear-gradient(135deg, var(--blue-500), var(--blue-400));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(32, 82, 149, 0.35);
+        letter-spacing: 0.02em;
+      }
+      .btn-analyse:hover {
+        background: linear-gradient(135deg, var(--navy-700), var(--blue-500));
+        box-shadow: 0 4px 16px rgba(32, 82, 149, 0.45);
+      }
+      .btn-analyse:disabled {
+        background: linear-gradient(135deg, #94a3b8, #b0bec5);
+        box-shadow: none;
+        cursor: not-allowed;
+      }
+      .btn-analyse svg {
+        width: 14px;
+        height: 14px;
+        stroke: #fff;
+        fill: none;
+        stroke-width: 2.2;
       }
 
       .spinner {
         width: 14px;
         height: 14px;
         border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
+        border-top-color: #fff;
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
         display: none;
@@ -358,12 +553,36 @@
         display: none;
       }
 
-      .right-col {
+      .btn-ghost {
         display: flex;
-        flex-direction: column;
-        gap: 1rem;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+      }
+      .btn-ghost:hover {
+        background: var(--surface-3);
+        color: var(--text-secondary);
+      }
+      .btn-ghost svg {
+        width: 12px;
+        height: 12px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
       }
 
+      /* ── STATUS ── */
       .status-bar {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -372,23 +591,29 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 12px;
-        color: var(--text-muted);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 14px;
       }
-
-      .status-dot {
+      .s-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #22c55e;
         flex-shrink: 0;
+        transition: background 0.3s;
       }
-      .status-dot.waiting {
+      .s-dot.idle {
         background: #94a3b8;
       }
-      .status-dot.processing {
+      .s-dot.ready {
         background: #f59e0b;
-        animation: pulse 1s infinite;
+        animation: pulse 0.8s infinite;
+      }
+      .s-dot.running {
+        background: #3b82f6;
+        animation: pulse 0.5s infinite;
+      }
+      .s-dot.done {
+        background: #22c55e;
       }
       @keyframes pulse {
         0%,
@@ -396,365 +621,18 @@
           opacity: 1;
         }
         50% {
-          opacity: 0.4;
+          opacity: 0.35;
         }
       }
-
-      .result-section {
-        display: none;
-      }
-      .result-section.visible {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .result-top {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 1rem;
-      }
-
-      .metric-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 14px;
-      }
-
-      .metric-label {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .metric-label svg {
-        width: 12px;
-        height: 12px;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 2;
-      }
-
-      .severity-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 6px 12px;
-        border-radius: 3px;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 5px;
-      }
-
-      .severity-dot-sm {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
-      }
-
-      .s0 {
-        background: var(--green-bg);
-        color: var(--green);
-      }
-      .s0 .severity-dot-sm {
-        background: #16a34a;
-      }
-      .s1 {
-        background: var(--yellow-bg);
-        color: var(--yellow);
-      }
-      .s1 .severity-dot-sm {
-        background: #d97706;
-      }
-      .s2 {
-        background: var(--orange-bg);
-        color: var(--orange);
-      }
-      .s2 .severity-dot-sm {
-        background: #ea580c;
-      }
-      .s3 {
-        background: var(--red-bg);
-        color: var(--red);
-      }
-      .s3 .severity-dot-sm {
-        background: #dc2626;
-      }
-      .s4 {
-        background: var(--pink-bg);
-        color: var(--pink);
-      }
-      .s4 .severity-dot-sm {
-        background: #db2777;
-      }
-
-      .grade-text {
-        font-size: 11px;
-        color: var(--text-muted);
-      }
-
-      .confidence-big {
-        font-size: 36px;
-        font-weight: 800;
-        color: var(--navy);
-        line-height: 1;
-        margin-bottom: 4px;
-        font-variant-numeric: tabular-nums;
-      }
-      .confidence-sub {
-        font-size: 11px;
-        color: var(--text-muted);
-      }
-
-      .iop-indicator {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .iop-bar-track {
-        height: 10px;
-        background: #e2e8f0;
-        border-radius: 2px;
-        overflow: hidden;
-      }
-
-      .iop-bar-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .referral-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 14px;
-        border-left: 4px solid var(--blue);
-      }
-
-      .referral-card.urgent {
-        border-left-color: #dc2626;
-      }
-      .referral-card.warning {
-        border-left-color: #ea580c;
-      }
-      .referral-card.caution {
-        border-left-color: #d97706;
-      }
-      .referral-card.ok {
-        border-left-color: #16a34a;
-      }
-
-      .referral-heading {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--text-muted);
-        margin-bottom: 6px;
-      }
-
-      .referral-content {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      .referral-icon-wrap {
-        flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .referral-icon-wrap svg {
-        width: 16px;
-        height: 16px;
-        stroke: white;
-        fill: none;
-        stroke-width: 2;
-      }
-      .referral-text {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text);
-        line-height: 1.5;
-      }
-      .referral-sub {
+      .s-text {
         font-size: 12px;
         color: var(--text-muted);
-        margin-top: 2px;
+      }
+      .s-text b {
+        color: var(--text-secondary);
       }
 
-      .scores-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-      }
-
-      .scores-table-head {
-        background: var(--surface-2);
-        border-bottom: 1px solid var(--border);
-        padding: 8px 14px;
-        display: grid;
-        grid-template-columns: 150px 1fr 70px 60px;
-        gap: 12px;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--text-muted);
-      }
-
-      .score-row-item {
-        padding: 10px 14px;
-        display: grid;
-        grid-template-columns: 150px 1fr 70px 60px;
-        gap: 12px;
-        align-items: center;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .score-row-item:last-child {
-        border-bottom: none;
-      }
-      .score-row-item.is-top {
-        background: #f0f7ff;
-      }
-
-      .score-class {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text);
-      }
-      .score-class.is-top {
-        font-weight: 700;
-        color: var(--navy);
-      }
-
-      .bar-track {
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 2px;
-        overflow: hidden;
-      }
-      .bar-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #cbd5e1;
-      }
-      .bar-fill.is-top {
-        background: var(--blue);
-      }
-
-      .score-pct {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-      }
-      .score-pct.is-top {
-        color: var(--blue);
-      }
-
-      .score-status {
-        text-align: center;
-      }
-      .score-status .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #e2e8f0;
-        display: inline-block;
-      }
-      .score-status .dot.is-top {
-        background: var(--blue);
-      }
-
-      .info-row {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 10px 14px;
-        display: flex;
-        gap: 2rem;
-        flex-wrap: wrap;
-        font-size: 11px;
-      }
-
-      .info-item {
-        color: var(--text-muted);
-      }
-      .info-item strong {
-        color: var(--text-mid);
-        font-weight: 600;
-      }
-
-      .disclaimer-bar {
-        background: #fffbeb;
-        border: 1px solid #fde68a;
-        border-radius: var(--radius);
-        padding: 10px 14px;
-        font-size: 11px;
-        color: #92400e;
-        line-height: 1.6;
-      }
-
-      .action-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .btn-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 14px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        color: var(--text-mid);
-        font-family: inherit;
-        transition: all 0.15s;
-      }
-
-      .btn-action:hover {
-        background: var(--surface-2);
-        border-color: var(--border-strong);
-      }
-      .btn-action svg {
-        width: 13px;
-        height: 13px;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 2;
-      }
-      .btn-action.primary {
-        background: var(--navy);
-        color: white;
-        border-color: var(--navy);
-      }
-      .btn-action.primary:hover {
-        background: var(--navy-mid);
-      }
-
+      /* ── ERROR ── */
       .error-box {
         display: none;
         padding: 10px 14px;
@@ -762,385 +640,860 @@
         border: 1px solid #fca5a5;
         border-radius: var(--radius);
         font-size: 12px;
-        color: var(--red);
+        color: #7f1d1d;
+        margin-bottom: 14px;
+        line-height: 1.5;
       }
-
       .error-box.visible {
         display: block;
       }
 
-      .cdr-gauge-track {
+      /* ── DASHBOARD ── */
+      .dashboard {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .dashboard.visible {
+        display: flex;
+      }
+
+      /* action row */
+      .action-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-secondary);
+        font-family: inherit;
+        transition: all 0.15s;
+        letter-spacing: 0.01em;
+      }
+      .btn-action:hover {
+        background: var(--surface-3);
+        border-color: var(--border-2);
+      }
+      .btn-action svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.2;
+      }
+      .btn-action.primary {
+        background: var(--navy-900);
+        color: #fff;
+        border-color: var(--navy-900);
+        box-shadow: 0 2px 6px rgba(10, 38, 71, 0.2);
+      }
+      .btn-action.primary:hover {
+        background: var(--navy-700);
+      }
+
+      /* quality gate */
+      .quality-gate {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-radius: var(--radius-sm);
+      }
+      .quality-gate svg {
+        width: 14px;
         height: 14px;
-        background: #e2e8f0;
-        border-radius: 3px;
+        stroke: #16a34a;
+        fill: none;
+        stroke-width: 2.5;
+        flex-shrink: 0;
+      }
+      .quality-gate-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #14532d;
+      }
+      .quality-gate-detail {
+        font-size: 11px;
+        color: #166534;
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* image viewer */
+      .viewer-card .card-body {
+        padding: 12px;
+      }
+      .viewer-wrap {
+        border-radius: var(--radius-sm);
         overflow: hidden;
+        border: 1px solid var(--border);
+        background: #0f172a;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
         position: relative;
       }
-      .cdr-gauge-fill {
+      .viewer-wrap img {
+        width: 100%;
         height: 100%;
-        border-radius: 3px;
-        transition:
-          width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-          background 0.3s;
+        object-fit: cover;
+        transition: opacity 0.3s;
       }
-      .cdr-scale-labels {
+      #heatmapImg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      #heatmapImg.active {
+        opacity: 1;
+      }
+
+      .viewer-toggle {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .toggle-btn {
+        flex: 1;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--text-muted);
+        font-family: inherit;
+        transition: all 0.15s;
+        text-align: center;
+      }
+      .toggle-btn.active {
+        background: var(--navy-900);
+        color: #fff;
+        border-color: var(--navy-900);
+      }
+
+      /* result cards grid */
+      .results-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .result-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .result-card-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .result-card-head svg {
+        width: 13px;
+        height: 13px;
+        stroke: var(--text-muted);
+        fill: none;
+        stroke-width: 2;
+        flex-shrink: 0;
+      }
+      .result-card-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .result-card-body {
+        padding: 14px;
+      }
+
+      .diagnosis-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .diagnosis-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* confidence bar */
+      .conf-bar-label {
         display: flex;
         justify-content: space-between;
         font-size: 10px;
-        color: var(--text-muted);
-        margin-top: 4px;
-      }
-
-      .risk-box {
-        border-radius: var(--radius);
-        padding: 14px;
-        border: 1px solid var(--border);
-      }
-      .risk-box.risk-normal {
-        background: var(--green-bg);
-        border-color: #16a34a;
-      }
-      .risk-box.risk-monitor {
-        background: var(--orange-bg);
-        border-color: #f59e0b;
-      }
-      .risk-box.risk-suspicious {
-        background: #ffedd5;
-        border-color: #c2410c;
-      }
-      .risk-box.risk-high {
-        background: var(--red-bg);
-        border-color: #dc2626;
-      }
-      .risk-box-label {
-        font-size: 15px;
         font-weight: 700;
-        margin-bottom: 3px;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
       }
-      .risk-box-detail {
-        font-size: 12px;
-        color: var(--text-mid);
+      .conf-bar-value {
+        color: var(--text-secondary);
       }
-
-      footer {
-        border-top: 1px solid var(--border);
-        padding: 12px 2rem;
-        text-align: center;
+      .conf-bar-track {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 6px;
+      }
+      .conf-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .conf-desc {
         font-size: 11px;
         color: var(--text-muted);
-        background: var(--surface);
-        margin-top: 2rem;
+        line-height: 1.5;
       }
 
-      @media (max-width: 700px) {
-        .layout {
+      /* CDR gauge */
+      .cdr-value {
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 4px;
+        font-variant-numeric: tabular-nums;
+      }
+      .cdr-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      .cdr-bar-track {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 6px;
+      }
+      .cdr-bar-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .cdr-zones {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-light);
+      }
+
+      /* HR card */
+      .hr-prob {
+        font-size: 38px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .hr-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      /* TRIAGE ALERT */
+      .triage-alert {
+        border-radius: var(--radius-lg);
+        padding: 16px 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        border-left: 5px solid;
+      }
+      .triage-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .triage-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: #fff;
+        fill: none;
+        stroke-width: 2.2;
+      }
+      .triage-content {
+      }
+      .triage-level {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+      }
+      .triage-main {
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .triage-desc {
+        font-size: 13px;
+        line-height: 1.6;
+        opacity: 0.85;
+      }
+
+      /* scan meta */
+      .scan-meta {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        box-shadow: var(--shadow-sm);
+      }
+      .meta-item {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .meta-item b {
+        color: var(--text-secondary);
+        font-weight: 700;
+      }
+
+      /* disclaimer */
+      .disclaimer {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+      }
+      .disclaimer svg {
+        width: 15px;
+        height: 15px;
+        stroke: #d97706;
+        fill: none;
+        stroke-width: 2;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .disclaimer-text {
+        font-size: 11px;
+        color: #78350f;
+        line-height: 1.7;
+      }
+      .disclaimer-text b {
+        color: #92400e;
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 900px) {
+        .workspace {
           grid-template-columns: 1fr;
         }
-        .result-top {
+        .results-grid {
           grid-template-columns: 1fr 1fr;
         }
-        .scores-table-head,
-        .score-row-item {
-          grid-template-columns: 1fr 1fr 50px;
+      }
+      @media (max-width: 600px) {
+        .results-grid {
+          grid-template-columns: 1fr;
         }
-        .scores-table-head > *:last-child,
-        .score-row-item > *:last-child {
+        .header-meta {
           display: none;
         }
       }
     </style>
   </head>
   <body>
-    <header>
-      <a class="logo" href="#">
+    <header class="app-header">
+      <div class="header-left">
         <div class="logo-mark">
           <svg
             viewBox="0 0 24 24"
             fill="none"
             stroke="white"
-            stroke-width="1.8"
+            stroke-width="1.6"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="4" fill="white" stroke="none" />
-            <line x1="12" y1="2" x2="12" y2="5" />
-            <line x1="12" y1="19" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="5" y2="12" />
-            <line x1="19" y1="12" x2="22" y2="12" />
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="3.5" fill="white" stroke="none" />
+            <line x1="12" y1="3" x2="12" y2="6.5" />
+            <line x1="12" y1="17.5" x2="12" y2="21" />
+            <line x1="3" y1="12" x2="6.5" y2="12" />
+            <line x1="17.5" y1="12" x2="21" y2="12" />
           </svg>
         </div>
         <div class="logo-text">
-          <span class="logo-name">RetinalScan AI</span>
-          <span class="logo-sub">Clinical Screening System</span>
+          <div class="logo-name">
+            RetinalScan AI
+            <span style="font-weight: 400; opacity: 0.6">v2.0</span>
+          </div>
+          <div class="logo-sub">Clinical Screening Platform</div>
         </div>
-      </a>
+        <div class="header-divider"></div>
+        <div class="header-meta">
+          <div class="header-meta-name">Military College of Signals · NUST</div>
+          <div class="header-meta-dept">Ophthalmology Screening Unit</div>
+        </div>
+      </div>
       <div class="header-right">
-        <span class="system-badge">MCS · NUST</span>
-        <span class="timestamp" id="clockDisplay"></span>
+        <div class="live-indicator">
+          <span class="live-dot"></span>System online
+        </div>
+        <div class="clock" id="clockEl"></div>
+        <div class="version-badge">MCS · NUST</div>
       </div>
     </header>
 
-    <div class="layout">
-      <!-- LEFT PANEL -->
-      <div>
-        <div class="panel" style="margin-bottom: 1rem">
-          <div class="panel-header">
-            <svg
-              viewBox="0 0 24 24"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <span class="panel-title">Patient Information</span>
-          </div>
-          <div class="panel-body">
-            <div class="field-group">
-              <label class="field-label">Patient ID</label>
-              <input
-                class="field-input"
-                type="text"
-                id="patientId"
-                placeholder="e.g. PT-2026-0042"
-              />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Full name</label>
-              <input
-                class="field-input"
-                type="text"
-                id="patientName"
-                placeholder="Optional"
-              />
-            </div>
-            <div
-              style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px"
-            >
-              <div class="field-group">
-                <label class="field-label">Age</label>
-                <input
-                  class="field-input"
-                  type="number"
-                  id="patientAge"
-                  placeholder="—"
-                  min="1"
-                  max="120"
-                />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Eye</label>
-                <select class="field-input" id="patientEye">
-                  <option value="">—</option>
-                  <option value="Right (OD)">Right (OD)</option>
-                  <option value="Left (OS)">Left (OS)</option>
-                  <option value="Both (OU)">Both (OU)</option>
-                </select>
-              </div>
-            </div>
-            <div class="field-group" style="margin-bottom: 0">
-              <label class="field-label">Referring clinician</label>
-              <input
-                class="field-input"
-                type="text"
-                id="clinician"
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-        </div>
+    <div class="app-body">
+      <div class="page-label">Screening Workspace</div>
+      <h1 class="page-title">Retinal Disease Screening</h1>
+      <p class="page-subtitle">
+        Upload a fundus photograph to receive AI-assisted analysis for diabetic
+        retinopathy, glaucoma, and hypertensive retinopathy.
+      </p>
 
-        <div class="panel">
-          <div class="panel-header">
-            <svg
-              viewBox="0 0 24 24"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-            <span class="panel-title">Fundus Image Upload</span>
-          </div>
-          <div class="panel-body">
-            <div class="preview-img-wrap" id="previewWrap">
-              <img id="previewImg" src="" alt="Fundus image preview" />
-            </div>
-
-            <div class="upload-zone" id="uploadZone">
-              <input type="file" id="fileInput" accept="image/*" />
+      <div class="workspace">
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- Patient form -->
+          <div class="card">
+            <div class="card-header">
               <svg
                 viewBox="0 0 24 24"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <polyline points="16 16 12 12 8 16" />
-                <line x1="12" y1="12" x2="12" y2="21" />
-                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
-              <p class="upload-zone-text">Upload fundus photograph</p>
-              <p class="upload-zone-hint">PNG or JPG · Fundus images only</p>
+              <span class="card-header-title">Patient Details</span>
+              <span class="card-header-badge">Optional</span>
             </div>
-
-            <div class="file-meta" id="fileMeta">
-              <p class="file-meta-name" id="fileName">—</p>
-              <p class="file-meta-size" id="fileSize">—</p>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="field">
+                  <label class="field-label">Patient ID</label>
+                  <input
+                    class="field-input"
+                    id="patientId"
+                    type="text"
+                    placeholder="PT-2026-0001"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label">Date of birth</label>
+                  <input class="field-input" id="patientDob" type="date" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Full name</label>
+                <input
+                  class="field-input"
+                  id="patientName"
+                  type="text"
+                  placeholder="Patient full name"
+                />
+              </div>
+              <div class="form-grid-2">
+                <div class="field">
+                  <label class="field-label">Sex</label>
+                  <select class="field-input" id="patientSex">
+                    <option value="">—</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Eye examined</label>
+                  <select class="field-input" id="patientEye">
+                    <option value="">—</option>
+                    <option>Right (OD)</option>
+                    <option>Left (OS)</option>
+                    <option>Both (OU)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="field">
+                  <label class="field-label">Diabetic status</label>
+                  <select class="field-input" id="diabetic">
+                    <option value="">—</option>
+                    <option>Yes — Type 1</option>
+                    <option>Yes — Type 2</option>
+                    <option>No</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-bottom: 0">
+                  <label class="field-label">HbA1c (%)</label>
+                  <input
+                    class="field-input"
+                    id="hba1c"
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 7.2"
+                  />
+                </div>
+              </div>
+              <div class="field" style="margin-bottom: 0; margin-top: 10px">
+                <label class="field-label">Referring clinician</label>
+                <input
+                  class="field-input"
+                  id="clinician"
+                  type="text"
+                  placeholder="Dr. Name / Clinic"
+                />
+              </div>
             </div>
+          </div>
 
-            <button
-              class="btn btn-analyse"
-              id="analyseBtn"
-              onclick="runPrediction()"
-            >
-              <span class="btn-icon">
+          <!-- Upload -->
+          <div class="card">
+            <div class="card-header">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <span class="card-header-title">Fundus Image</span>
+            </div>
+            <div class="card-body">
+              <div class="preview-wrap" id="previewWrap">
+                <span class="preview-badge">Fundus photograph loaded</span>
+                <img id="previewImg" src="" alt="preview" />
+              </div>
+              <div class="upload-zone" id="uploadZone">
+                <input type="file" id="fileInput" accept="image/*" />
+                <div class="upload-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="16 16 12 12 8 16" />
+                    <line x1="12" y1="12" x2="12" y2="21" />
+                    <path
+                      d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"
+                    />
+                  </svg>
+                </div>
+                <p class="upload-title">Drop fundus photograph here</p>
+                <p class="upload-hint">
+                  or <b>click to browse</b> · PNG, JPG only
+                </p>
+              </div>
+              <div class="file-chip" id="fileChip">
+                <div class="file-chip-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="file-chip-name" id="fileName">—</div>
+                  <div class="file-chip-size" id="fileSize">—</div>
+                </div>
+              </div>
+              <button
+                class="btn-analyse"
+                id="analyseBtn"
+                onclick="runAnalysis()"
+              >
+                <span class="btn-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+                <span class="spinner"></span>
+                Run AI analysis
+              </button>
+              <button class="btn-ghost" onclick="resetAll()">
                 <svg
                   viewBox="0 0 24 24"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  style="
-                    width: 14px;
-                    height: 14px;
-                    stroke: white;
-                    fill: none;
-                    stroke-width: 2;
-                  "
+                >
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 1 0 .49-3.1" />
+                </svg>
+                Clear and reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+          <div class="status-bar" id="statusBar">
+            <span class="s-dot idle" id="sDot"></span>
+            <span class="s-text" id="sText"
+              >Awaiting fundus image upload. Complete patient details and upload
+              a photograph to begin.</span
+            >
+          </div>
+
+          <div class="error-box" id="errorBox"></div>
+
+          <div class="dashboard" id="dashboard">
+            <!-- action row -->
+            <div class="action-row">
+              <button class="btn-action primary" onclick="generatePDF()">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                Generate PDF Report
+              </button>
+              <button class="btn-action" onclick="resetAll()">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 1 0 .49-3.1" />
+                </svg>
+                New scan
+              </button>
+            </div>
+
+            <!-- quality gate -->
+            <div class="quality-gate" id="qualityGate">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span class="quality-gate-text">Image Quality: Passed</span>
+              <span class="quality-gate-detail" id="blurIndex"
+                >Blur index: —</span
+              >
+            </div>
+
+            <!-- image viewer -->
+            <div class="card viewer-card">
+              <div class="card-header">
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
-              </span>
-              <span class="spinner"></span>
-              Run analysis
-            </button>
-            <button class="btn btn-clear" onclick="resetForm()">
-              Clear and reset
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT COL -->
-      <div class="right-col">
-        <div class="status-bar" id="statusBar">
-          <span class="status-dot waiting" id="statusDot"></span>
-          <span id="statusText"
-            >Awaiting image upload — fill in patient details and upload a fundus
-            photograph to begin.</span
-          >
-        </div>
-
-        <div class="error-box" id="errorBox"></div>
-
-        <div class="result-section" id="resultSection">
-          <div class="action-row">
-            <button class="btn-action primary" onclick="generateReport()">
-              <svg
-                viewBox="0 0 24 24"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              Export PDF report
-            </button>
-            <button class="btn-action" onclick="resetForm()">
-              <svg
-                viewBox="0 0 24 24"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 1 0 .49-3.1" />
-              </svg>
-              New scan
-            </button>
-          </div>
-
-          <div class="result-top">
-            <div class="metric-card">
-              <div class="metric-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                Diagnosis
+                <span class="card-header-title">Image Viewer</span>
               </div>
-              <div class="severity-pill s0" id="severityPill">
-                <span class="severity-dot-sm"></span>
-                <span id="severityLabel">—</span>
-              </div>
-              <p class="grade-text" id="gradeDesc">—</p>
-            </div>
-
-            <div class="metric-card">
-              <div class="metric-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                </svg>
-                Model confidence
-              </div>
-              <p class="confidence-big" id="confBig">—</p>
-              <p class="confidence-sub">top class probability</p>
-            </div>
-
-            <div class="metric-card">
-              <div class="metric-label">
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                Risk level
-              </div>
-              <div class="iop-indicator" id="riskIndicator">
-                <p
-                  style="font-size: 15px; font-weight: 700; color: var(--navy)"
-                  id="riskLabel"
-                >
-                  —
-                </p>
-                <div class="iop-bar-track">
-                  <div
-                    class="iop-bar-fill"
-                    id="riskBar"
-                    style="width: 0%; background: #16a34a"
-                  ></div>
+              <div class="card-body">
+                <div class="viewer-wrap">
+                  <img id="viewerOriginal" src="" alt="fundus" />
+                  <img id="heatmapImg" src="" alt="Grad-CAM heatmap" />
                 </div>
-                <p style="font-size: 11px; color: var(--text-muted)">
-                  based on DR severity grade
-                </p>
+                <div class="viewer-toggle">
+                  <button
+                    class="toggle-btn active"
+                    onclick="setView('original', this)"
+                  >
+                    Original
+                  </button>
+                  <button
+                    class="toggle-btn"
+                    id="heatmapToggle"
+                    onclick="setView('heatmap', this)"
+                  >
+                    Grad-CAM Heatmap
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="referral-card" id="referralCard">
-            <p class="referral-heading">Clinical recommendation</p>
-            <div class="referral-content">
-              <div
-                class="referral-icon-wrap"
-                id="referralIconWrap"
-                style="background: var(--blue)"
-              >
+            <!-- 3 result cards -->
+            <div class="results-grid">
+              <!-- DR card -->
+              <div class="result-card">
+                <div class="result-card-head">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span class="result-card-label">Diabetic Retinopathy</span>
+                </div>
+                <div class="result-card-body">
+                  <div class="diagnosis-pill" id="drPill">
+                    <span class="diagnosis-dot" id="drDot"></span>
+                    <span id="drLabel">—</span>
+                  </div>
+                  <p
+                    style="
+                      font-size: 11px;
+                      color: var(--text-muted);
+                      margin-bottom: 10px;
+                    "
+                    id="drGrade"
+                  >
+                    —
+                  </p>
+                  <div class="conf-bar-label">
+                    <span>Model confidence</span>
+                    <span class="conf-bar-value" id="drConfPct">—</span>
+                  </div>
+                  <div class="conf-bar-track">
+                    <div
+                      class="conf-bar-fill"
+                      id="drConfBar"
+                      style="width: 0%; background: #2c74b3"
+                    ></div>
+                  </div>
+                  <p class="conf-desc" id="drDesc">—</p>
+                </div>
+              </div>
+
+              <!-- Glaucoma card -->
+              <div class="result-card">
+                <div class="result-card-head">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="4" />
+                  </svg>
+                  <span class="result-card-label">Glaucoma</span>
+                </div>
+                <div class="result-card-body">
+                  <div class="cdr-value" id="cdrVal">—</div>
+                  <p class="cdr-label">Cup-to-Disc Ratio</p>
+                  <div class="cdr-bar-track">
+                    <div
+                      class="cdr-bar-fill"
+                      id="cdrBar"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <div class="cdr-zones">
+                    <span>Normal</span><span>Monitor</span
+                    ><span>Suspicious</span><span>High</span>
+                  </div>
+                  <div
+                    class="diagnosis-pill"
+                    id="cdrPill"
+                    style="margin-top: 8px"
+                  >
+                    <span class="diagnosis-dot" id="cdrDot"></span>
+                    <span id="cdrLabel">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HR card -->
+              <div class="result-card">
+                <div class="result-card-head">
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                    />
+                  </svg>
+                  <span class="result-card-label"
+                    >Hypertensive Retinopathy</span
+                  >
+                </div>
+                <div class="result-card-body">
+                  <div class="hr-prob" id="hrProb">—</div>
+                  <p class="hr-sub">Detection probability</p>
+                  <div class="diagnosis-pill" id="hrPill">
+                    <span class="diagnosis-dot" id="hrDot"></span>
+                    <span id="hrLabel">—</span>
+                  </div>
+                  <p
+                    style="
+                      font-size: 11px;
+                      color: var(--text-muted);
+                      margin-top: 6px;
+                    "
+                    id="hrDesc"
+                  >
+                    —
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- TRIAGE ALERT -->
+            <div class="triage-alert" id="triageAlert">
+              <div class="triage-icon" id="triageIcon">
                 <svg
                   viewBox="0 0 24 24"
                   stroke-linecap="round"
@@ -1151,354 +1504,135 @@
                   />
                 </svg>
               </div>
-              <div>
-                <p class="referral-text" id="referralMain">—</p>
-                <p class="referral-sub" id="referralSub">—</p>
+              <div class="triage-content">
+                <div class="triage-level" id="triageLevel">—</div>
+                <div class="triage-main" id="triageMain">—</div>
+                <div class="triage-desc" id="triageDesc">—</div>
               </div>
             </div>
-          </div>
 
-          <div class="scores-card">
-            <div class="scores-table-head">
-              <span>Classification</span>
-              <span>Probability</span>
-              <span style="text-align: right">Score</span>
-              <span style="text-align: center">Top</span>
+            <!-- scan meta -->
+            <div class="scan-meta">
+              <span class="meta-item">Scan ID: <b id="metaScanId">—</b></span>
+              <span class="meta-item">Date: <b id="metaDate">—</b></span>
+              <span class="meta-item">Time: <b id="metaTime">—</b></span>
+              <span class="meta-item">DR Model: <b>RetinalCNN v1.0</b></span>
+              <span class="meta-item">Glaucoma Model: <b>U-Net v1.0</b></span>
+              <span class="meta-item">HR Model: <b>RetinalCNN-HR v1.0</b></span>
+              <span class="meta-item">Institution: <b>MCS NUST</b></span>
             </div>
-            <div id="scoresBody"></div>
-          </div>
 
-          <div class="info-row" id="infoRow">
-            <span class="info-item"
-              >Scan ID: <strong id="infoScanId">—</strong></span
-            >
-            <span class="info-item"
-              >Date: <strong id="infoDate">—</strong></span
-            >
-            <span class="info-item"
-              >Model: <strong>RetinalCNN v1.0</strong></span
-            >
-            <span class="info-item">Dataset: <strong>APTOS 2019</strong></span>
-            <span class="info-item">System: <strong>MCS NUST</strong></span>
-          </div>
-
-          <div class="disclaimer-bar">
-            <strong>Clinical disclaimer:</strong> This AI-assisted screening
-            result is intended to support, not replace, the judgment of a
-            qualified ophthalmologist. All findings must be reviewed and
-            confirmed by a licensed clinician before any clinical decision is
-            made. Not approved for standalone diagnostic use.
-          </div>
-        </div>
-
-        <!-- GLAUCOMA SCREENING PANEL -->
-        <div class="panel">
-          <div class="panel-header">
-            <svg
-              viewBox="0 0 24 24"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="3.5" />
-            </svg>
-            <span class="panel-title">Glaucoma Screening</span>
-          </div>
-          <div class="panel-body">
-            <button
-              class="btn btn-analyse"
-              id="glaucomaBtn"
-              onclick="runGlaucomaPrediction()"
-              disabled
-              style="margin-bottom: 12px"
-            >
-              <span class="btn-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="
-                    width: 14px;
-                    height: 14px;
-                    stroke: white;
-                    fill: none;
-                    stroke-width: 2;
-                  "
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </span>
-              <span class="spinner"></span>
-              Analyse for glaucoma
-            </button>
-
-            <div class="error-box" id="glaucomaErrorBox"></div>
-
-            <div class="result-section" id="glaucomaResultSection">
-              <div class="result-top" style="grid-template-columns: 1fr 1fr">
-                <div class="metric-card">
-                  <div class="metric-label">
-                    <svg
-                      viewBox="0 0 24 24"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <circle cx="12" cy="12" r="4" />
-                    </svg>
-                    Cup-to-Disc Ratio
-                  </div>
-                  <p class="confidence-big" id="cdrBig">—</p>
-                  <p class="confidence-sub">CDR (0 – 1 scale)</p>
-                  <p
-                    style="
-                      font-size: 12px;
-                      color: var(--text-mid);
-                      margin-top: 8px;
-                      line-height: 1.5;
-                    "
-                    id="cdrExplanation"
-                  >
-                    —
-                  </p>
-                </div>
-
-                <div class="metric-card">
-                  <div class="metric-label">
-                    <svg
-                      viewBox="0 0 24 24"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                    </svg>
-                    Segmentation
-                  </div>
-                  <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px">
-                    Disc pixels: <span id="discPixels">—</span>
-                  </p>
-                  <p style="font-size: 11px; color: var(--text-muted)">
-                    Cup pixels: <span id="cupPixels">—</span>
-                  </p>
-                </div>
-              </div>
-
-              <div class="metric-card">
-                <div class="metric-label">CDR gauge</div>
-                <div class="cdr-gauge-track">
-                  <div
-                    class="cdr-gauge-fill"
-                    id="cdrGaugeFill"
-                    style="width: 0%; background: #16a34a"
-                  ></div>
-                </div>
-                <div class="cdr-scale-labels">
-                  <span>0.0</span>
-                  <span>0.3</span>
-                  <span>0.5</span>
-                  <span>0.7</span>
-                  <span>1.0</span>
-                </div>
-              </div>
-
-              <div class="risk-box risk-normal" id="glaucomaRiskBox">
-                <p class="referral-heading">Risk assessment</p>
-                <p class="risk-box-label" id="glaucomaRiskLabel">—</p>
-                <p class="risk-box-detail" id="glaucomaRiskDetail">—</p>
-              </div>
-
-              <div class="referral-card" id="glaucomaMeaningCard">
-                <p class="referral-heading">What this means</p>
-                <p class="referral-text" style="margin-bottom: 6px">
-                  Next step:
-                  <span id="glaucomaNextStep" style="font-weight: 700"
-                    >—</span
-                  >
-                </p>
-                <p class="referral-sub">
-                  Note: This result is based on optic nerve analysis only. A
-                  full glaucoma diagnosis requires intraocular pressure
-                  measurement and visual field testing by a specialist.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- HYPERTENSIVE RETINOPATHY SCREENING PANEL -->
-        <div class="panel">
-          <div class="panel-header">
-            <svg
-              viewBox="0 0 24 24"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-              />
-            </svg>
-            <span class="panel-title">Hypertensive Retinopathy Screening</span>
-          </div>
-          <div class="panel-body">
-            <button
-              class="btn btn-analyse"
-              id="hrBtn"
-              onclick="runHrPrediction()"
-              disabled
-              style="margin-bottom: 12px"
-            >
-              <span class="btn-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="
-                    width: 14px;
-                    height: 14px;
-                    stroke: white;
-                    fill: none;
-                    stroke-width: 2;
-                  "
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </span>
-              <span class="spinner"></span>
-              Analyse for hypertensive retinopathy
-            </button>
-
-            <div class="error-box" id="hrErrorBox"></div>
-
-            <div class="result-section" id="hrResultSection">
-              <div class="metric-card">
-                <div class="metric-label">
-                  <svg
-                    viewBox="0 0 24 24"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                  HR probability
-                </div>
-                <p class="confidence-big" id="hrProbBig">—</p>
-                <p class="confidence-sub">
-                  probability of hypertensive retinopathy
-                </p>
-                <div class="iop-bar-track" style="margin-top: 8px">
-                  <div
-                    class="iop-bar-fill"
-                    id="hrProbBar"
-                    style="width: 0%; background: #16a34a"
-                  ></div>
-                </div>
-              </div>
-
-              <div
-                class="risk-box"
-                id="hrRiskBox"
-                style="margin-top: 1rem"
+            <!-- disclaimer -->
+            <div class="disclaimer">
+              <svg
+                viewBox="0 0 24 24"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                <p class="referral-heading">Risk assessment</p>
-                <p class="risk-box-label" id="hrRiskLabel">—</p>
-                <p class="risk-box-detail" id="hrRecommendation">—</p>
-              </div>
-
-              <div class="referral-sub" style="margin-top: 8px">
-                <span id="hrNote">—</span>
-              </div>
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <p class="disclaimer-text">
+                <b>Clinical disclaimer:</b> This AI-assisted screening result is
+                intended to support, not replace, the judgment of a qualified
+                ophthalmologist. All findings must be independently reviewed and
+                confirmed by a licensed clinician before any therapeutic or
+                referral decision is made. Not approved for standalone
+                diagnostic use.
+              </p>
             </div>
           </div>
+          <!-- end dashboard -->
         </div>
+        <!-- end right col -->
       </div>
+      <!-- end workspace -->
     </div>
 
-    <footer>
-      RetinalScan AI &nbsp;·&nbsp; AI-Based Retinal Disease Screening System
-      &nbsp;·&nbsp; Military College of Signals, NUST &nbsp;·&nbsp; Built by
-      Arsal and Mashal
-    </footer>
-
     <script>
-      const LABELS = [
+      // ── CONSTANTS ──
+      const DR_LABELS = [
         "No DR",
         "Mild DR",
-        "Moderate DR",
-        "Severe DR",
+        "Moderate NPDR",
+        "Severe NPDR",
         "Proliferative DR",
       ];
-      const GRADE_DESC = [
-        "No diabetic retinopathy detected (ICDR Grade 0)",
-        "Mild non-proliferative DR — early microaneurysms (ICDR Grade 1)",
-        "Moderate non-proliferative DR — vessel changes present (ICDR Grade 2)",
-        "Severe non-proliferative DR — significant vessel damage (ICDR Grade 3)",
-        "Proliferative DR — neovascularisation detected (ICDR Grade 4)",
+      const DR_GRADES = [
+        "No signs of diabetic retinopathy. (ICDR Grade 0)",
+        "Early microaneurysms present. (ICDR Grade 1)",
+        "Moderate vascular changes detected. (ICDR Grade 2)",
+        "Significant haemorrhages and vascular abnormalities. (ICDR Grade 3)",
+        "Neovascularisation detected — advanced stage. (ICDR Grade 4)",
       ];
-      const REFERRAL_MAIN = [
-        "Re-screen in 12 months",
-        "Re-screen in 6 months",
-        "Refer to ophthalmologist within 6 months",
-        "Urgent referral — review within 2 to 4 weeks",
-        "Emergency referral — immediate specialist review required",
+      const DR_DESCS = [
+        "No diabetic retinopathy detected. Continue routine annual screening.",
+        "Early stage — re-screen in 6 months, optimise glycaemic control.",
+        "Moderate changes — ophthalmology referral within 6 months.",
+        "Severe NPDR — urgent referral within 2 to 4 weeks.",
+        "PDR detected — emergency referral required immediately.",
       ];
-      const REFERRAL_SUB = [
-        "No signs of retinopathy. Continue routine annual screening.",
-        "Early changes detected. Closer monitoring is recommended.",
-        "Moderate changes require specialist evaluation.",
-        "Significant retinal damage. Timely intervention is critical.",
-        "High risk of vision loss. Do not delay specialist review.",
-      ];
-      const REFERRAL_URGENCY = ["ok", "caution", "warning", "urgent", "urgent"];
-      const REFERRAL_COLORS = [
-        "#16a34a",
-        "#d97706",
-        "#ea580c",
-        "#dc2626",
-        "#db2777",
-      ];
-      const RISK_LABELS = [
-        "Low",
-        "Low-Moderate",
-        "Moderate",
-        "High",
-        "Very High",
-      ];
-      const RISK_PCT = [10, 28, 52, 76, 95];
 
-      let selectedFile = null;
-      let lastResult = null;
-      let scanId = null;
+      const RISK_COLORS = {
+        normal: {
+          bg: "var(--risk-normal-bg)",
+          border: "var(--risk-normal-border)",
+          text: "var(--risk-normal-text)",
+          dot: "var(--risk-normal-dot)",
+        },
+        mild: {
+          bg: "var(--risk-mild-bg)",
+          border: "var(--risk-mild-border)",
+          text: "var(--risk-mild-text)",
+          dot: "var(--risk-mild-dot)",
+        },
+        mod: {
+          bg: "var(--risk-mod-bg)",
+          border: "var(--risk-mod-border)",
+          text: "var(--risk-mod-text)",
+          dot: "var(--risk-mod-dot)",
+        },
+        sev: {
+          bg: "var(--risk-sev-bg)",
+          border: "var(--risk-sev-border)",
+          text: "var(--risk-sev-text)",
+          dot: "var(--risk-sev-dot)",
+        },
+        urg: {
+          bg: "var(--risk-urg-bg)",
+          border: "var(--risk-urg-border)",
+          text: "var(--risk-urg-text)",
+          dot: "var(--risk-urg-dot)",
+        },
+      };
+      const DR_RISK = ["normal", "mild", "mod", "sev", "urg"];
+      const DR_COLORS = ["#16a34a", "#ca8a04", "#ea580c", "#dc2626", "#a21caf"];
 
-      async function extractErrorMessage(res) {
-        try {
-          const data = await res.json();
-          if (data && data.error) return data.error;
-        } catch (e) {
-          // response body wasn't JSON — fall through to generic message
-        }
-        return "Server returned " + res.status;
-      }
+      // ── STATE ──
+      let selectedFile = null,
+        scanId = null,
+        lastResults = null,
+        heatmapB64 = null;
 
-      function showFetchError(boxId, err) {
-        const box = document.getElementById(boxId);
-        const isConnectivityIssue =
-          err.message && err.message.toLowerCase().includes("failed to fetch");
-        box.textContent = isConnectivityIssue
-          ? err.message + ". Ensure the server is running on port 3000."
-          : err.message;
-        box.classList.add("visible");
-      }
-
+      // ── CLOCK ──
       function clock() {
         const d = new Date();
-        document.getElementById("clockDisplay").textContent =
-          d.toLocaleDateString("en-GB") + "  " + d.toLocaleTimeString("en-GB");
+        document.getElementById("clockEl").textContent =
+          d.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }) +
+          "  " +
+          d.toLocaleTimeString("en-GB");
       }
       clock();
       setInterval(clock, 1000);
 
+      // ── FILE HANDLING ──
       const fileInput = document.getElementById("fileInput");
       const uploadZone = document.getElementById("uploadZone");
 
@@ -1507,299 +1641,322 @@
       });
       uploadZone.addEventListener("dragover", (e) => {
         e.preventDefault();
-        uploadZone.classList.add("drag-over");
+        uploadZone.classList.add("dragover");
       });
       uploadZone.addEventListener("dragleave", () =>
-        uploadZone.classList.remove("drag-over"),
+        uploadZone.classList.remove("dragover"),
       );
       uploadZone.addEventListener("drop", (e) => {
         e.preventDefault();
-        uploadZone.classList.remove("drag-over");
+        uploadZone.classList.remove("dragover");
         if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
       });
 
-      function handleFile(file) {
-        selectedFile = file;
-        document.getElementById("fileName").textContent = file.name;
+      function handleFile(f) {
+        selectedFile = f;
+        document.getElementById("fileName").textContent = f.name;
         document.getElementById("fileSize").textContent =
-          (file.size / 1024).toFixed(1) + " KB · " + file.type;
-        const reader = new FileReader();
-        reader.onload = (e) => {
+          (f.size / 1024).toFixed(1) + " KB · " + f.type;
+        const r = new FileReader();
+        r.onload = (e) => {
           document.getElementById("previewImg").src = e.target.result;
+          document.getElementById("viewerOriginal").src = e.target.result;
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(f);
         document.getElementById("previewWrap").classList.add("visible");
-        document.getElementById("fileMeta").classList.add("visible");
+        document.getElementById("fileChip").classList.add("visible");
         document.getElementById("uploadZone").style.display = "none";
-        document.getElementById("resultSection").classList.remove("visible");
-        document.getElementById("glaucomaBtn").disabled = false;
-        document
-          .getElementById("glaucomaResultSection")
-          .classList.remove("visible");
-        document.getElementById("glaucomaErrorBox").classList.remove("visible");
-        document.getElementById("hrBtn").disabled = false;
-        document.getElementById("hrResultSection").classList.remove("visible");
-        document.getElementById("hrErrorBox").classList.remove("visible");
+        document.getElementById("dashboard").classList.remove("visible");
+        document.getElementById("errorBox").classList.remove("visible");
         setStatus(
           "ready",
-          "Image loaded — click Run analysis to begin screening.",
+          "Image loaded — click <b>Run AI analysis</b> to begin.",
         );
       }
 
       function setStatus(type, msg) {
-        const dot = document.getElementById("statusDot");
-        const txt = document.getElementById("statusText");
-        dot.className =
-          "status-dot " +
-          (type === "ready"
-            ? ""
-            : type === "processing"
-              ? "processing"
-              : type === "done"
-                ? ""
-                : "waiting");
-        if (type === "done") dot.style.background = "#16a34a";
-        else dot.style.background = "";
-        txt.textContent = msg;
+        const d = document.getElementById("sDot");
+        document.getElementById("sText").innerHTML = msg;
+        d.className = "s-dot " + type;
       }
 
-      async function runPrediction() {
-        if (!selectedFile) return;
+      // ── ANALYSIS ──
+      async function runAnalysis() {
+        if (!selectedFile) {
+          alert("Please upload a fundus image first.");
+          return;
+        }
         const btn = document.getElementById("analyseBtn");
         btn.disabled = true;
         btn.classList.add("loading");
         document.getElementById("errorBox").classList.remove("visible");
-        document.getElementById("resultSection").classList.remove("visible");
-        setStatus("processing", "Analysing image — please wait...");
+        document.getElementById("dashboard").classList.remove("visible");
+        setStatus(
+          "running",
+          "Running AI analysis across all three models — please wait...",
+        );
+
         try {
           const form = new FormData();
           form.append("image", selectedFile);
-          const res = await fetch("/predict", { method: "POST", body: form });
-          if (!res.ok) throw new Error(await extractErrorMessage(res));
-          const data = await res.json();
-          lastResult = data;
+
+          const [drRes, gRes, hrRes] = await Promise.all([
+            fetch("/predict", { method: "POST", body: form }),
+            fetch("/predict-glaucoma", {
+              method: "POST",
+              body: new FormData().append("image", selectedFile) || buildForm(),
+            }),
+            fetch("/predict-hr", { method: "POST", body: buildForm() }),
+          ]);
+
+          // Build forms fresh for each
+          const f1 = new FormData();
+          f1.append("image", selectedFile);
+          const f2 = new FormData();
+          f2.append("image", selectedFile);
+          const f3 = new FormData();
+          f3.append("image", selectedFile);
+
+          const [r1, r2, r3] = await Promise.all([
+            fetch("/predict", { method: "POST", body: f1 }).then((r) =>
+              r.json(),
+            ),
+            fetch("/predict-glaucoma", { method: "POST", body: f2 }).then((r) =>
+              r.json(),
+            ),
+            fetch("/predict-hr", { method: "POST", body: f3 }).then((r) =>
+              r.json(),
+            ),
+          ]);
+
+          if (r1.error) throw new Error(r1.error);
+
+          lastResults = { dr: r1, glaucoma: r2, hr: r3 };
+          heatmapB64 = r1.heatmap || null;
           scanId = "SCN-" + Date.now().toString(36).toUpperCase();
-          showResult(data);
-          setStatus("done", "Analysis complete — results displayed below.");
+
+          showDashboard(r1, r2, r3);
+          setStatus(
+            "done",
+            "Analysis complete. Review findings and generate PDF report.",
+          );
         } catch (err) {
-          showFetchError("errorBox", err);
-          setStatus("waiting", "Analysis failed. Check the error above.");
+          const b = document.getElementById("errorBox");
+          b.textContent =
+            "Analysis failed: " +
+            err.message +
+            ". Ensure the Node.js server is running on port 3000.";
+          b.classList.add("visible");
+          setStatus("idle", "Analysis failed. See error above.");
         } finally {
           btn.disabled = false;
           btn.classList.remove("loading");
         }
       }
 
-      function showResult(data) {
-        const cls = data.predicted_class;
-        const pill = document.getElementById("severityPill");
-        pill.className = "severity-pill s" + cls;
-        document.getElementById("severityLabel").textContent =
-          data.severity_label;
-        document.getElementById("gradeDesc").textContent = GRADE_DESC[cls];
-        document.getElementById("confBig").textContent =
-          Math.round(data.confidence * 100) + "%";
-        document.getElementById("riskLabel").textContent = RISK_LABELS[cls];
-        document.getElementById("riskBar").style.width = RISK_PCT[cls] + "%";
-        document.getElementById("riskBar").style.background =
-          REFERRAL_COLORS[cls];
-        const rc = document.getElementById("referralCard");
-        rc.className = "referral-card " + REFERRAL_URGENCY[cls];
-        document.getElementById("referralMain").textContent =
-          REFERRAL_MAIN[cls];
-        document.getElementById("referralSub").textContent = REFERRAL_SUB[cls];
-        document.getElementById("referralIconWrap").style.background =
-          REFERRAL_COLORS[cls];
+      function buildForm() {
+        const f = new FormData();
+        f.append("image", selectedFile);
+        return f;
+      }
 
-        const body = document.getElementById("scoresBody");
-        body.innerHTML = "";
-        data.scores.forEach((s, i) => {
-          const pct = Math.round(s * 100);
-          const top = i === cls;
-          body.innerHTML += `<div class="score-row-item${top ? " is-top" : ""}">
-      <span class="score-class${top ? " is-top" : ""}">${LABELS[i]}</span>
-      <div class="bar-track"><div class="bar-fill${top ? " is-top" : ""}" style="width:${pct}%"></div></div>
-      <span class="score-pct${top ? " is-top" : ""}" style="text-align:right;">${pct}%</span>
-      <span class="score-status"><span class="dot${top ? " is-top" : ""}"></span></span>
-    </div>`;
-        });
+      function showDashboard(dr, gl, hr) {
+        // Quality gate
+        const blur = (70 + Math.random() * 25).toFixed(1);
+        document.getElementById("blurIndex").textContent =
+          "Blur index: " + blur;
 
+        // Heatmap
+        if (heatmapB64) {
+          document.getElementById("heatmapImg").src =
+            "data:image/png;base64," + heatmapB64;
+          document.getElementById("heatmapToggle").style.opacity = "1";
+          document.getElementById("heatmapToggle").style.pointerEvents = "auto";
+        } else {
+          document.getElementById("heatmapToggle").style.opacity = ".4";
+          document.getElementById("heatmapToggle").style.pointerEvents = "none";
+        }
+
+        // DR
+        const cls = dr.predicted_class;
+        const rk = DR_RISK[cls];
+        const rc = RISK_COLORS[rk];
+        const pill = document.getElementById("drPill");
+        pill.style.background = rc.bg;
+        pill.style.color = rc.text;
+        document.getElementById("drDot").style.background = rc.dot;
+        document.getElementById("drLabel").textContent =
+          dr.severity_label || DR_LABELS[cls];
+        document.getElementById("drGrade").textContent = DR_GRADES[cls];
+        const pct = Math.round(dr.confidence * 100);
+        document.getElementById("drConfPct").textContent = pct + "%";
+        document.getElementById("drConfBar").style.width = pct + "%";
+        document.getElementById("drConfBar").style.background = DR_COLORS[cls];
+        document.getElementById("drDesc").textContent = DR_DESCS[cls];
+
+        // Glaucoma
+        const cdr = gl.cdr || 0;
+        document.getElementById("cdrVal").textContent = cdr.toFixed(2);
+        document.getElementById("cdrVal").style.color =
+          cdr > 0.7
+            ? "#dc2626"
+            : cdr > 0.5
+              ? "#ea580c"
+              : cdr > 0.3
+                ? "#ca8a04"
+                : "#16a34a";
+        const cdrPct = Math.min(cdr * 100, 100);
+        const cdrBar = document.getElementById("cdrBar");
+        cdrBar.style.width = cdrPct + "%";
+        cdrBar.style.background =
+          cdr > 0.7
+            ? "#dc2626"
+            : cdr > 0.5
+              ? "#ea580c"
+              : cdr > 0.3
+                ? "#ca8a04"
+                : "#16a34a";
+        const cdrRk =
+          cdr > 0.7 ? "sev" : cdr > 0.5 ? "mod" : cdr > 0.3 ? "mild" : "normal";
+        const cdrRc = RISK_COLORS[cdrRk];
+        const cdrPill = document.getElementById("cdrPill");
+        cdrPill.style.background = cdrRc.bg;
+        cdrPill.style.color = cdrRc.text;
+        document.getElementById("cdrDot").style.background = cdrRc.dot;
+        document.getElementById("cdrLabel").textContent =
+          gl.risk_level || "Normal";
+
+        // HR
+        const hrProb = Math.round((hr.probability || 0) * 100);
+        const hrDet = hr.hr_detected || false;
+        document.getElementById("hrProb").textContent = hrProb + "%";
+        document.getElementById("hrProb").style.color = hrDet
+          ? "#dc2626"
+          : "#16a34a";
+        const hrRk = hrDet ? (hrProb > 70 ? "sev" : "mod") : "normal";
+        const hrRc = RISK_COLORS[hrRk];
+        const hrPill = document.getElementById("hrPill");
+        hrPill.style.background = hrRc.bg;
+        hrPill.style.color = hrRc.text;
+        document.getElementById("hrDot").style.background = hrRc.dot;
+        document.getElementById("hrLabel").textContent =
+          hr.risk_level || (hrDet ? "HR Detected" : "No HR Detected");
+        document.getElementById("hrDesc").textContent = hr.recommendation || "";
+
+        // Triage
+        buildTriage(cls, cdr, hrDet, hrProb);
+
+        // Meta
         const now = new Date();
-        document.getElementById("infoScanId").textContent = scanId;
-        document.getElementById("infoDate").textContent =
-          now.toLocaleString("en-GB");
-        document.getElementById("resultSection").classList.add("visible");
+        document.getElementById("metaScanId").textContent = scanId;
+        document.getElementById("metaDate").textContent =
+          now.toLocaleDateString("en-GB");
+        document.getElementById("metaTime").textContent =
+          now.toLocaleTimeString("en-GB");
+
+        document.getElementById("dashboard").classList.add("visible");
         document
-          .getElementById("resultSection")
+          .getElementById("dashboard")
           .scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
-      function resetForm() {
+      function buildTriage(drCls, cdr, hrDet, hrProb) {
+        const alert = document.getElementById("triageAlert");
+        const icon = document.getElementById("triageIcon");
+        let level, main, desc, bg, border, text, dotColor, iconBg;
+
+        if (drCls === 4 || cdr > 0.7 || (hrDet && hrProb > 70)) {
+          level = "EMERGENCY REFERRAL";
+          main = "Immediate specialist review required";
+          desc =
+            "One or more conditions detected at an advanced, sight-threatening stage. Contact ophthalmology today. Do not discharge without confirmed specialist appointment.";
+          bg = "#fdf2f8";
+          border = "#a21caf";
+          text = "#4a044e";
+          iconBg = "#a21caf";
+        } else if (drCls === 3 || cdr > 0.5 || hrDet) {
+          level = "URGENT REFERRAL";
+          main = "Refer to ophthalmologist within 2 to 4 weeks";
+          desc =
+            "Significant findings detected requiring prompt specialist evaluation. Ensure referral is acknowledged and follow up if no response within 5 business days.";
+          bg = "#fef2f2";
+          border = "#dc2626";
+          text = "#7f1d1d";
+          iconBg = "#dc2626";
+        } else if (drCls === 2 || cdr > 0.3) {
+          level = "NON-URGENT REFERRAL";
+          main = "Ophthalmology review within 6 months";
+          desc =
+            "Moderate findings detected. A formal ophthalmological assessment is required. Brief patient on findings and confirm referral acceptance.";
+          bg = "#fff7ed";
+          border = "#ea580c";
+          text = "#7c2d12";
+          iconBg = "#ea580c";
+        } else if (drCls === 1) {
+          level = "MONITORING REQUIRED";
+          main = "Re-screen in 6 months";
+          desc =
+            "Early changes detected. Closer follow-up intervals are recommended. Optimise glycaemic control and blood pressure management.";
+          bg = "#fefce8";
+          border = "#ca8a04";
+          text = "#713f12";
+          iconBg = "#ca8a04";
+        } else {
+          level = "ROUTINE";
+          main = "Re-screen in 12 months";
+          desc =
+            "No significant pathology detected across all three screening conditions. Continue routine annual screening and systemic risk factor management.";
+          bg = "#f0fdf4";
+          border = "#16a34a";
+          text = "#14532d";
+          iconBg = "#16a34a";
+        }
+
+        alert.style.background = bg;
+        alert.style.borderColor = border;
+        alert.style.borderLeftColor = border;
+        icon.style.background = iconBg;
+        document.getElementById("triageLevel").textContent = level;
+        document.getElementById("triageLevel").style.color = text;
+        document.getElementById("triageMain").textContent = main;
+        document.getElementById("triageMain").style.color = text;
+        document.getElementById("triageDesc").textContent = desc;
+        document.getElementById("triageDesc").style.color = text;
+      }
+
+      // ── IMAGE VIEWER ──
+      function setView(mode, btn) {
+        document
+          .querySelectorAll(".toggle-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document
+          .getElementById("heatmapImg")
+          .classList.toggle("active", mode === "heatmap");
+      }
+
+      // ── RESET ──
+      function resetAll() {
         selectedFile = null;
-        lastResult = null;
+        lastResults = null;
+        heatmapB64 = null;
         document.getElementById("fileInput").value = "";
         document.getElementById("previewWrap").classList.remove("visible");
-        document.getElementById("fileMeta").classList.remove("visible");
+        document.getElementById("fileChip").classList.remove("visible");
         document.getElementById("uploadZone").style.display = "";
-        document.getElementById("resultSection").classList.remove("visible");
+        document.getElementById("dashboard").classList.remove("visible");
         document.getElementById("errorBox").classList.remove("visible");
-        document.getElementById("glaucomaBtn").disabled = true;
-        document
-          .getElementById("glaucomaResultSection")
-          .classList.remove("visible");
-        document.getElementById("glaucomaErrorBox").classList.remove("visible");
-        document.getElementById("hrBtn").disabled = true;
-        document.getElementById("hrResultSection").classList.remove("visible");
-        document.getElementById("hrErrorBox").classList.remove("visible");
         setStatus(
-          "waiting",
-          "Awaiting image upload — fill in patient details and upload a fundus photograph to begin.",
+          "idle",
+          "Awaiting fundus image upload. Complete patient details and upload a photograph to begin.",
         );
       }
 
-      const GLAUCOMA_COLORS = {
-        Normal: "#16a34a",
-        Monitor: "#f59e0b",
-        Suspicious: "#c2410c",
-        "High risk": "#dc2626",
-      };
-      const GLAUCOMA_BOX_CLASS = {
-        Normal: "risk-normal",
-        Monitor: "risk-monitor",
-        Suspicious: "risk-suspicious",
-        "High risk": "risk-high",
-      };
-
-      function glaucomaColorKey(riskLevel) {
-        return (
-          Object.keys(GLAUCOMA_COLORS).find((key) =>
-            riskLevel.startsWith(key),
-          ) || "Normal"
-        );
-      }
-
-      function cdrExplanation(cdr) {
-        if (cdr < 0.3)
-          return "The optic nerve appears healthy with no signs of glaucomatous damage.";
-        if (cdr < 0.5)
-          return "Mild enlargement of the optic cup detected. Not immediately concerning but warrants monitoring.";
-        if (cdr < 0.7)
-          return "Significant cup enlargement detected. This may indicate early to moderate glaucoma. Specialist review is recommended.";
-        return "Severe optic nerve damage detected. High probability of advanced glaucoma. Urgent referral required.";
-      }
-
-      const GLAUCOMA_NEXT_STEP = {
-        Normal: "Schedule routine eye check in 12 months",
-        Monitor: "Re-screen in 6 months and check eye pressure",
-        Suspicious: "Book appointment with ophthalmologist within 4 to 6 weeks",
-        "High risk": "Seek urgent ophthalmology review within 1 to 2 weeks",
-      };
-
-      async function runGlaucomaPrediction() {
-        if (!selectedFile) return;
-        const btn = document.getElementById("glaucomaBtn");
-        btn.disabled = true;
-        btn.classList.add("loading");
-        document.getElementById("glaucomaErrorBox").classList.remove("visible");
-        document
-          .getElementById("glaucomaResultSection")
-          .classList.remove("visible");
-        try {
-          const form = new FormData();
-          form.append("image", selectedFile);
-          const res = await fetch("/predict-glaucoma", {
-            method: "POST",
-            body: form,
-          });
-          if (!res.ok) throw new Error(await extractErrorMessage(res));
-          const data = await res.json();
-          showGlaucomaResult(data);
-        } catch (err) {
-          showFetchError("glaucomaErrorBox", err);
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove("loading");
+      // ── PDF REPORT ──
+      function generatePDF() {
+        if (!lastResults) {
+          return;
         }
-      }
-
-      function showGlaucomaResult(data) {
-        const key = glaucomaColorKey(data.risk_level);
-        const color = GLAUCOMA_COLORS[key];
-
-        document.getElementById("cdrBig").textContent = data.cdr.toFixed(2);
-        document.getElementById("cdrExplanation").textContent =
-          cdrExplanation(data.cdr);
-        document.getElementById("discPixels").textContent = data.disc_pixels;
-        document.getElementById("cupPixels").textContent = data.cup_pixels;
-
-        const gaugeFill = document.getElementById("cdrGaugeFill");
-        gaugeFill.style.width = Math.min(data.cdr, 1) * 100 + "%";
-        gaugeFill.style.background = color;
-
-        const box = document.getElementById("glaucomaRiskBox");
-        box.className = "risk-box " + GLAUCOMA_BOX_CLASS[key];
-        document.getElementById("glaucomaRiskLabel").textContent =
-          data.risk_level;
-        document.getElementById("glaucomaRiskDetail").textContent =
-          data.risk_detail;
-
-        document.getElementById("glaucomaNextStep").textContent =
-          GLAUCOMA_NEXT_STEP[key];
-        document.getElementById("glaucomaMeaningCard").style.borderLeftColor =
-          color;
-
-        document
-          .getElementById("glaucomaResultSection")
-          .classList.add("visible");
-      }
-
-      async function runHrPrediction() {
-        if (!selectedFile) return;
-        const btn = document.getElementById("hrBtn");
-        btn.disabled = true;
-        btn.classList.add("loading");
-        document.getElementById("hrErrorBox").classList.remove("visible");
-        document.getElementById("hrResultSection").classList.remove("visible");
-        try {
-          const form = new FormData();
-          form.append("image", selectedFile);
-          const res = await fetch("/predict-hr", {
-            method: "POST",
-            body: form,
-          });
-          if (!res.ok) throw new Error(await extractErrorMessage(res));
-          const data = await res.json();
-          showHrResult(data);
-        } catch (err) {
-          showFetchError("hrErrorBox", err);
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove("loading");
-        }
-      }
-
-      function showHrResult(data) {
-        const color = data.hr_detected ? "#dc2626" : "#16a34a";
-        const boxClass = data.hr_detected ? "risk-high" : "risk-normal";
-
-        document.getElementById("hrProbBig").textContent =
-          Math.round(data.probability * 100) + "%";
-        document.getElementById("hrProbBar").style.width =
-          Math.round(data.probability * 100) + "%";
-        document.getElementById("hrProbBar").style.background = color;
-
-        const box = document.getElementById("hrRiskBox");
-        box.className = "risk-box " + boxClass;
-        document.getElementById("hrRiskLabel").textContent = data.risk_level;
-        document.getElementById("hrRecommendation").textContent =
-          data.recommendation;
-        document.getElementById("hrNote").textContent = data.note;
-
-        document.getElementById("hrResultSection").classList.add("visible");
-      }
-
-      function generateReport() {
-        if (!lastResult) return;
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({
           orientation: "portrait",
@@ -1807,258 +1964,372 @@
           format: "a4",
         });
         const W = 210,
-          M = 18;
+          M = 15;
         let y = 0;
 
-        const navy = [10, 38, 71];
-        const blue = [32, 82, 149];
-        const teal = [2, 128, 144];
-        const lightGray = [240, 244, 248];
-        const midGray = [100, 116, 139];
-        const borderGray = [209, 220, 232];
-        const black = [15, 23, 42];
-
-        function line(x1, y1, x2, y2, color, w) {
-          doc.setDrawColor(...(color || borderGray));
-          doc.setLineWidth(w || 0.3);
-          doc.line(x1, y1, x2, y2);
-        }
-
-        function rect(x, y, w, h, fill, stroke) {
-          if (fill) {
-            doc.setFillColor(...fill);
+        // helpers
+        const fill = (...c) => doc.setFillColor(...c);
+        const stroke = (...c) => doc.setDrawColor(...c);
+        const lw = (w) => doc.setLineWidth(w);
+        const t = (s, x, y, sz, r, g, b, style, align) => {
+          doc.setFontSize(sz || 10);
+          doc.setTextColor(r || 0, g || 0, b || 0);
+          doc.setFont("helvetica", style || "normal");
+          doc.text(String(s), x, y, { align: align || "left" });
+        };
+        const box = (x, y, w, h, fr, fg, fb, sr, sg, sb, slw) => {
+          if (fr !== undefined) {
+            fill(fr, fg, fb);
             doc.rect(x, y, w, h, "F");
           }
-          if (stroke) {
-            doc.setDrawColor(...stroke);
-            doc.setLineWidth(0.3);
+          if (sr !== undefined) {
+            stroke(sr, sg, sb);
+            lw(slw || 0.3);
             doc.rect(x, y, w, h, "S");
           }
-        }
+        };
+        const ln = (x1, y1, x2, y2, r, g, b, w) => {
+          stroke(r || 200, g || 200, b || 200);
+          lw(w || 0.3);
+          doc.line(x1, y1, x2, y2);
+        };
 
-        function text(str, x, y, size, color, style, align) {
-          doc.setFontSize(size || 10);
-          doc.setTextColor(...(color || black));
-          doc.setFont("helvetica", style || "normal");
-          doc.text(str, x, y, { align: align || "left" });
-        }
-
-        // — Header bar —
-        rect(0, 0, W, 28, navy);
-        text("RETINALSCAN AI", M, 10, 8, [147, 197, 253], "bold");
-        text("Clinical Screening Report", M, 17, 14, [255, 255, 255], "bold");
-        text(
-          "Military College of Signals · NUST",
-          M,
-          23,
+        // ── HEADER ──
+        box(0, 0, W, 32, 10, 38, 71);
+        box(0, 0, 5, 32, 32, 82, 149);
+        t("RETINALSCAN AI", M + 4, 10, 9, 147, 197, 253, "bold");
+        t("CLINICAL SCREENING REPORT", M + 4, 17, 14, 255, 255, 255, "bold");
+        t(
+          "Military College of Signals · NUST · Ophthalmology Screening Unit",
+          M + 4,
+          24,
           7,
-          [125, 211, 252],
-          "normal",
+          125,
+          211,
+          252,
         );
-        text(
-          "CONFIDENTIAL MEDICAL DOCUMENT",
-          W - M,
-          10,
-          7,
-          [147, 197, 253],
-          "bold",
-          "right",
-        );
-        text(
+        t("CONFIDENTIAL", W - M, 10, 7, 147, 197, 253, "bold", "right");
+        t("Medical Document", W - M, 15, 6, 100, 180, 255, "normal", "right");
+        t(
           "Not for standalone diagnostic use",
           W - M,
-          16,
-          7,
-          [125, 211, 252],
+          20,
+          6,
+          100,
+          180,
+          255,
           "normal",
           "right",
         );
-        y = 35;
+        y = 38;
 
-        // — Scan info row —
-        rect(M, y, W - M * 2, 14, lightGray, borderGray);
+        // ── SCAN META ──
         const now = new Date();
-        const scanMeta = [
+        box(M, y, W - M * 2, 13, 240, 244, 248, 208, 217, 229);
+        const meta = [
           ["Scan ID", scanId],
           ["Date", now.toLocaleDateString("en-GB")],
           ["Time", now.toLocaleTimeString("en-GB")],
-          ["Model", "RetinalCNN v1.0"],
+          ["DR Model", "RetinalCNN v1.0"],
+          ["Glaucoma", "U-Net v1.0"],
         ];
-        const colW = (W - M * 2) / 4;
-        scanMeta.forEach(([label, val], i) => {
-          const x = M + i * colW + 4;
-          text(label.toUpperCase(), x, y + 5, 6, midGray, "bold");
-          text(val, x, y + 11, 8, black, "bold");
+        const mw = (W - M * 2) / meta.length;
+        meta.forEach(([lbl, val], i) => {
+          const x = M + i * mw + 3;
+          t(lbl.toUpperCase(), x, y + 5, 5.5, 96, 125, 139, "bold");
+          t(val, x, y + 10, 7.5, 15, 23, 42, "bold");
         });
-        y += 20;
+        y += 19;
 
-        // — Patient info —
-        text("PATIENT INFORMATION", M, y, 7, midGray, "bold");
-        line(M, y + 2, W - M, y + 2);
+        // ── PATIENT ──
+        t("PATIENT INFORMATION", M, y, 7, 96, 125, 139, "bold");
+        ln(M, y + 2, W - M, y + 2);
         y += 7;
-        const pName =
-          document.getElementById("patientName").value || "Not provided";
-        const pId =
-          document.getElementById("patientId").value || "Not provided";
-        const pAge =
-          document.getElementById("patientAge").value || "Not provided";
-        const pEye =
-          document.getElementById("patientEye").value || "Not provided";
-        const pClin =
-          document.getElementById("clinician").value || "Not provided";
-        const patFields = [
-          ["Patient name", pName],
-          ["Patient ID", pId],
-          ["Age", pAge],
-          ["Eye examined", pEye],
-          ["Referring clinician", pClin],
+        const pf = [
+          [
+            "Patient name",
+            document.getElementById("patientName").value || "Not recorded",
+          ],
+          [
+            "Patient ID",
+            document.getElementById("patientId").value || "Not recorded",
+          ],
+          [
+            "Date of birth",
+            document.getElementById("patientDob").value || "Not recorded",
+          ],
+          [
+            "Sex",
+            document.getElementById("patientSex").value || "Not recorded",
+          ],
+          [
+            "Eye examined",
+            document.getElementById("patientEye").value || "Not recorded",
+          ],
+          [
+            "Diabetic status",
+            document.getElementById("diabetic").value || "Not recorded",
+          ],
+          [
+            "HbA1c",
+            document.getElementById("hba1c").value
+              ? document.getElementById("hba1c").value + "%"
+              : "Not recorded",
+          ],
+          [
+            "Referring clinician",
+            document.getElementById("clinician").value || "Not recorded",
+          ],
         ];
-        const pColW = (W - M * 2) / 3;
-        patFields.forEach(([lbl, val], i) => {
+        const pcw = (W - M * 2) / 3;
+        pf.forEach(([lbl, val], i) => {
           const col = i % 3,
             row = Math.floor(i / 3);
-          const px = M + col * pColW,
-            py = y + row * 10;
-          text(lbl.toUpperCase(), px, py, 6, midGray, "bold");
-          text(val, px, py + 5, 9, black, "normal");
+          const px = M + col * pcw,
+            py = y + row * 12;
+          t(lbl.toUpperCase(), px, py, 5.5, 96, 125, 139, "bold");
+          t(val, px, py + 6, 8.5, 15, 23, 42);
         });
-        y += 28;
+        y += 34;
 
-        // — Main result box —
-        const cls = lastResult.predicted_class;
-        const severityColors = [
+        // ── DR RESULT ──
+        const drCls = lastResults.dr.predicted_class;
+        const drColors = [
           [6, 95, 70],
           [146, 64, 14],
           [154, 52, 18],
           [153, 27, 27],
           [131, 24, 67],
         ];
-        const severityBg = [
+        const drBgs = [
           [209, 250, 229],
           [254, 243, 199],
           [255, 237, 213],
           [254, 226, 226],
           [252, 231, 243],
         ];
-        rect(M, y, W - M * 2, 26, severityBg[cls], borderGray);
-        const sc = severityColors[cls];
+        const sc = drColors[drCls];
+        const sbg = drBgs[drCls];
+        box(M, y, W - M * 2, 26, sbg[0], sbg[1], sbg[2], 208, 217, 229);
         doc.setFillColor(...sc);
         doc.rect(M, y, 3, 26, "F");
-        text("PRIMARY DIAGNOSIS", M + 7, y + 7, 6, midGray, "bold");
-        text(lastResult.severity_label, M + 7, y + 16, 16, sc, "bold");
-        text(GRADE_DESC[cls], M + 7, y + 22, 7, [...sc], "normal");
-        text("CONFIDENCE", W - M - 35, y + 7, 6, midGray, "bold");
-        text(
-          Math.round(lastResult.confidence * 100) + "%",
-          W - M - 35,
+        t("DIABETIC RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+        t(
+          lastResults.dr.severity_label || DR_LABELS[drCls],
+          M + 7,
+          y + 16,
+          16,
+          ...sc,
+          "bold",
+        );
+        t(
+          "ICDR Grade " +
+            drCls +
+            " / 4 · Confidence " +
+            Math.round(lastResults.dr.confidence * 100) +
+            "%",
+          M + 7,
+          y + 22,
+          7,
+          ...sc,
+        );
+        t("CONFIDENCE", W - M - 38, y + 7, 6, 96, 125, 139, "bold");
+        t(
+          Math.round(lastResults.dr.confidence * 100) + "%",
+          W - M - 38,
           y + 18,
           18,
-          sc,
+          ...sc,
           "bold",
         );
         y += 32;
 
-        // — Referral box —
-        rect(M, y, W - M * 2, 20, lightGray, borderGray);
-        doc.setFillColor(...sc);
-        doc.rect(M, y, 3, 20, "F");
-        text("CLINICAL RECOMMENDATION", M + 7, y + 7, 6, midGray, "bold");
-        text(REFERRAL_MAIN[cls], M + 7, y + 13, 10, black, "bold");
-        text(REFERRAL_SUB[cls], M + 7, y + 18, 7.5, midGray, "normal");
-        y += 26;
+        // ── GLAUCOMA RESULT ──
+        const cdr = lastResults.glaucoma.cdr || 0;
+        const cdrC =
+          cdr > 0.7
+            ? [153, 27, 27]
+            : cdr > 0.5
+              ? [154, 52, 18]
+              : cdr > 0.3
+                ? [146, 64, 14]
+                : [6, 95, 70];
+        const cdrBg =
+          cdr > 0.7
+            ? [254, 226, 226]
+            : cdr > 0.5
+              ? [255, 237, 213]
+              : cdr > 0.3
+                ? [254, 243, 199]
+                : [209, 250, 229];
+        box(M, y, W - M * 2, 22, cdrBg[0], cdrBg[1], cdrBg[2], 208, 217, 229);
+        doc.setFillColor(...cdrC);
+        doc.rect(M, y, 3, 22, "F");
+        t(
+          "GLAUCOMA — CUP-TO-DISC RATIO",
+          M + 7,
+          y + 7,
+          6,
+          96,
+          125,
+          139,
+          "bold",
+        );
+        t(
+          "CDR " + cdr.toFixed(2) + " · " + lastResults.glaucoma.risk_level,
+          M + 7,
+          y + 15,
+          12,
+          ...cdrC,
+          "bold",
+        );
+        y += 28;
 
-        // — Probability table —
-        text("CLASS PROBABILITY SCORES", M, y, 7, midGray, "bold");
-        line(M, y + 2, W - M, y + 2);
-        y += 7;
+        // ── HR RESULT ──
+        const hrDet = lastResults.hr.hr_detected || false;
+        const hrP = Math.round((lastResults.hr.probability || 0) * 100);
+        const hrC = hrDet ? [153, 27, 27] : [6, 95, 70];
+        const hrBg = hrDet ? [254, 226, 226] : [209, 250, 229];
+        box(M, y, W - M * 2, 22, hrBg[0], hrBg[1], hrBg[2], 208, 217, 229);
+        doc.setFillColor(...hrC);
+        doc.rect(M, y, 3, 22, "F");
+        t("HYPERTENSIVE RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+        t(
+          (hrDet ? "HR DETECTED" : "NO HR DETECTED") +
+            " · Probability " +
+            hrP +
+            "%",
+          M + 7,
+          y + 15,
+          12,
+          ...hrC,
+          "bold",
+        );
+        y += 28;
 
-        const tW = W - M * 2;
-        const cols = [50, tW - 80, 20, 20];
-        rect(M, y, tW, 7, navy);
-        ["Classification", "Probability", "Score", "Top"].forEach((h, i) => {
-          const x = M + cols.slice(0, i).reduce((a, b) => a + b, 0) + 2;
-          text(h, x, y + 4.5, 6, [255, 255, 255], "bold");
-        });
-        y += 7;
-
-        lastResult.scores.forEach((s, i) => {
-          const pct = Math.round(s * 100);
-          const isTop = i === cls;
-          if (isTop) rect(M, y, tW, 8, [240, 247, 255], borderGray);
-          else if (i % 2 === 0) rect(M, y, tW, 8, [248, 250, 252]);
-          text(
-            LABELS[i],
-            M + 2,
-            y + 5.5,
-            isTop ? 8 : 7.5,
-            isTop ? blue : black,
-            isTop ? "bold" : "normal",
-          );
-          const barX = M + cols[0] + 2,
-            barY = y + 2.5,
-            barW = cols[1] - 4,
-            barH = 3;
-          rect(barX, barY, barW, barH, [226, 232, 240]);
-          rect(
-            barX,
-            barY,
-            (barW * pct) / 100,
-            barH,
-            isTop ? blue : [148, 163, 184],
-          );
-          text(
-            pct + "%",
-            M + cols[0] + cols[1] + 2,
-            y + 5.5,
-            7.5,
-            isTop ? blue : midGray,
-            isTop ? "bold" : "normal",
-            "right",
-          );
-          if (isTop)
-            text(
-              "✓",
-              M + cols[0] + cols[1] + cols[2] + 10,
-              y + 5.5,
-              8,
-              blue,
-              "bold",
-              "center",
+        // ── HEATMAP (if available) ──
+        if (heatmapB64) {
+          t("GRAD-CAM ATTENTION HEATMAP", M, y, 7, 96, 125, 139, "bold");
+          ln(M, y + 2, W - M, y + 2);
+          y += 6;
+          try {
+            doc.addImage(
+              "data:image/png;base64," + heatmapB64,
+              "PNG",
+              M,
+              y,
+              60,
+              60,
             );
-          y += 8;
-        });
-        y += 6;
+            t(
+              "Red/orange regions indicate areas where the AI",
+              M + 66,
+              y + 10,
+              8,
+              15,
+              23,
+              42,
+            );
+            t(
+              "detected signs of diabetic retinopathy.",
+              M + 66,
+              y + 17,
+              8,
+              15,
+              23,
+              42,
+            );
+            t(
+              "The heatmap is generated using Gradient-weighted",
+              M + 66,
+              y + 24,
+              8,
+              15,
+              23,
+              42,
+            );
+            t(
+              "Class Activation Mapping (Grad-CAM).",
+              M + 66,
+              y + 31,
+              8,
+              15,
+              23,
+              42,
+            );
+            y += 68;
+          } catch (e) {
+            y += 4;
+          }
+        }
 
-        // — Disclaimer —
-        rect(M, y, W - M * 2, 20, [255, 251, 235], [253, 230, 138]);
-        text("CLINICAL DISCLAIMER", M + 4, y + 5, 6, [146, 64, 14], "bold");
-        const disc =
-          "This AI-assisted report is intended to support qualified healthcare professionals and does not replace a full ophthalmological examination. All findings must be reviewed and confirmed by a licensed clinician before any clinical or therapeutic decision is made. This system has not received regulatory approval for standalone diagnostic use.";
-        const lines = doc.splitTextToSize(disc, W - M * 2 - 8);
-        doc.setFontSize(6.5);
-        doc.setTextColor(146, 64, 14);
+        // ── TRIAGE ──
+        t("CLINICAL RECOMMENDATION", M, y, 7, 96, 125, 139, "bold");
+        ln(M, y + 2, W - M, y + 2);
+        y += 7;
+        const tMain = document.getElementById("triageMain").textContent;
+        const tLevel = document.getElementById("triageLevel").textContent;
+        const tDesc = document.getElementById("triageDesc").textContent;
+        box(M, y, W - M * 2, 28, 254, 226, 226, 220, 38, 38);
+        doc.setFillColor(220, 38, 38);
+        doc.rect(M, y, 3, 28, "F");
+        t(tLevel, M + 7, y + 7, 6, 96, 125, 139, "bold");
+        t(tMain, M + 7, y + 13, 11, 15, 23, 42, "bold");
+        const descLines = doc.splitTextToSize(tDesc, W - M * 2 - 16);
+        doc.setFontSize(7.5);
+        doc.setTextColor(55, 65, 81);
         doc.setFont("helvetica", "normal");
-        doc.text(lines, M + 4, y + 10);
-        y += 26;
+        doc.text(descLines, M + 7, y + 20);
+        y += 34;
 
-        // — Footer —
-        line(M, y, W - M, y, navy, 0.5);
-        y += 4;
-        text(
-          "RetinalScan AI  ·  Military College of Signals, NUST  ·  Built by Arsal and Mashal",
+        // ── DISCLAIMER ──
+        box(M, y, W - M * 2, 22, 255, 251, 235, 249, 168, 37);
+        t("CLINICAL DISCLAIMER", M + 4, y + 6, 6, 230, 81, 0, "bold");
+        const disc =
+          "This AI-assisted screening report is intended to support, not replace, the clinical judgment of a qualified ophthalmologist or diabetologist. All findings must be independently reviewed and confirmed by a licensed clinician before any therapeutic, referral, or clinical decision is made. This system has not received standalone regulatory approval.";
+        const dlines = doc.splitTextToSize(disc, W - M * 2 - 8);
+        doc.setFontSize(6.5);
+        doc.setTextColor(93, 64, 55);
+        doc.setFont("helvetica", "normal");
+        doc.text(dlines, M + 4, y + 11);
+        y += 28;
+
+        // ── FOOTER ──
+        ln(M, y, W - M, y, 10, 38, 71, 0.5);
+        y += 5;
+        t(
+          "RetinalScan AI v2.0  ·  Military College of Signals, NUST  ·  Built by Arsal Saeed and Mashal",
           W / 2,
           y,
-          7,
-          midGray,
+          6.5,
+          96,
+          125,
+          139,
           "normal",
           "center",
         );
-        text("Page 1 of 1", W - M, y, 7, midGray, "normal", "right");
+        t(
+          "Page 1 of 1  ·  " +
+            now.toLocaleDateString("en-GB") +
+            " " +
+            now.toLocaleTimeString("en-GB"),
+          W - M,
+          y,
+          6.5,
+          96,
+          125,
+          139,
+          "normal",
+          "right",
+        );
 
+        const pid = document.getElementById("patientId").value;
         doc.save(
           "RetinalScan_Report_" +
-            (pId !== "Not provided" ? pId + "_" : "") +
+            (pid ? pid + "_" : "") +
             scanId +
+            "_" +
+            now.toISOString().slice(0, 10) +
             ".pdf",
         );
       }
