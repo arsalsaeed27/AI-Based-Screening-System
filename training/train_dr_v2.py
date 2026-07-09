@@ -34,33 +34,39 @@ def run_epoch(model, loader, criterion, optimizer, device, train):
     correct = 0
     total = 0
 
-    torch.set_grad_enabled(train)
-    for batch_idx, (images, labels) in enumerate(loader):
-        images = images.to(device)
-        labels = labels.to(device)
+    def process_batches():
+        nonlocal total_loss, correct, total
+        for batch_idx, (images, labels) in enumerate(loader):
+            images = images.to(device)
+            labels = labels.to(device)
 
-        if train:
-            optimizer.zero_grad()
+            if train:
+                optimizer.zero_grad()
 
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
-        if train:
-            loss.backward()
-            optimizer.step()
+            if train:
+                loss.backward()
+                optimizer.step()
 
-        total_loss += loss.item() * images.size(0)
-        preds = outputs.argmax(dim=1)
-        correct += (preds == labels).sum().item()
-        total += labels.size(0)
+            total_loss += loss.item() * images.size(0)
+            preds = outputs.argmax(dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
 
-        if train and batch_idx % 20 == 0:
-            print(
-                f"  Batch {batch_idx}/{len(loader)} | Loss: {loss.item():.4f}",
-                flush=True,
-            )
+            if train and batch_idx % 20 == 0:
+                print(
+                    f"  Batch {batch_idx}/{len(loader)} | Loss: {loss.item():.4f}",
+                    flush=True,
+                )
 
-    torch.set_grad_enabled(True)
+    if train:
+        process_batches()
+    else:
+        with torch.no_grad():
+            process_batches()
+
     return total_loss / total, correct / total
 
 
