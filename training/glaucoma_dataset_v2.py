@@ -65,6 +65,24 @@ class GlaucomaSegDatasetV2(Dataset):
             borderValue=0,
         )
 
+        if random.random() < 0.5:
+            brightness = random.uniform(-25, 25)
+            contrast = random.uniform(0.85, 1.15)
+            image = image.astype(np.float32) * contrast + brightness
+            image = np.clip(image, 0, 255).astype(np.uint8)
+
+        if random.random() < 0.3:
+            scale = random.uniform(0.85, 1.0)
+            h, w = image.shape[:2]
+            new_h, new_w = int(h * scale), int(w * scale)
+            y1 = (h - new_h) // 2
+            x1 = (w - new_w) // 2
+            image = image[y1:y1+new_h, x1:x1+new_w]
+            mask = mask[y1:y1+new_h, x1:x1+new_w]
+            image = cv2.resize(image, (w, h))
+            mask = cv2.resize(mask, (w, h),
+                              interpolation=cv2.INTER_NEAREST)
+
         return image, mask
 
     def __getitem__(self, idx):

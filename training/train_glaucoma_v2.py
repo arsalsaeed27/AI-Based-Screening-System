@@ -4,7 +4,7 @@ import time
 
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+import torch.nn.functional as F
 
 from training.glaucoma_dataset_v2 import get_glaucoma_v2_dataloaders
 from training.unet import UNet
@@ -15,7 +15,7 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/kaggle/working/glaucoma-v2-m
 def parse_args():
     parser = argparse.ArgumentParser(description="Train UNet v2 for optic disc/cup segmentation on the merged dataset")
     parser.add_argument("--batch", type=int, default=2)
-    parser.add_argument("--epochs", type=int, default=80)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--resume", type=str, default=None)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--best_val_loss", type=float, default=float("inf"), help="best val loss from previous run")
@@ -40,6 +40,13 @@ def dice_score(preds, targets, smooth=1.0):
     return dice.mean().item()
 
 
+def focal_loss(preds, targets, gamma=2.0, alpha=0.8):
+    bce = F.binary_cross_entropy(preds, targets, reduction='none')
+    pt = torch.exp(-bce)
+    focal = alpha * (1 - pt) ** gamma * bce
+    return focal.mean()
+
+
 def run_epoch(model, loader, bce_criterion, optimizer, device, train):
     model.train() if train else model.eval()
 
@@ -60,11 +67,12 @@ def run_epoch(model, loader, bce_criterion, optimizer, device, train):
         outputs = model(images)
 
         disc_loss = bce_criterion(outputs[:, 0], masks[:, 0]) + dice_loss(outputs[:, 0], masks[:, 0])
-        cup_loss = bce_criterion(outputs[:, 1], masks[:, 1]) + dice_loss(outputs[:, 1], masks[:, 1])
-        loss = disc_loss + 2.0 * cup_loss
+        cup_loss = focal_loss(outputs[:, 1], masks[:, 1]) + 2.0 * dice_loss(outputs[:, 1], masks[:, 1])
+        loss = disc_loss + 3.0 * cup_loss
 
         if train:
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
         total_loss += loss.item() * images.size(0)
@@ -115,9 +123,11 @@ def main():
         print(f"Resumed from checkpoint: {args.resume}")
 
     bce_criterion = nn.BCELoss()
-    optimizer = Adam(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=0.0005, weight_decay=1e-4
+    )
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer, T_0=20, T_mult=2, eta_min=1e-6
     )
 
     best_val_loss = args.best_val_loss
@@ -138,7 +148,7 @@ def main():
             f"Val Dice Disc: {disc_dice:.4f} | Val Dice Cup: {cup_dice:.4f}"
         )
 
-        scheduler.step(val_loss)
+        scheduler.step()
 
         if epoch % 10 == 0:
             checkpoint_path = os.path.join(CHECKPOINT_DIR, f"checkpoint_epoch_{epoch}.pth")
