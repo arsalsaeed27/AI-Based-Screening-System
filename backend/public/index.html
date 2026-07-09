@@ -313,8 +313,50 @@
         font-weight: 500;
       }
 
+      /* ── COLLAPSE / MINIMIZE ── */
+      .collapse-btn {
+        margin-left: auto;
+        flex-shrink: 0;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px;
+        border-radius: 4px;
+        transition: background 0.15s;
+      }
+      .collapse-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .collapse-btn svg {
+        width: 13px;
+        height: 13px;
+        stroke: #93c5fd;
+        fill: none;
+        stroke-width: 2.2;
+        transition: transform 0.25s ease;
+      }
+      .result-card-head .collapse-btn:hover {
+        background: var(--surface-3);
+      }
+      .result-card-head .collapse-btn svg {
+        stroke: var(--text-muted);
+      }
+      .card.collapsed .collapse-btn svg,
+      .result-card.collapsed .collapse-btn svg {
+        transform: rotate(180deg);
+      }
+
       .card-body {
         padding: 16px;
+        overflow: hidden;
+        transition:
+          max-height 0.32s ease,
+          padding-top 0.32s ease,
+          padding-bottom 0.32s ease,
+          opacity 0.2s ease;
       }
 
       /* ── FORM ── */
@@ -741,10 +783,11 @@
         border: 1px solid var(--border);
         background: #0f172a;
         aspect-ratio: 1;
+        max-width: 260px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 10px;
+        margin: 0 auto 10px;
         position: relative;
       }
       .viewer-wrap img {
@@ -831,6 +874,12 @@
 
       .result-card-body {
         padding: 14px;
+        overflow: hidden;
+        transition:
+          max-height 0.32s ease,
+          padding-top 0.32s ease,
+          padding-bottom 0.32s ease,
+          opacity 0.2s ease;
       }
 
       .diagnosis-pill {
@@ -1773,7 +1822,7 @@
             </div>
 
             <!-- detailed DR scores panel (shown only when DR selected) -->
-            <div class="scores-panel" id="drScoresPanel">
+            <div class="card scores-panel" id="drScoresPanel">
               <div class="card-header">
                 <svg
                   viewBox="0 0 24 24"
@@ -1788,11 +1837,13 @@
                   >DR — Class Probability Distribution</span
                 >
               </div>
-              <div class="scores-table-head">
-                <span>Classification</span><span>Probability</span
-                ><span style="text-align: right">Score</span>
+              <div class="card-body" style="padding: 0">
+                <div class="scores-table-head">
+                  <span>Classification</span><span>Probability</span
+                  ><span style="text-align: right">Score</span>
+                </div>
+                <div id="drScoresBody"></div>
               </div>
-              <div id="drScoresBody"></div>
             </div>
 
             <!-- TRIAGE ALERT -->
@@ -1935,6 +1986,62 @@
       }
       clock();
       setInterval(clock, 1000);
+
+      // ── COLLAPSE / MINIMIZE ──
+      function toggleCardCollapse(container) {
+        const body = container.querySelector(".card-body, .result-card-body");
+        if (!body) return;
+
+        if (container.classList.contains("collapsed")) {
+          // expand: restore padding first so scrollHeight measures the true target height
+          container.classList.remove("collapsed");
+          body.style.paddingTop = "";
+          body.style.paddingBottom = "";
+          body.style.opacity = "";
+          body.style.maxHeight = body.scrollHeight + "px";
+          const onEnd = (e) => {
+            if (e.propertyName !== "max-height") return;
+            if (!container.classList.contains("collapsed")) {
+              body.style.maxHeight = "none";
+            }
+            body.removeEventListener("transitionend", onEnd);
+          };
+          body.addEventListener("transitionend", onEnd);
+        } else {
+          // collapse: freeze current height, force reflow, then animate down to 0 from the bottom up
+          body.style.maxHeight = body.scrollHeight + "px";
+          body.offsetHeight;
+          container.classList.add("collapsed");
+          body.style.maxHeight = "0px";
+          body.style.paddingTop = "0px";
+          body.style.paddingBottom = "0px";
+          body.style.opacity = "0";
+        }
+      }
+
+      function initCollapsibleCards() {
+        document
+          .querySelectorAll(".card-header, .result-card-head")
+          .forEach((header) => {
+            if (header.querySelector(".collapse-btn")) return;
+            const container = header.closest(".card, .result-card");
+            if (!container) return;
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "collapse-btn";
+            btn.setAttribute("aria-label", "Minimize panel");
+            btn.title = "Minimize";
+            btn.innerHTML =
+              '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              toggleCardCollapse(container);
+            });
+            header.appendChild(btn);
+          });
+      }
+      initCollapsibleCards();
 
       // ── FILE HANDLING ──
       const fileInput = document.getElementById("fileInput");
