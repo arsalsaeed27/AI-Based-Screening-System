@@ -56,16 +56,19 @@ class DeepRetinalCNN(nn.Module):
             conv_block(64, 128),
             conv_block(128, 256),
             conv_block(256, 512),
-            conv_block(512, 512),
+            conv_block(512, 1024),
         )
 
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.4),
             nn.Linear(512, 256),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             nn.Linear(256, num_classes),
         )
 
