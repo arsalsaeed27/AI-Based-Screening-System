@@ -41,7 +41,7 @@ let session;
 let glaucomaSession;
 let hrSession;
 
-async function preprocessImage(buffer) {
+async function preprocessImageDR(buffer) {
   const { data } = await sharp(buffer)
     .resize(300, 300)
     .removeAlpha()
@@ -61,6 +61,26 @@ async function preprocessImage(buffer) {
   return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
+async function preprocessImageHR(buffer) {
+  const { data } = await sharp(buffer)
+    .resize(224, 224)
+    .removeAlpha()
+    .toColorspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const float32Data = new Float32Array(3 * 224 * 224);
+  const pixelCount = 224 * 224;
+
+  for (let i = 0; i < pixelCount; i++) {
+    float32Data[i] = data[i * 3] / 255;
+    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
+    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
+  }
+
+  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
+}
+
 function softmax(scores) {
   const max = Math.max(...scores);
   const exps = scores.map((s) => Math.exp(s - max));
@@ -72,7 +92,7 @@ function sigmoid(logit) {
   return 1 / (1 + Math.exp(-logit));
 }
 
-async function preprocessGlaucomaImage(buffer) {
+async function preprocessImageGlaucoma(buffer) {
   const { data } = await sharp(buffer)
     .resize(512, 512)
     .removeAlpha()
@@ -281,7 +301,7 @@ app.post("/predict", upload.single("image"), async (req, res) => {
   }
 
   try {
-    const inputTensor = await preprocessImage(req.file.buffer);
+    const inputTensor = await preprocessImageDR(req.file.buffer);
     const feeds = { [session.inputNames[0]]: inputTensor };
     const results = await session.run(feeds);
     const outputTensor = results[session.outputNames[0]];
@@ -316,7 +336,7 @@ app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
   }
 
   try {
-    const inputTensor = await preprocessGlaucomaImage(req.file.buffer);
+    const inputTensor = await preprocessImageGlaucoma(req.file.buffer);
     const feeds = { [glaucomaSession.inputNames[0]]: inputTensor };
     const results = await glaucomaSession.run(feeds);
     const outputTensor = results[glaucomaSession.outputNames[0]];
@@ -359,7 +379,7 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
   }
 
   try {
-    const inputTensor = await preprocessImage(req.file.buffer);
+    const inputTensor = await preprocessImageHR(req.file.buffer);
     const feeds = { [hrSession.inputNames[0]]: inputTensor };
     const results = await hrSession.run(feeds);
     const outputTensor = results[hrSession.outputNames[0]];
