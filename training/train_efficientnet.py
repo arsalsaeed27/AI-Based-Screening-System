@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, OneCycleLR
 
 from training.dr_dataset_v2 import get_csv_dataloaders
 
@@ -27,26 +27,34 @@ def parse_args():
     parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from")
     parser.add_argument("--start_epoch", type=int, default=1, help="epoch to start from")
     parser.add_argument("--best_val_loss", type=float, default=float("inf"), help="best val loss so far")
+    parser.add_argument(
+        "--fine_tune",
+        action="store_true",
+        help="use low-LR CosineAnnealingLR fine-tuning instead of OneCycleLR",
+    )
     return parser.parse_args()
 
 
-def build_optimizer(model):
+def build_optimizer(model, fine_tune=False):
+    backbone_lr = 0.000005 if fine_tune else 0.00003
+    classifier_lr = 0.00005 if fine_tune else 0.0003
+
     param_groups = [
         {
             "params": [p for n, p in model.named_parameters() if "classifier" not in n],
-            "lr": 0.00003,
+            "lr": backbone_lr,
             "weight_decay": 1e-4,
         },
         {
             "params": [p for n, p in model.named_parameters() if "classifier" in n],
-            "lr": 0.0003,
+            "lr": classifier_lr,
             "weight_decay": 1e-4,
         },
     ]
     return AdamW(param_groups)
 
 
-def run_train_epoch(model, loader, criterion, optimizer, scheduler, scaler, device):
+def run_train_epoch(model, loader, criterion, optimizer, scheduler, scaler, device, step_per_batch=True):
     model.train()
 
     total_loss = 0.0
@@ -68,7 +76,8 @@ def run_train_epoch(model, loader, criterion, optimizer, scheduler, scaler, devi
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         scaler.step(optimizer)
         scaler.update()
-        scheduler.step()
+        if step_per_batch:
+            scheduler.step()
 
         total_loss += loss.item() * images.size(0)
         preds = outputs.argmax(dim=1)
@@ -132,17 +141,21 @@ def main():
         print(f"Resumed from checkpoint: {args.resume}")
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = build_optimizer(model)
-    scheduler = OneCycleLR(
-        optimizer,
-        max_lr=[0.0003, 0.003],
-        epochs=args.epochs,
-        steps_per_epoch=len(train_loader),
-        pct_start=0.1,
-        anneal_strategy="cos",
-        div_factor=10,
-        final_div_factor=100,
-    )
+    optimizer = build_optimizer(model, fine_tune=args.fine_tune)
+
+    if args.fine_tune:
+        scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-7)
+    else:
+        scheduler = OneCycleLR(
+            optimizer,
+            max_lr=[0.0003, 0.003],
+            epochs=args.epochs,
+            steps_per_epoch=len(train_loader),
+            pct_start=0.1,
+            anneal_strategy="cos",
+            div_factor=10,
+            final_div_factor=100,
+        )
     scaler = GradScaler()
 
     best_val_loss = args.best_val_loss
@@ -150,8 +163,18 @@ def main():
 
     for epoch in range(args.start_epoch, args.epochs + 1):
         train_loss, train_acc = run_train_epoch(
-            model, train_loader, criterion, optimizer, scheduler, scaler, device
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            scheduler,
+            scaler,
+            device,
+            step_per_batch=not args.fine_tune,
         )
+        if args.fine_tune:
+            scheduler.step()
+
         val_loss, val_acc = run_val_epoch(model, val_loader, criterion, device)
 
         if torch.isnan(torch.tensor(val_loss)):
