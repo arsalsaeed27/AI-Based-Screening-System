@@ -96,9 +96,8 @@ def run_val_epoch(model, loader, criterion, device):
             images = images.to(device)
             labels = labels.to(device)
 
-            with autocast():
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
             total_loss += loss.item() * images.size(0)
             preds = outputs.argmax(dim=1)
@@ -154,6 +153,10 @@ def main():
             model, train_loader, criterion, optimizer, scheduler, scaler, device
         )
         val_loss, val_acc = run_val_epoch(model, val_loader, criterion, device)
+
+        if torch.isnan(torch.tensor(val_loss)):
+            print("WARNING: val loss is nan, skipping checkpoint")
+            continue
 
         print(
             f"Epoch {epoch}/{args.epochs} | "
