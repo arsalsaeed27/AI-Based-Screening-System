@@ -8,7 +8,12 @@ const fetch = require("node-fetch");
 
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
-const GLAUCOMA_MODEL_PATH = path.join(__dirname, "..", "models", "glaucoma_model.onnx");
+const GLAUCOMA_MODEL_PATH = path.join(
+  __dirname,
+  "..",
+  "models",
+  "glaucoma_model.onnx",
+);
 const HR_MODEL_PATH = path.join(__dirname, "..", "models", "hr_model.onnx");
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
 
@@ -38,14 +43,14 @@ let hrSession;
 
 async function preprocessImage(buffer) {
   const { data } = await sharp(buffer)
-    .resize(224, 224)
+    .resize(300, 300)
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const float32Data = new Float32Array(3 * 224 * 224);
-  const pixelCount = 224 * 224;
+  const float32Data = new Float32Array(3 * 300 * 300);
+  const pixelCount = 300 * 300;
 
   for (let i = 0; i < pixelCount; i++) {
     float32Data[i] = data[i * 3] / 255;
@@ -53,7 +58,7 @@ async function preprocessImage(buffer) {
     float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
   }
 
-  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
+  return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
 function softmax(scores) {
@@ -134,8 +139,20 @@ async function validateFundusImage(imageBuffer) {
   const CORNER_SIZE = 10;
   const corners = [
     regionBrightness(data, IMAGE_SIZE, 0, 0, CORNER_SIZE),
-    regionBrightness(data, IMAGE_SIZE, IMAGE_SIZE - CORNER_SIZE, 0, CORNER_SIZE),
-    regionBrightness(data, IMAGE_SIZE, 0, IMAGE_SIZE - CORNER_SIZE, CORNER_SIZE),
+    regionBrightness(
+      data,
+      IMAGE_SIZE,
+      IMAGE_SIZE - CORNER_SIZE,
+      0,
+      CORNER_SIZE,
+    ),
+    regionBrightness(
+      data,
+      IMAGE_SIZE,
+      0,
+      IMAGE_SIZE - CORNER_SIZE,
+      CORNER_SIZE,
+    ),
     regionBrightness(
       data,
       IMAGE_SIZE,
@@ -232,12 +249,21 @@ function getRiskLevel(cdr) {
     return { risk_level: "Normal", risk_detail: "CDR within normal range" };
   }
   if (cdr < 0.5) {
-    return { risk_level: "Monitor", risk_detail: "CDR slightly elevated, monitor over time" };
+    return {
+      risk_level: "Monitor",
+      risk_detail: "CDR slightly elevated, monitor over time",
+    };
   }
   if (cdr < 0.7) {
-    return { risk_level: "Suspicious", risk_detail: "Suspicious — refer for IOP testing" };
+    return {
+      risk_level: "Suspicious",
+      risk_detail: "Suspicious — refer for IOP testing",
+    };
   }
-  return { risk_level: "High risk", risk_detail: "High risk — urgent referral" };
+  return {
+    risk_level: "High risk",
+    risk_detail: "High risk — urgent referral",
+  };
 }
 
 app.get("/health", (req, res) => {
