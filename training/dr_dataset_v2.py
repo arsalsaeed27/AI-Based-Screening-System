@@ -71,9 +71,9 @@ class FolderDRDataset(Dataset):
         return tensor, label
 
 
-def get_folder_dataloaders(train_path, val_path, batch_size=32):
-    train_dataset = FolderDRDataset(train_path, augment=True)
-    val_dataset = FolderDRDataset(val_path, augment=False)
+def get_folder_dataloaders(train_path, val_path, batch_size=32, image_size=224):
+    train_dataset = FolderDRDataset(train_path, image_size=image_size, augment=True)
+    val_dataset = FolderDRDataset(val_path, image_size=image_size, augment=False)
 
     train_loader = DataLoader(
         train_dataset,
