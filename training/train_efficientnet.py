@@ -9,7 +9,7 @@ from torch.cuda.amp import GradScaler, autocast
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
-from training.dr_dataset_v2 import get_folder_dataloaders
+from training.dr_dataset_v2 import get_csv_dataloaders
 
 CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/kaggle/working/efficientnet-models")
 IMAGE_SIZE = 300
@@ -20,8 +20,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train EfficientNet-B3 on a folder-structured DR dataset"
     )
-    parser.add_argument("--train", type=str, required=True, help="path to train folder")
-    parser.add_argument("--val", type=str, required=True, help="path to val folder")
+    parser.add_argument("--train", type=str, required=True, help="path to train CSV")
+    parser.add_argument("--val", type=str, required=True, help="path to val CSV")
     parser.add_argument("--batch", type=int, default=32, help="batch size")
     parser.add_argument("--epochs", type=int, default=25, help="number of epochs")
     parser.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume from")
@@ -116,8 +116,8 @@ def main():
 
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-    train_loader, val_loader = get_folder_dataloaders(
-        args.train, args.val, batch_size=args.batch, image_size=IMAGE_SIZE
+    train_loader, val_loader = get_csv_dataloaders(
+        args.train, args.val, batch_size=args.batch, image_size=300
     )
 
     model = timm.create_model(
