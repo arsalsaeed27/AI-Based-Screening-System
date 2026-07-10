@@ -3,6 +3,7 @@ import random
 
 import cv2
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -69,6 +70,82 @@ class FolderDRDataset(Dataset):
         tensor = torch.from_numpy(image.transpose(2, 0, 1)).float()
 
         return tensor, label
+
+
+class CSVDRDataset(Dataset):
+    def __init__(self, csv_path, image_size=300, augment=False):
+        self.df = pd.read_csv(csv_path)
+        self.image_size = image_size
+        self.augment = augment
+
+    def __len__(self):
+        return len(self.df)
+
+    def _augment(self, image):
+        if random.random() < 0.5:
+            image = cv2.flip(image, 1)
+
+        if random.random() < 0.5:
+            image = cv2.flip(image, 0)
+
+        angle = random.uniform(-15, 15)
+        h, w = image.shape[:2]
+        matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+        image = cv2.warpAffine(image, matrix, (w, h), borderMode=cv2.BORDER_REFLECT)
+
+        brightness = random.uniform(-30, 30)
+        contrast = random.uniform(0.8, 1.2)
+        image = image.astype(np.float32) * contrast + brightness
+        image = np.clip(image, 0, 255).astype(np.uint8)
+
+        return image
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        image_path = row["image_path"]
+        label = int(row["label"])
+
+        try:
+            image = cv2.imread(image_path)
+            if image is None:
+                raise ValueError(f"Could not read image: {image_path}")
+
+            image = crop_to_circle(image)
+            image = cv2.resize(image, (self.image_size, self.image_size))
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = apply_clahe(image)
+
+            if self.augment:
+                image = self._augment(image)
+
+            image = image.astype(np.float32) / 255.0
+            tensor = torch.from_numpy(image.transpose(2, 0, 1)).float()
+        except Exception:
+            tensor = torch.zeros((3, self.image_size, self.image_size), dtype=torch.float32)
+
+        return tensor, label
+
+
+def get_csv_dataloaders(train_csv, val_csv, batch_size=32, image_size=300):
+    train_dataset = CSVDRDataset(train_csv, image_size=image_size, augment=True)
+    val_dataset = CSVDRDataset(val_csv, image_size=image_size, augment=False)
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+        pin_memory=True,
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=True,
+    )
+
+    return train_loader, val_loader
 
 
 def get_folder_dataloaders(train_path, val_path, batch_size=32, image_size=224):
