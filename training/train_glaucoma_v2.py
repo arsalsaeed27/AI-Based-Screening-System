@@ -81,7 +81,10 @@ def run_epoch(model, loader, bce_criterion, optimizer, scaler, device, epoch, tr
             with autocast():
                 outputs = model(images)
 
-            # loss outside autocast - BCELoss is safe here
+            # cast to float32 for stable loss calculation
+            outputs = outputs.float()
+            masks = masks.float()
+
             loss = combined_loss(outputs, masks, bce_criterion, epoch)
 
             scaler.scale(loss).backward()
