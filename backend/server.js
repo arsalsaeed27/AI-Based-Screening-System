@@ -5,6 +5,7 @@ const sharp = require("sharp");
 const ort = require("onnxruntime-node");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
+const { spawn } = require("child_process");
 
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
@@ -40,6 +41,7 @@ app.use(express.static(path.join(__dirname, "public")));
 let session;
 let glaucomaSession;
 let hrSession;
+let gradcamProcess;
 
 async function preprocessImageDR(buffer) {
   const { data } = await sharp(buffer)
@@ -403,7 +405,34 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
   }
 });
 
+function startGradCam() {
+  const gradcam = spawn("python", [path.join(__dirname, "gradcam_service.py")], {
+    detached: false,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  gradcam.stdout.on("data", (data) => {
+    console.log("[GradCAM]", data.toString().trim());
+  });
+
+  gradcam.stderr.on("data", (data) => {
+    const msg = data.toString().trim();
+    if (msg) console.log("[GradCAM]", msg);
+  });
+
+  gradcam.on("exit", (code) => {
+    console.log("[GradCAM] Process exited with code", code);
+  });
+
+  console.log("[GradCAM] Starting service...");
+  return gradcam;
+}
+
 async function start() {
+  gradcamProcess = startGradCam();
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
   session = await ort.InferenceSession.create(MODEL_PATH);
   glaucomaSession = await ort.InferenceSession.create(GLAUCOMA_MODEL_PATH);
   hrSession = await ort.InferenceSession.create(HR_MODEL_PATH);
@@ -411,5 +440,12 @@ async function start() {
     console.log(`Server listening on port ${PORT}`);
   });
 }
+
+process.on("exit", () => {
+  if (gradcamProcess) gradcamProcess.kill();
+});
+process.on("SIGINT", () => {
+  process.exit();
+});
 
 start();
