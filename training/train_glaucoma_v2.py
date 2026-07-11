@@ -80,7 +80,10 @@ def run_epoch(model, loader, bce_criterion, optimizer, scaler, device, epoch, tr
             optimizer.zero_grad()
             with autocast():
                 outputs = model(images)
-                loss = combined_loss(outputs, masks, bce_criterion, epoch)
+
+            # loss outside autocast - BCELoss is safe here
+            loss = combined_loss(outputs, masks, bce_criterion, epoch)
+
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
