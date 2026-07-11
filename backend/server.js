@@ -15,7 +15,12 @@ const GLAUCOMA_MODEL_PATH = path.join(
   "models",
   "glaucoma_model.onnx",
 );
-const HR_MODEL_PATH = path.join(__dirname, "..", "models", "hr_model.onnx");
+const HR_MODEL_PATH = path.join(
+  __dirname,
+  "..",
+  "models",
+  "hr_efficientnet_model.onnx",
+);
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
 
 const CLASS_LABELS = {
@@ -81,6 +86,26 @@ async function preprocessImageHR(buffer) {
   }
 
   return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
+}
+
+async function preprocessImageHREfficientNet(buffer) {
+  const { data } = await sharp(buffer)
+    .resize(300, 300)
+    .removeAlpha()
+    .toColorspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const float32Data = new Float32Array(3 * 300 * 300);
+  const pixelCount = 300 * 300;
+
+  for (let i = 0; i < pixelCount; i++) {
+    float32Data[i] = data[i * 3] / 255;
+    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
+    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
+  }
+
+  return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
 function softmax(scores) {
@@ -381,7 +406,7 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
   }
 
   try {
-    const inputTensor = await preprocessImageHR(req.file.buffer);
+    const inputTensor = await preprocessImageHREfficientNet(req.file.buffer);
     const feeds = { [hrSession.inputNames[0]]: inputTensor };
     const results = await hrSession.run(feeds);
     const outputTensor = results[hrSession.outputNames[0]];
