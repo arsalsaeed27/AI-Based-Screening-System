@@ -68,26 +68,6 @@ async function preprocessImageDR(buffer) {
   return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
-async function preprocessImageHR(buffer) {
-  const { data } = await sharp(buffer)
-    .resize(224, 224)
-    .removeAlpha()
-    .toColorspace("srgb")
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const float32Data = new Float32Array(3 * 224 * 224);
-  const pixelCount = 224 * 224;
-
-  for (let i = 0; i < pixelCount; i++) {
-    float32Data[i] = data[i * 3] / 255;
-    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
-    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
-  }
-
-  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
-}
-
 async function preprocessImageHREfficientNet(buffer) {
   const { data } = await sharp(buffer)
     .resize(300, 300)
@@ -413,7 +393,7 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
 
     const logit = outputTensor.data[0];
     const probability = sigmoid(logit);
-    const hrDetected = probability > 0.3;
+    const hrDetected = probability > 0.2;
 
     res.json({
       hr_detected: hrDetected,
