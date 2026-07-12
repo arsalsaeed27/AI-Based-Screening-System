@@ -5,3 +5,5 @@ pandas
 numpy
 pillow
 onnx
+flask
+timm
