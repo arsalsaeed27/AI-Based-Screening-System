@@ -1072,6 +1072,35 @@
         color: #92400e;
       }
 
+      /* DR low confidence warning */
+      .dr-low-confidence-warning {
+        display: none;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        margin-top: 10px;
+        gap: 7px;
+        align-items: flex-start;
+      }
+      .dr-low-confidence-warning.visible {
+        display: flex;
+      }
+      .dr-low-confidence-warning svg {
+        width: 14px;
+        height: 14px;
+        stroke: #d97706;
+        fill: none;
+        stroke-width: 2;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .dr-low-confidence-text {
+        font-size: 11px;
+        color: #78350f;
+        line-height: 1.5;
+      }
+
       /* ── SCREENING SELECTOR ── */
       .screening-selector {
         margin-bottom: 14px;
@@ -1743,6 +1772,22 @@
                     ></div>
                   </div>
                   <p class="conf-desc" id="drDesc">—</p>
+                  <div class="dr-low-confidence-warning" id="drLowConfidenceWarning">
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                      />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <p class="dr-low-confidence-text" id="drLowConfidenceText">
+                      —
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -2232,6 +2277,16 @@
           document.getElementById("drConfBar").style.background =
             DR_COLORS[cls];
           document.getElementById("drDesc").textContent = DR_DESCS[cls];
+
+          const drWarning = document.getElementById("drLowConfidenceWarning");
+          if (dr.low_confidence) {
+            document.getElementById("drLowConfidenceText").textContent =
+              dr.confidence_warning;
+            drWarning.classList.add("visible");
+          } else {
+            drWarning.classList.remove("visible");
+          }
+
           // detailed scores
           const body = document.getElementById("drScoresBody");
           body.innerHTML = "";
@@ -2247,6 +2302,9 @@
         } else {
           drCard.classList.add("hidden");
           drScores.classList.remove("visible");
+          document
+            .getElementById("drLowConfidenceWarning")
+            .classList.remove("visible");
         }
 
         // ── GLAUCOMA ──
@@ -2430,6 +2488,9 @@
         document.getElementById("uploadZone").style.display = "";
         document.getElementById("dashboard").classList.remove("visible");
         document.getElementById("errorBox").classList.remove("visible");
+        document
+          .getElementById("drLowConfidenceWarning")
+          .classList.remove("visible");
         setStatus(
           "idle",
           "Awaiting fundus image upload. Complete patient details and upload a photograph to begin.",
