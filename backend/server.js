@@ -351,6 +351,12 @@ app.post("/predict", upload.single("image"), async (req, res) => {
     const scores = softmax(Array.from(outputTensor.data));
     const predictedClass = scores.indexOf(Math.max(...scores));
 
+    const topScore = scores[predictedClass];
+    const secondScore = Math.max(
+      ...scores.filter((_, i) => i !== predictedClass),
+    );
+    const isLowConfidence = topScore < 0.5 || topScore - secondScore < 0.15;
+
     const heatmap = await fetchGradCam(req.file.buffer, req.file.originalname);
 
     res.json({
@@ -360,6 +366,10 @@ app.post("/predict", upload.single("image"), async (req, res) => {
       scores: scores.map((s) => Number(s.toFixed(2))),
       referral: REFERRAL_GUIDANCE[predictedClass],
       heatmap,
+      low_confidence: isLowConfidence,
+      confidence_warning: isLowConfidence
+        ? "Low confidence prediction — consider re-imaging or specialist review"
+        : null,
     });
   } catch (err) {
     console.error(err);
