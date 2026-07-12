@@ -4,16 +4,18 @@ import sys
 
 import cv2
 import numpy as np
+import timm
 import torch
 from flask import Flask, jsonify, request
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from training.dataset import apply_clahe, crop_to_circle
-from training.model import RetinalCNN
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "best_model.pth")
-IMAGE_SIZE = 224
+MODEL_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "models", "best_efficientnet_model.pth"
+)
+IMAGE_SIZE = 300
 OVERLAY_OPACITY = 0.4
 
 app = Flask(__name__)
@@ -85,11 +87,11 @@ def encode_image_base64(image_bgr):
     return base64.b64encode(buffer).decode("utf-8")
 
 
-model = RetinalCNN()
+model = timm.create_model("efficientnet_b3", pretrained=False, num_classes=5)
 model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
 model.eval()
 
-grad_cam = GradCAM(model, model.features[-1])
+grad_cam = GradCAM(model, model.blocks[-1])
 
 
 @app.route("/gradcam", methods=["POST"])
