@@ -4,18 +4,19 @@ import time
 
 import torch
 import torch.nn as nn
-from torch.cuda.amp import autocast, GradScaler
+from torch.optim import Adam
+from torch.utils.data import ConcatDataset, DataLoader, Subset, random_split
 
-from training.glaucoma_dataset_v2 import get_glaucoma_v2_dataloaders
+from training.glaucoma_dataset import GlaucomaSegDataset
 from training.unet import UNet
 
 CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "/kaggle/working/glaucoma-v2-models")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train UNet v2 for optic disc/cup segmentation on the merged dataset")
-    parser.add_argument("--batch", type=int, default=2)
-    parser.add_argument("--epochs", type=int, default=100)
+    parser = argparse.ArgumentParser(description="Train UNet for optic disc/cup segmentation")
+    parser.add_argument("--batch", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=80)
     parser.add_argument("--resume", type=str, default=None)
     parser.add_argument("--start_epoch", type=int, default=1)
     parser.add_argument("--best_val_loss", type=float, default=float("inf"), help="best val loss from previous run")
@@ -23,10 +24,10 @@ def parse_args():
 
 
 def dice_loss(preds, targets, smooth=1.0):
-    preds = preds.contiguous().view(preds.size(0), -1)
-    targets = targets.contiguous().view(targets.size(0), -1)
-    intersection = (preds * targets).sum(dim=1)
-    union = preds.sum(dim=1) + targets.sum(dim=1)
+    preds = preds.contiguous().view(preds.size(0), preds.size(1), -1)
+    targets = targets.contiguous().view(targets.size(0), targets.size(1), -1)
+    intersection = (preds * targets).sum(dim=2)
+    union = preds.sum(dim=2) + targets.sum(dim=2)
     dice = (2 * intersection + smooth) / (union + smooth)
     return 1 - dice.mean()
 
@@ -40,29 +41,7 @@ def dice_score(preds, targets, smooth=1.0):
     return dice.mean().item()
 
 
-def focal_loss(preds, targets, gamma=2.0, alpha=0.8):
-    import torch.nn.functional as F
-    bce = F.binary_cross_entropy(preds, targets, reduction='none')
-    pt = torch.exp(-bce)
-    focal = alpha * (1 - pt) ** gamma * bce
-    return focal.mean()
-
-
-def combined_loss(outputs, masks, bce, epoch):
-    disc_bce = bce(outputs[:, 0], masks[:, 0])
-    disc_dice = dice_loss(outputs[:, 0], masks[:, 0])
-    cup_bce = bce(outputs[:, 1], masks[:, 1])
-    cup_dice = dice_loss(outputs[:, 1], masks[:, 1])
-
-    # focal loss for cup
-    cup_focal = focal_loss(outputs[:, 1], masks[:, 1])
-
-    disc_loss = disc_bce + disc_dice
-    cup_loss = cup_bce + 2.0 * cup_dice + cup_focal
-    return disc_loss + 3.0 * cup_loss
-
-
-def run_epoch(model, loader, bce_criterion, optimizer, scaler, device, epoch, train):
+def run_epoch(model, loader, bce_criterion, optimizer, device, train):
     model.train() if train else model.eval()
 
     total_loss = 0.0
@@ -78,23 +57,13 @@ def run_epoch(model, loader, bce_criterion, optimizer, scaler, device, epoch, tr
 
         if train:
             optimizer.zero_grad()
-            with autocast():
-                outputs = model(images)
 
-            # cast to float32 for stable loss calculation
-            outputs = outputs.float()
-            masks = masks.float()
+        outputs = model(images)
+        loss = bce_criterion(outputs, masks) + dice_loss(outputs, masks)
 
-            loss = combined_loss(outputs, masks, bce_criterion, epoch)
-
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            scaler.step(optimizer)
-            scaler.update()
-        else:
-            outputs = model(images)
-            loss = combined_loss(outputs, masks, bce_criterion, epoch)
+        if train:
+            loss.backward()
+            optimizer.step()
 
         total_loss += loss.item() * images.size(0)
         total += images.size(0)
@@ -104,7 +73,6 @@ def run_epoch(model, loader, bce_criterion, optimizer, scaler, device, epoch, tr
             cup_dice_sum += dice_score(outputs[:, 1], masks[:, 1])
             num_batches += 1
 
-        # print every 10 batches so you know it's alive
         if train and batch_idx % 10 == 0:
             print(f"  Batch {batch_idx}/{len(loader)} | "
                   f"Loss: {loss.item():.4f}", flush=True)
@@ -125,9 +93,6 @@ def main():
 
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-    # arnavjain1/glaucoma-datasets on Kaggle — aggregates ORIGA, REFUGE, and G1020,
-    # each with Images/ and Masks/ subfolders. Verify these paths once the dataset
-    # is attached, since exact mount path/casing can vary.
     base = "/kaggle/input/datasets/arnavjain1/glaucoma-datasets"
     folder_list = [
         {"images": f"{base}/REFUGE/train/Images", "masks": f"{base}/REFUGE/train/Masks"},
@@ -136,7 +101,41 @@ def main():
         {"images": f"{base}/ORIGA/Images",        "masks": f"{base}/ORIGA/Masks"},
         {"images": f"{base}/G1020/Images",        "masks": f"{base}/G1020/Masks"},
     ]
-    train_loader, val_loader = get_glaucoma_v2_dataloaders(folder_list, batch_size=args.batch)
+
+    train_parts = []
+    val_parts = []
+    total_pairs = 0
+
+    for folder in folder_list:
+        train_ds = GlaucomaSegDataset(folder["images"], folder["masks"], augment=True)
+        val_ds = GlaucomaSegDataset(folder["images"], folder["masks"], augment=False)
+
+        count = len(train_ds)
+        total_pairs += count
+        print(f"{folder['images']}: {count} pairs")
+
+        train_parts.append(train_ds)
+        val_parts.append(val_ds)
+
+    print(f"Total pairs found: {total_pairs}")
+
+    full_train = ConcatDataset(train_parts)
+    full_val = ConcatDataset(val_parts)
+
+    n = len(full_train)
+    n_train = int(0.85 * n)
+    n_val = n - n_train
+
+    generator = torch.Generator().manual_seed(42)
+    train_indices, val_indices = random_split(
+        range(n), [n_train, n_val], generator=generator
+    )
+
+    train_dataset = Subset(full_train, train_indices.indices)
+    val_dataset = Subset(full_val, val_indices.indices)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch, shuffle=False, num_workers=2, pin_memory=True)
 
     model = UNet(in_channels=3, out_channels=2).to(device)
     if args.resume:
@@ -144,65 +143,43 @@ def main():
         print(f"Resumed from checkpoint: {args.resume}")
 
     bce_criterion = nn.BCELoss()
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=0.0003, weight_decay=1e-4
+    optimizer = Adam(model.parameters(), lr=0.001)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=5
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-        optimizer, T_0=25, T_mult=2, eta_min=1e-6
-    )
-    scaler = GradScaler()
 
     best_val_loss = args.best_val_loss
-    best_disc_dice = 0.0
-    best_cup_dice = 0.0
-    best_combined_dice = 0.0
     print(f"Starting with best val loss: {best_val_loss:.4f}")
     start_time = time.time()
 
     for epoch in range(args.start_epoch, args.epochs + 1):
         train_loss, _, _ = run_epoch(
-            model, train_loader, bce_criterion, optimizer, scaler, device, epoch, train=True
+            model, train_loader, bce_criterion, optimizer, device, train=True
         )
         val_loss, disc_dice, cup_dice = run_epoch(
-            model, val_loader, bce_criterion, optimizer, scaler, device, epoch, train=False
+            model, val_loader, bce_criterion, optimizer, device, train=False
         )
-        avg_dice = (disc_dice + cup_dice) / 2
-        current_lr = optimizer.param_groups[0]["lr"]
 
         print(
             f"Epoch {epoch}/{args.epochs} | "
             f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | "
-            f"Dice Disc: {disc_dice:.4f} | Dice Cup: {cup_dice:.4f} | "
-            f"Dice Average: {avg_dice:.4f} | LR: {current_lr:.6f}"
+            f"Val Dice Disc: {disc_dice:.4f} | Val Dice Cup: {cup_dice:.4f}"
         )
 
-        scheduler.step(epoch)
-
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        scheduler.step(val_loss)
 
         if epoch % 10 == 0:
-            checkpoint_path = os.path.join(CHECKPOINT_DIR, f"checkpoint_epoch_{epoch}.pth")
+            checkpoint_path = os.path.join(
+                CHECKPOINT_DIR, f"checkpoint_epoch_{epoch}.pth"
+            )
             torch.save(model.state_dict(), checkpoint_path)
             print(f"Saved checkpoint: {checkpoint_path}")
 
-        if disc_dice > best_disc_dice:
-            best_disc_dice = disc_dice
-            best_disc_path = os.path.join(CHECKPOINT_DIR, "best_disc_model.pth")
-            torch.save(model.state_dict(), best_disc_path)
-            print(f"New best disc dice {best_disc_dice:.4f}, saved: {best_disc_path}")
-
-        if cup_dice > best_cup_dice:
-            best_cup_dice = cup_dice
-            best_cup_path = os.path.join(CHECKPOINT_DIR, "best_cup_model.pth")
-            torch.save(model.state_dict(), best_cup_path)
-            print(f"New best cup dice {best_cup_dice:.4f}, saved: {best_cup_path}")
-
-        if avg_dice > best_combined_dice:
-            best_combined_dice = avg_dice
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
             best_model_path = os.path.join(CHECKPOINT_DIR, "best_glaucoma_v2_model.pth")
             torch.save(model.state_dict(), best_model_path)
-            print(f"New best combined dice {best_combined_dice:.4f}, saved: {best_model_path}")
+            print(f"New best val loss {best_val_loss:.4f}, saved: {best_model_path}")
 
     elapsed = time.time() - start_time
     print(f"Total training time: {elapsed / 60:.2f} minutes ({elapsed:.2f} seconds)")
