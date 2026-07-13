@@ -1,5 +1,6 @@
 const path = require("path");
 const express = require("express");
+const mongoose = require("mongoose");
 const multer = require("multer");
 const sharp = require("sharp");
 const ort = require("onnxruntime-node");
@@ -22,6 +23,9 @@ const HR_MODEL_PATH = path.join(
   "hr_efficientnet_model.onnx",
 );
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/?appName=Cluster0";
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -39,9 +43,92 @@ const REFERRAL_GUIDANCE = {
   4: "Emergency referral - high risk of vision loss",
 };
 
+const scanSchema = new mongoose.Schema(
+  {
+    // Scan metadata
+    scanId: { type: String, required: true, unique: true },
+    timestamp: { type: Date, default: Date.now },
+
+    // Patient demographics
+    patientId: String,
+    patientName: String,
+    patientAge: Number,
+    patientSex: String,
+    patientDob: String,
+    patientEye: String, // OD / OS / OU
+
+    // Clinical context
+    diabeticStatus: String, // Type 1 / Type 2 / No
+    hba1c: Number, // HbA1c percentage
+    referringClinician: String,
+    institution: String,
+
+    // Image quality
+    imageQuality: {
+      passed: Boolean,
+      blurIndex: Number,
+    },
+
+    // Conditions screened
+    conditionsScreened: [String], // DR, Glaucoma, HR
+
+    // DR result
+    drResult: {
+      performed: Boolean,
+      grade: Number, // 0-4
+      severityLabel: String, // No DR / Mild / Moderate / Severe / Proliferative
+      confidence: Number,
+      scores: [Number], // all 5 class probabilities
+      referral: String,
+      lowConfidence: Boolean,
+      gradDescription: String, // clinical description of the grade
+      icdrGrade: String, // ICDR grade text
+    },
+
+    // Glaucoma result
+    glaucomaResult: {
+      performed: Boolean,
+      cdr: Number, // Cup-to-Disc Ratio
+      riskLevel: String, // Normal / Monitor / Suspicious / High risk
+      riskDetail: String,
+      discPixels: Number,
+      cupPixels: Number,
+      glaucomaSuspected: Boolean,
+    },
+
+    // HR result
+    hrResult: {
+      performed: Boolean,
+      detected: Boolean,
+      probability: Number,
+      riskLevel: String,
+      recommendation: String,
+    },
+
+    // Overall triage
+    triage: {
+      level: String, // ROUTINE / MONITORING / NON-URGENT / URGENT / EMERGENCY
+      mainMessage: String,
+      description: String,
+      referralRequired: Boolean,
+      referralUrgency: String, // Within 12 months / 6 months / 4 weeks / immediate
+    },
+
+    // Follow up
+    followUpDate: Date,
+    notes: String,
+    status: { type: String, default: "pending" }, // pending / reviewed / referred
+    reviewedBy: String,
+  },
+  { timestamps: true },
+);
+
+const Scan = mongoose.model("Scan", scanSchema);
+
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
 
 let session;
 let glaucomaSession;
@@ -455,6 +542,66 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
   }
 });
 
+app.post("/save-scan", async (req, res) => {
+  try {
+    const scan = new Scan(req.body);
+    await scan.save();
+    res.json({ success: true, scanId: scan.scanId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save scan" });
+  }
+});
+
+app.get("/scans", async (req, res) => {
+  try {
+    const scans = await Scan.find({}, { heatmap: 0 })
+      .sort({ timestamp: -1 })
+      .limit(50);
+    res.json(scans);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch scans" });
+  }
+});
+
+app.get("/scans/:scanId", async (req, res) => {
+  try {
+    const scan = await Scan.findOne({ scanId: req.params.scanId });
+    if (!scan) {
+      return res.status(404).json({ error: "Scan not found" });
+    }
+    res.json(scan);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch scan" });
+  }
+});
+
+app.patch("/scans/:scanId", async (req, res) => {
+  try {
+    const { status, reviewedBy, notes, followUpDate } = req.body;
+    const update = {};
+    if (status !== undefined) update.status = status;
+    if (reviewedBy !== undefined) update.reviewedBy = reviewedBy;
+    if (notes !== undefined) update.notes = notes;
+    if (followUpDate !== undefined) update.followUpDate = followUpDate;
+
+    const scan = await Scan.findOneAndUpdate(
+      { scanId: req.params.scanId },
+      update,
+      { new: true },
+    );
+    if (!scan) {
+      return res.status(404).json({ error: "Scan not found" });
+    }
+    res.json(scan);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update scan" });
+  }
+});
+
 function startGradCam() {
   const gradcam = spawn("python", [path.join(__dirname, "gradcam_service.py")], {
     detached: false,
@@ -479,6 +626,9 @@ function startGradCam() {
 }
 
 async function start() {
+  await mongoose.connect(MONGODB_URI);
+  console.log("MongoDB connected");
+
   gradcamProcess = startGradCam();
 
   await new Promise((resolve) => setTimeout(resolve, 3000));
