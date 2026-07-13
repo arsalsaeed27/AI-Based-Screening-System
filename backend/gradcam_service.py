@@ -72,6 +72,23 @@ def preprocess_image(image_bgr):
     return tensor, resized
 
 
+def apply_circular_mask(heatmap, image):
+    h, w = heatmap.shape[:2]
+    center_x, center_y = w // 2, h // 2
+
+    # radius is 90% of half the smaller dimension
+    radius = int(min(h, w) * 0.45)
+
+    # create circular mask
+    mask = np.zeros((h, w), dtype=np.uint8)
+    cv2.circle(mask, (center_x, center_y), radius, 255, -1)
+
+    # apply mask to heatmap
+    heatmap_masked = heatmap.copy()
+    heatmap_masked[mask == 0] = 0
+    return heatmap_masked
+
+
 def overlay_heatmap(cam, original_bgr):
     heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
     overlay = cv2.addWeighted(
@@ -106,6 +123,7 @@ def gradcam():
 
     input_tensor, resized_original = preprocess_image(image_bgr)
     cam, predicted_class = grad_cam.generate(input_tensor)
+    cam = apply_circular_mask(cam, resized_original)
     overlay = overlay_heatmap(cam, resized_original)
     heatmap_b64 = encode_image_base64(overlay)
 
