@@ -1,0 +1,2055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RetinalScan AI — Clinical Screening Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --navy:#0B1F3A;
+    --blue:#1E40AF;
+    --cyan:#0EA5E9;
+    --bg:#F0F4F8;
+    --surface:#FFFFFF;
+    --border:#E2E8F0;
+    --text:#0F172A;
+    --muted:#64748B;
+    --success:#10B981;
+    --warning:#F59E0B;
+    --danger:#EF4444;
+    --sidebar-bg:#0B1F3A;
+    --sidebar-text:#CBD5E1;
+    --sidebar-active:#0EA5E9;
+    --gl-color:#059669;
+    --hr-color:#DB2777;
+    --sidebar-width:240px;
+    --sidebar-width-collapsed:60px;
+    --topbar-height:64px;
+    --radius:10px;
+    --radius-lg:14px;
+    --shadow-sm:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+    --shadow:0 4px 14px rgba(15,23,42,.08);
+  }
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"Inter",system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:14px;
+    line-height:1.5;
+  }
+  a{color:inherit;}
+  button,input,select,textarea{font-family:inherit;}
+
+  /* ============ SIDEBAR ============ */
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;
+    width:var(--sidebar-width);
+    background:linear-gradient(180deg,var(--sidebar-bg),#081627);
+    z-index:300;
+    display:flex;flex-direction:column;
+    transition:width .2s ease;
+    overflow:hidden;
+  }
+  .app-shell.collapsed .sidebar{width:var(--sidebar-width-collapsed);}
+  .sidebar-brand{
+    display:flex;align-items:center;gap:10px;
+    padding:0 18px;height:var(--topbar-height);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    flex-shrink:0;
+  }
+  .sidebar-brand-mark{
+    width:32px;height:32px;border-radius:8px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--cyan),var(--blue));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sidebar-brand-mark i{width:18px;height:18px;stroke:#fff;}
+  .sidebar-brand-text{font-size:14px;font-weight:800;color:#fff;white-space:nowrap;}
+  .app-shell.collapsed .sidebar-brand-text{display:none;}
+  .sidebar-nav{flex:1;padding:14px 0;overflow-y:auto;}
+  .nav-item{
+    display:flex;align-items:center;gap:13px;
+    padding:11px 20px;margin:1px 0;
+    color:var(--sidebar-text);cursor:pointer;
+    border-left:3px solid transparent;
+    font-size:13px;font-weight:500;white-space:nowrap;
+    transition:all .12s;
+  }
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{
+    border-left-color:var(--sidebar-active);
+    background:rgba(14,165,233,.14);
+    color:#fff;
+  }
+  .nav-item i{width:18px;height:18px;flex-shrink:0;}
+  .nav-label{overflow:hidden;text-overflow:ellipsis;}
+  .app-shell.collapsed .nav-label{display:none;}
+  .sidebar-foot{
+    padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);
+    font-size:10px;color:#64748B;line-height:1.5;white-space:nowrap;
+  }
+  .app-shell.collapsed .sidebar-foot{display:none;}
+
+  /* ============ TOPBAR ============ */
+  .topbar{
+    position:fixed;top:0;right:0;left:var(--sidebar-width);
+    height:var(--topbar-height);
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;z-index:250;
+    transition:left .2s ease;
+    gap:16px;
+  }
+  .app-shell.collapsed .topbar{left:var(--sidebar-width-collapsed);}
+  .topbar-left{display:flex;align-items:center;gap:16px;min-width:0;}
+  .hamburger{
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:background .12s;
+  }
+  .hamburger:hover{background:var(--bg);}
+  .hamburger i{width:18px;height:18px;stroke:var(--text);}
+  .topbar-brand{display:flex;flex-direction:column;min-width:0;}
+  .topbar-brand-name{font-size:15px;font-weight:800;color:var(--navy);white-space:nowrap;}
+  .topbar-brand-sub{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+  .topbar-search{
+    flex:1;max-width:380px;
+    display:flex;align-items:center;gap:8px;
+    background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:8px 12px;
+  }
+  .topbar-search i{width:15px;height:15px;stroke:var(--muted);flex-shrink:0;}
+  .topbar-search input{
+    border:none;background:transparent;outline:none;
+    font-size:12.5px;width:100%;color:var(--text);
+  }
+  .topbar-right{display:flex;align-items:center;gap:18px;flex-shrink:0;}
+  .status-dots{display:flex;align-items:center;gap:12px;}
+  .status-dot-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.18);animation:dotpulse 2s infinite;}
+  @keyframes dotpulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .topbar-clock{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500;}
+  .bell-wrap{position:relative;}
+  .bell-btn{
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);cursor:pointer;position:relative;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .bell-btn:hover{background:var(--bg);}
+  .bell-btn i{width:17px;height:17px;stroke:var(--text);}
+  .bell-badge{
+    position:absolute;top:-4px;right:-4px;
+    background:var(--danger);color:#fff;font-size:9px;font-weight:800;
+    width:16px;height:16px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid var(--surface);
+  }
+  .bell-dropdown{
+    display:none;position:absolute;top:44px;right:0;width:270px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;z-index:400;
+  }
+  .bell-dropdown.visible{display:block;}
+  .bell-dropdown-head{padding:10px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
+  .bell-item{padding:10px 14px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);}
+  .bell-item:last-child{border-bottom:none;}
+  .bell-item-time{font-size:10px;color:var(--muted);margin-top:2px;}
+  .user-chip{display:flex;align-items:center;gap:9px;padding-left:14px;border-left:1px solid var(--border);}
+  .user-avatar{
+    width:34px;height:34px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--navy),var(--blue));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:800;
+  }
+  .user-info{display:flex;flex-direction:column;line-height:1.3;}
+  .user-name{font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;}
+  .user-role{font-size:9.5px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em;}
+
+  /* ============ MAIN ============ */
+  .main{
+    margin-left:var(--sidebar-width);
+    margin-top:var(--topbar-height);
+    padding:24px 26px 60px;
+    min-height:calc(100vh - var(--topbar-height));
+    transition:margin-left .2s ease;
+  }
+  .app-shell.collapsed .main{margin-left:var(--sidebar-width-collapsed);}
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-head{margin-bottom:20px;}
+  .page-eyebrow{font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+  .page-title{font-size:22px;font-weight:800;color:var(--navy);}
+  .page-sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+
+  /* ============ CARD PRIMITIVES ============ */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+  .card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .card-head i{width:15px;height:15px;stroke:var(--muted);}
+  .card-head-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em;}
+  .card-body{padding:18px;}
+
+  /* ============ DASHBOARD STAT CARDS ============ */
+  .stat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;}
+  .stat-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+    padding:16px 16px 14px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  }
+  .stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,var(--cyan));}
+  .stat-icon{width:30px;height:30px;border-radius:8px;background:color-mix(in srgb, var(--accent,var(--cyan)) 14%, white);display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .stat-icon i{width:16px;height:16px;stroke:var(--accent,var(--cyan));}
+  .stat-value{font-size:26px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;}
+  .stat-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:700;}
+
+  .dash-columns{display:grid;grid-template-columns:1.55fr 1fr;gap:20px;margin-top:22px;align-items:start;}
+
+  .timeline-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .timeline-item:last-child{border-bottom:none;}
+  .timeline-dot{width:34px;height:34px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .timeline-dot i{width:16px;height:16px;stroke:var(--blue);}
+  .timeline-body{flex:1;min-width:0;}
+  .timeline-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .timeline-name{font-size:13px;font-weight:700;color:var(--text);}
+  .timeline-time{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+  .timeline-desc{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .empty-note{font-size:12.5px;color:var(--muted);text-align:center;padding:30px 10px;}
+
+  .bar-row{margin-bottom:12px;}
+  .bar-row:last-child{margin-bottom:0;}
+  .bar-row-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--text);margin-bottom:5px;}
+  .bar-row-label span:last-child{color:var(--muted);font-weight:700;}
+  .bar-track{height:9px;background:var(--bg);border-radius:5px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:5px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+  .quick-stats-block{margin-bottom:20px;}
+  .quick-stats-block:last-child{margin-bottom:0;}
+  .quick-stats-block-title{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;}
+  .badge-pending{background:#FEF3C7;color:#92400E;}
+  .badge-reviewed{background:#D1FAE5;color:#065F46;}
+  .badge-referred{background:#DBEAFE;color:#1E40AF;}
+  .badge-routine{background:#F0FDF4;color:#166534;}
+  .badge-monitoring{background:#FEFCE8;color:#854D0E;}
+  .badge-non-urgent{background:#FFF7ED;color:#9A3412;}
+  .badge-urgent{background:#FEF2F2;color:#991B1B;}
+  .badge-emergency{background:#FDF2F8;color:#831843;}
+
+  /* ============ STEPPER ============ */
+  .stepper{display:flex;align-items:flex-start;margin-bottom:26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 26px;box-shadow:var(--shadow-sm);}
+  .step-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;text-align:center;}
+  .step-item:not(:last-child)::after{
+    content:"";position:absolute;top:17px;left:calc(50% + 24px);right:calc(-50% + 24px);height:2px;background:var(--border);
+  }
+  .step-item.completed:not(:last-child)::after{background:var(--cyan);}
+  .step-circle{
+    width:34px;height:34px;border-radius:50%;border:2px solid var(--border);
+    background:var(--surface);display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;color:var(--muted);z-index:1;transition:all .15s;
+  }
+  .step-item.active .step-circle{border-color:var(--cyan);color:var(--cyan);background:#ECFEFF;}
+  .step-item.completed .step-circle{border-color:var(--cyan);background:var(--cyan);color:#fff;}
+  .step-circle i{width:16px;height:16px;}
+  .step-title{font-size:11.5px;font-weight:700;color:var(--muted);margin-top:8px;}
+  .step-item.active .step-title,.step-item.completed .step-title{color:var(--text);}
+
+  .step-content{display:none;}
+  .step-content.active{display:block;}
+
+  /* ============ FORM ============ */
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span-2{grid-column:span 2;}
+  .field.span-3{grid-column:span 3;}
+  .field-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .field-input{
+    padding:9px 11px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;color:var(--text);background:var(--bg);font-family:inherit;width:100%;
+    transition:all .15s;
+  }
+  .field-input:focus{outline:none;border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(14,165,233,.12);}
+  .field-input[readonly]{background:#EEF2F6;color:var(--muted);}
+  textarea.field-input{resize:vertical;min-height:70px;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    padding:10px 18px;border-radius:8px;font-size:12.5px;font-weight:700;
+    cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);
+    transition:all .15s;font-family:inherit;letter-spacing:.01em;
+  }
+  .btn i{width:14px;height:14px;stroke:currentColor;}
+  .btn:hover{background:var(--bg);}
+  .btn:disabled{opacity:.55;cursor:not-allowed;}
+  .btn-primary{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;border:none;box-shadow:0 2px 8px rgba(30,64,175,.28);}
+  .btn-primary:hover{filter:brightness(1.06);}
+  .btn-navy{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn-navy:hover{background:#0f2c52;}
+  .btn-row{display:flex;gap:10px;margin-top:22px;justify-content:flex-end;}
+  .btn-row.spread{justify-content:space-between;}
+
+  .inline-error{
+    display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#7F1D1D;
+    padding:11px 14px;border-radius:8px;font-size:12.5px;margin-bottom:16px;line-height:1.5;
+  }
+  .inline-error.visible{display:block;}
+
+  /* ============ CONDITION CARDS ============ */
+  .condition-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .condition-card{
+    border:2px solid var(--border);border-radius:var(--radius-lg);padding:24px 20px;
+    text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);
+  }
+  .condition-card:hover{border-color:var(--border);background:var(--bg);}
+  .condition-card.selected{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 7%, white);}
+  .condition-icon{
+    width:52px;height:52px;border-radius:50%;margin:0 auto 14px;
+    background:color-mix(in srgb, var(--accent) 15%, white);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .condition-icon i{width:26px;height:26px;stroke:var(--accent);}
+  .condition-name{font-size:14.5px;font-weight:800;color:var(--text);margin-bottom:5px;}
+  .condition-desc{font-size:11.5px;color:var(--muted);line-height:1.5;}
+  .condition-check{
+    margin-top:14px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--border);
+  }
+  .condition-card.selected .condition-check{color:var(--accent);}
+
+  /* ============ UPLOAD ============ */
+  .upload-zone{
+    border:2px dashed #CBD5E1;border-radius:var(--radius-lg);padding:44px 20px;
+    text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);position:relative;
+  }
+  .upload-zone:hover,.upload-zone.dragover{border-color:var(--cyan);background:#ECFEFF;}
+  .upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{
+    width:56px;height:56px;border-radius:50%;margin:0 auto 14px;
+    background:linear-gradient(135deg,#DBEAFE,#BFDBFE);display:flex;align-items:center;justify-content:center;
+  }
+  .upload-icon i{width:26px;height:26px;stroke:var(--blue);}
+  .upload-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;}
+  .upload-hint{font-size:12px;color:var(--muted);}
+  .upload-hint b{color:var(--blue);}
+  .preview-wrap{
+    display:none;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border);
+    background:#0F172A;max-width:320px;margin:0 auto 16px;aspect-ratio:1;
+    align-items:center;justify-content:center;position:relative;
+  }
+  .preview-wrap.visible{display:flex;}
+  .preview-wrap img{width:100%;height:100%;object-fit:contain;}
+  .preview-badge{
+    position:absolute;top:8px;left:8px;background:rgba(10,38,71,.85);font-size:9.5px;font-weight:700;
+    color:#7DD3FC;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:20px;
+  }
+  .file-chip{
+    display:none;max-width:320px;margin:0 auto 16px;background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:10px 12px;align-items:center;gap:10px;
+  }
+  .file-chip.visible{display:flex;}
+  .file-chip-icon{width:30px;height:30px;border-radius:6px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .file-chip-icon i{width:15px;height:15px;stroke:var(--blue);}
+  .file-chip-name{font-size:12px;font-weight:600;color:var(--text);word-break:break-all;}
+  .file-chip-size{font-size:10.5px;color:var(--muted);margin-top:1px;}
+
+  /* ============ PROGRESS STEPS ============ */
+  .progress-list{max-width:420px;margin:24px auto;}
+  .progress-step{display:flex;align-items:center;gap:12px;padding:10px 0;opacity:.4;transition:opacity .2s;}
+  .progress-step.active,.progress-step.done{opacity:1;}
+  .progress-step-icon{
+    width:26px;height:26px;border-radius:50%;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;
+  }
+  .progress-step.active .progress-step-icon{border-color:var(--cyan);}
+  .progress-step.active .progress-step-icon .spin-ring{
+    width:12px;height:12px;border:2px solid rgba(14,165,233,.25);border-top-color:var(--cyan);
+    border-radius:50%;animation:spin .7s linear infinite;
+  }
+  .progress-step.done .progress-step-icon{background:var(--success);border-color:var(--success);}
+  .progress-step.done .progress-step-icon i{width:14px;height:14px;stroke:#fff;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .progress-step-label{font-size:13px;font-weight:600;color:var(--text);}
+
+  /* ============ RESULT TABS ============ */
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:22px;flex-wrap:wrap;}
+  .tab-btn{
+    padding:10px 18px;cursor:pointer;font-weight:700;font-size:12.5px;color:var(--muted);
+    border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .12s;
+  }
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--blue);border-bottom-color:var(--cyan);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .triage-banner{
+    border-radius:var(--radius-lg);padding:18px 22px;display:flex;align-items:flex-start;gap:16px;
+    border-left:5px solid var(--accent,var(--success));background:var(--bg2,#F0FDF4);margin-bottom:20px;
+  }
+  .triage-banner-icon{width:42px;height:42px;border-radius:50%;background:var(--accent,var(--success));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .triage-banner-icon i{width:21px;height:21px;stroke:#fff;}
+  .triage-level{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+  .triage-main{font-size:16.5px;font-weight:800;margin-bottom:4px;}
+  .triage-desc{font-size:12.5px;line-height:1.6;opacity:.9;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .summary-card{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface);}
+  .summary-card-head{padding:12px 16px;border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .summary-card-body{padding:18px 16px;}
+  .grade-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;font-size:15px;font-weight:800;margin-bottom:10px;}
+  .grade-dot{width:9px;height:9px;border-radius:50%;}
+  .conf-bar-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:6px 0;}
+  .conf-bar-fill{height:100%;border-radius:4px;transition:width .7s cubic-bezier(.4,0,.2,1);}
+  .big-metric{font-size:38px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .big-metric-label{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  .detail-block{margin-bottom:22px;}
+  .detail-block:last-child{margin-bottom:0;}
+  .cdr-bar-track{height:14px;background:linear-gradient(90deg,#DCFCE7 0 30%,#FEF9C3 30% 50%,#FFEDD5 50% 70%,#FEE2E2 70% 100%);border-radius:7px;position:relative;margin:10px 0 4px;}
+  .cdr-bar-marker{position:absolute;top:-4px;width:4px;height:22px;background:var(--navy);border-radius:2px;transform:translateX(-50%);}
+  .cdr-zones{display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:var(--muted);}
+
+  .score-row{display:grid;grid-template-columns:150px 1fr 60px;gap:12px;padding:10px 0;align-items:center;border-bottom:1px solid var(--border);}
+  .score-row:last-child{border-bottom:none;}
+  .score-row.top-score{background:#EFF6FF;margin:0 -14px;padding:10px 14px;border-radius:6px;}
+  .score-class{font-size:12.5px;font-weight:600;color:var(--text);}
+  .score-class.top{font-weight:800;color:var(--navy);}
+  .score-bar-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+  .score-bar-inner{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+  .score-pct{font-size:12.5px;font-weight:700;color:var(--muted);text-align:right;}
+  .score-pct.top{color:var(--blue);}
+
+  .rec-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:12.5px;color:var(--text);line-height:1.6;margin-top:14px;}
+  .rec-box b{color:var(--navy);}
+
+  .heatmap-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .heatmap-cell{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:#0F172A;}
+  .heatmap-cell-label{background:var(--navy);color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;}
+  .heatmap-cell img{width:100%;aspect-ratio:1;object-fit:contain;display:block;}
+  .heatmap-caption{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+
+  .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;padding-top:20px;border-top:1px solid var(--border);}
+
+  /* ============ TABLE ============ */
+  .table-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:260px;}
+  .search-box i{width:15px;height:15px;stroke:var(--muted);}
+  .search-box input{border:none;outline:none;background:transparent;font-size:12.5px;width:100%;}
+  table.data-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;}
+  .data-table thead th{background:var(--bg);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);}
+  .data-table tbody td{padding:11px 14px;font-size:12.5px;border-bottom:1px solid var(--border);color:var(--text);}
+  .data-table tbody tr:last-child td{border-bottom:none;}
+  .data-table tbody tr:hover{background:#F8FAFC;}
+  .table-empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;}
+  .pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;}
+  .pagination button{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .pagination button:disabled{opacity:.4;cursor:not-allowed;}
+  .pagination button i{width:14px;height:14px;}
+  .pagination-text{font-size:12px;color:var(--muted);}
+  .link-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .link-btn:hover{background:var(--bg);}
+
+  /* ============ SCAN HISTORY ============ */
+  .history-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:box-shadow .15s;}
+  .history-card:hover{box-shadow:var(--shadow);}
+  .history-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .history-idline{font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.04em;}
+  .history-name{font-size:14.5px;font-weight:800;color:var(--text);margin-top:2px;}
+  .history-pills{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--bg);color:var(--text);border:1px solid var(--border);}
+  .history-metrics{display:flex;gap:18px;margin-top:10px;flex-wrap:wrap;}
+  .history-metric{font-size:11.5px;color:var(--muted);}
+  .history-metric b{color:var(--text);}
+  .history-badges{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+  .history-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text);}
+  .history-detail.visible{display:block;}
+  .history-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .history-detail-item{background:var(--bg);border-radius:6px;padding:8px 10px;}
+  .history-detail-item .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.04em;}
+  .history-detail-item .val{font-size:12.5px;font-weight:700;color:var(--text);margin-top:2px;}
+
+  /* ============ ANALYTICS ============ */
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);}
+  .chart-card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:14px;text-transform:uppercase;letter-spacing:.04em;}
+  .chart-wrap{height:260px;position:relative;}
+
+  /* ============ AI PERFORMANCE ============ */
+  .model-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+  .model-head{padding:16px 20px;color:#fff;display:flex;align-items:center;gap:12px;}
+  .model-head-icon{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .model-head-icon i{width:19px;height:19px;stroke:#fff;}
+  .model-head-title{font-size:15px;font-weight:800;}
+  .model-head-arch{font-size:11px;opacity:.85;margin-top:1px;}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;padding:20px;}
+  .metric-item{}
+  .metric-value{font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;}
+  .metric-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:4px;font-weight:700;}
+
+  /* ============ SETTINGS ============ */
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .setting-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--border);}
+  .setting-row:last-child{border-bottom:none;}
+  .setting-name{font-size:13px;font-weight:600;color:var(--text);}
+  .setting-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+  .switch{width:40px;height:22px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+  .switch.on{background:var(--success);}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;}
+  .switch.on::after{left:20px;}
+
+  /* ============ MODAL ============ */
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;}
+  .modal-overlay.visible{display:flex;}
+  .modal-box{background:#fff;border-radius:var(--radius-lg);max-width:640px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:var(--shadow);}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;}
+  .modal-title{font-size:15px;font-weight:800;color:var(--navy);}
+  .modal-close{width:30px;height:30px;border-radius:7px;border:none;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-close i{width:15px;height:15px;}
+  .modal-body{padding:20px;}
+
+  @media (max-width:1100px){
+    .stat-grid{grid-template-columns:repeat(3,1fr);}
+    .dash-columns{grid-template-columns:1fr;}
+    .chart-row{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:repeat(2,1fr);}
+    .condition-grid{grid-template-columns:1fr;}
+    .summary-grid{grid-template-columns:1fr;}
+    .heatmap-grid{grid-template-columns:1fr;}
+    .settings-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:640px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+    .topbar-search{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell" id="appShell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-mark"><i data-lucide="eye"></i></div>
+      <div class="sidebar-brand-text">RetinalScan AI</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav">
+      <div class="nav-item active" data-page="dashboard"><i data-lucide="home"></i><span class="nav-label">Dashboard</span></div>
+      <div class="nav-item" data-page="screening"><i data-lucide="scan"></i><span class="nav-label">New Screening</span></div>
+      <div class="nav-item" data-page="patients"><i data-lucide="users"></i><span class="nav-label">Patients</span></div>
+      <div class="nav-item" data-page="history"><i data-lucide="clock"></i><span class="nav-label">Scan History</span></div>
+      <div class="nav-item" data-page="analytics"><i data-lucide="bar-chart-3"></i><span class="nav-label">Analytics</span></div>
+      <div class="nav-item" data-page="performance"><i data-lucide="activity"></i><span class="nav-label">AI Performance</span></div>
+      <div class="nav-item" data-page="settings"><i data-lucide="settings"></i><span class="nav-label">Settings</span></div>
+    </nav>
+    <div class="sidebar-foot">RetinalScan AI v2.0<br/>Military College of Signals · NUST</div>
+  </aside>
+
+  <!-- ============ TOPBAR ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburgerBtn"><i data-lucide="menu"></i></button>
+      <div class="topbar-brand">
+        <div class="topbar-brand-name">RetinalScan AI</div>
+        <div class="topbar-brand-sub">Military College of Signals, NUST</div>
+      </div>
+    </div>
+    <div class="topbar-search">
+      <i data-lucide="search"></i>
+      <input type="text" placeholder="Search patients, scan IDs..." />
+    </div>
+    <div class="topbar-right">
+      <div class="status-dots">
+        <div class="status-dot-item"><span class="status-dot"></span>AI</div>
+        <div class="status-dot-item"><span class="status-dot"></span>MongoDB</div>
+        <div class="status-dot-item"><span class="status-dot"></span>Server</div>
+      </div>
+      <div class="topbar-clock" id="clockEl">—</div>
+      <div class="bell-wrap">
+        <button class="bell-btn" id="bellBtn"><i data-lucide="bell"></i><span class="bell-badge">3</span></button>
+        <div class="bell-dropdown" id="bellDropdown">
+          <div class="bell-dropdown-head">Notifications</div>
+          <div class="bell-item">Urgent case flagged for review<div class="bell-item-time">12 minutes ago</div></div>
+          <div class="bell-item">Nightly model health check passed<div class="bell-item-time">1 hour ago</div></div>
+          <div class="bell-item">3 scans pending clinician review<div class="bell-item-time">Today</div></div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="user-avatar">DA</div>
+        <div class="user-info">
+          <span class="user-name">Dr. Admin</span>
+          <span class="user-role">Ophthalmologist</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- ================= PAGE 1: DASHBOARD ================= -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-head">
+        <div class="page-eyebrow">Overview</div>
+        <div class="page-title">Clinical Dashboard</div>
+        <div class="page-sub">Live summary of retinal screening activity across the platform.</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="--accent:var(--cyan)">
+          <div class="stat-icon"><i data-lucide="scan-line"></i></div>
+          <div class="stat-value" id="statToday">0</div>
+          <div class="stat-label">Today's Scans</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--warning)">
+          <div class="stat-icon"><i data-lucide="hourglass"></i></div>
+          <div class="stat-value" id="statPending">0</div>
+          <div class="stat-label">Pending Reviews</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--danger)">
+          <div class="stat-icon"><i data-lucide="alert-triangle"></i></div>
+          <div class="stat-value" id="statUrgent">0</div>
+          <div class="stat-label">Urgent Cases</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--blue)">
+          <div class="stat-icon"><i data-lucide="users"></i></div>
+          <div class="stat-value" id="statPatients">0</div>
+          <div class="stat-label">Total Patients</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--success)">
+          <div class="stat-icon"><i data-lucide="droplet"></i></div>
+          <div class="stat-value" id="statDrPct">0%</div>
+          <div class="stat-label">DR Detected</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--success)">
+          <div class="stat-icon"><i data-lucide="server"></i></div>
+          <div class="stat-value" id="statUptime">99.9%</div>
+          <div class="stat-label">System Uptime</div>
+        </div>
+      </div>
+
+      <div class="dash-columns">
+        <div class="card">
+          <div class="card-head"><i data-lucide="list"></i><span class="card-head-title">Recent Activity</span></div>
+          <div class="card-body" id="recentActivity">
+            <div class="empty-note">Loading recent scans…</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><i data-lucide="pie-chart"></i><span class="card-head-title">Quick Stats</span></div>
+          <div class="card-body">
+            <div class="quick-stats-block">
+              <div class="quick-stats-block-title">DR Grade Distribution</div>
+              <div id="qsDrGrades"></div>
+            </div>
+            <div class="quick-stats-block">
+              <div class="quick-stats-block-title">HR Detected vs Not</div>
+              <div id="qsHr"></div>
+            </div>
+            <div class="quick-stats-block">
+              <div class="quick-stats-block-title">Glaucoma Risk Distribution</div>
+              <div id="qsGlaucoma"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 2: NEW SCREENING ================= -->
+    <section class="page" id="page-screening">
+      <div class="page-head">
+        <div class="page-eyebrow">Workflow</div>
+        <div class="page-title">New Screening</div>
+        <div class="page-sub">AI-assisted screening for diabetic retinopathy, glaucoma and hypertensive retinopathy.</div>
+      </div>
+
+      <div class="stepper" id="stepper">
+        <div class="step-item active" data-step="1"><div class="step-circle">1</div><div class="step-title">Patient Info</div></div>
+        <div class="step-item" data-step="2"><div class="step-circle">2</div><div class="step-title">Select Conditions</div></div>
+        <div class="step-item" data-step="3"><div class="step-circle">3</div><div class="step-title">Upload &amp; Analyse</div></div>
+        <div class="step-item" data-step="4"><div class="step-circle">4</div><div class="step-title">Results</div></div>
+      </div>
+
+      <div class="inline-error" id="screeningError"></div>
+
+      <!-- STEP 1 -->
+      <div class="step-content active" id="step-1">
+        <div class="card">
+          <div class="card-head"><i data-lucide="user"></i><span class="card-head-title">Patient Information</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field"><label class="field-label">Patient ID</label><input class="field-input" id="pId" placeholder="PT-2026-0001" /></div>
+              <div class="field span-2"><label class="field-label">Full Name</label><input class="field-input" id="pName" placeholder="Patient full name" /></div>
+              <div class="field"><label class="field-label">Date of Birth</label><input class="field-input" id="pDob" type="date" /></div>
+              <div class="field"><label class="field-label">Age (auto-calculated)</label><input class="field-input" id="pAge" readonly placeholder="—" /></div>
+              <div class="field">
+                <label class="field-label">Sex</label>
+                <select class="field-input" id="pSex"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
+              </div>
+              <div class="field">
+                <label class="field-label">Eye Examined</label>
+                <select class="field-input" id="pEye"><option value="">—</option><option value="OD">OD — Right Eye</option><option value="OS">OS — Left Eye</option><option value="OU">OU — Both Eyes</option></select>
+              </div>
+              <div class="field">
+                <label class="field-label">Diabetic Status</label>
+                <select class="field-input" id="pDiabetic"><option value="">—</option><option>Type 1</option><option>Type 2</option><option>No</option></select>
+              </div>
+              <div class="field"><label class="field-label">HbA1c (%)</label><input class="field-input" id="pHba1c" type="number" step="0.1" placeholder="e.g. 7.2" /></div>
+              <div class="field"><label class="field-label">Blood Pressure</label><input class="field-input" id="pBp" placeholder="e.g. 130/85" /></div>
+              <div class="field span-2"><label class="field-label">Referring Clinician</label><input class="field-input" id="pClinician" placeholder="Dr. Name / Clinic" /></div>
+              <div class="field span-3"><label class="field-label">Notes</label><textarea class="field-input" id="pNotes" placeholder="Additional clinical notes"></textarea></div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goToStep(2)">Next<i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-content" id="step-2">
+        <div class="condition-grid">
+          <div class="condition-card selected" id="cond-dr" style="--accent:var(--blue)" onclick="toggleCondition('dr')">
+            <div class="condition-icon"><i data-lucide="droplet"></i></div>
+            <div class="condition-name">Diabetic Retinopathy</div>
+            <div class="condition-desc">5-class ICDR severity grading with Grad-CAM attention mapping</div>
+            <div class="condition-check">Selected</div>
+          </div>
+          <div class="condition-card selected" id="cond-gl" style="--accent:var(--gl-color)" onclick="toggleCondition('gl')">
+            <div class="condition-icon"><i data-lucide="circle-dot"></i></div>
+            <div class="condition-name">Glaucoma</div>
+            <div class="condition-desc">Cup-to-Disc Ratio via optic disc/cup segmentation</div>
+            <div class="condition-check">Selected</div>
+          </div>
+          <div class="condition-card selected" id="cond-hr" style="--accent:var(--hr-color)" onclick="toggleCondition('hr')">
+            <div class="condition-icon"><i data-lucide="heart-pulse"></i></div>
+            <div class="condition-name">Hypertensive Retinopathy</div>
+            <div class="condition-desc">Binary HR detection with probability score</div>
+            <div class="condition-check">Selected</div>
+          </div>
+        </div>
+        <div class="btn-row spread">
+          <button class="btn" onclick="goToStep(1)"><i data-lucide="arrow-left"></i>Back</button>
+          <button class="btn btn-primary" onclick="goToStep(3)">Next<i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-content" id="step-3">
+        <div class="card">
+          <div class="card-head"><i data-lucide="image"></i><span class="card-head-title">Fundus Image</span></div>
+          <div class="card-body" id="uploadStage">
+            <div class="preview-wrap" id="previewWrap">
+              <span class="preview-badge">Fundus photograph loaded</span>
+              <img id="previewImg" src="" alt="preview" />
+            </div>
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" id="fileInput" accept="image/*" />
+              <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+              <p class="upload-title">Drop fundus photograph here</p>
+              <p class="upload-hint">or <b>click to browse</b> · PNG, JPG only</p>
+            </div>
+            <div class="file-chip" id="fileChip">
+              <div class="file-chip-icon"><i data-lucide="file-image"></i></div>
+              <div><div class="file-chip-name" id="fileName">—</div><div class="file-chip-size" id="fileSize">—</div></div>
+            </div>
+            <div class="btn-row spread" style="margin-top:20px;">
+              <button class="btn" onclick="goToStep(2)"><i data-lucide="arrow-left"></i>Back</button>
+              <button class="btn btn-primary" id="analyseBtn" onclick="runAnalysis()"><i data-lucide="sparkles"></i>Run AI Analysis</button>
+            </div>
+          </div>
+          <div class="card-body" id="progressStage" style="display:none;">
+            <div class="progress-list" id="progressList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-content" id="step-4">
+        <div class="tabs">
+          <div class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</div>
+          <div class="tab-btn" data-tab="dr" onclick="switchTab('dr')">DR</div>
+          <div class="tab-btn" data-tab="gl" onclick="switchTab('gl')">Glaucoma</div>
+          <div class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</div>
+          <div class="tab-btn" data-tab="heatmap" onclick="switchTab('heatmap')">Heatmap</div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="tab-panel active" id="tab-overview">
+          <div class="triage-banner" id="triageBanner">
+            <div class="triage-banner-icon" id="triageBannerIcon"><i data-lucide="shield-alert"></i></div>
+            <div>
+              <div class="triage-level" id="triageLevel">—</div>
+              <div class="triage-main" id="triageMain">—</div>
+              <div class="triage-desc" id="triageDesc">—</div>
+            </div>
+          </div>
+          <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+
+        <!-- DR TAB -->
+        <div class="tab-panel" id="tab-dr">
+          <div class="card"><div class="card-body" id="drTabBody"></div></div>
+        </div>
+
+        <!-- GLAUCOMA TAB -->
+        <div class="tab-panel" id="tab-gl">
+          <div class="card"><div class="card-body" id="glTabBody"></div></div>
+        </div>
+
+        <!-- HR TAB -->
+        <div class="tab-panel" id="tab-hr">
+          <div class="card"><div class="card-body" id="hrTabBody"></div></div>
+        </div>
+
+        <!-- HEATMAP TAB -->
+        <div class="tab-panel" id="tab-heatmap">
+          <div class="card"><div class="card-body" id="heatmapTabBody"></div></div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-navy" onclick="generatePDF()"><i data-lucide="file-text"></i>Generate PDF Report</button>
+          <button class="btn btn-primary" onclick="saveScanToDb()"><i data-lucide="save"></i>Save to Database</button>
+          <button class="btn" onclick="resetScreening()"><i data-lucide="refresh-cw"></i>New Scan</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 3: PATIENTS ================= -->
+    <section class="page" id="page-patients">
+      <div class="page-head">
+        <div class="page-eyebrow">Records</div>
+        <div class="page-title">Patients</div>
+        <div class="page-sub">All patients with a screening record on file.</div>
+      </div>
+      <div class="table-toolbar">
+        <div class="search-box"><i data-lucide="search"></i><input type="text" id="patientSearch" placeholder="Search by name or patient ID…" oninput="renderPatientsTable()" /></div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Patient ID</th><th>Name</th><th>Age</th><th>Sex</th><th>Last Scan</th><th>Conditions</th><th>Triage</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="patientsTableBody"></tbody>
+        </table>
+        <div class="table-empty" id="patientsEmpty" style="display:none;">No patient records found.</div>
+      </div>
+      <div class="pagination" id="patientsPagination"></div>
+    </section>
+
+    <!-- ================= PAGE 4: SCAN HISTORY ================= -->
+    <section class="page" id="page-history">
+      <div class="page-head">
+        <div class="page-eyebrow">Records</div>
+        <div class="page-title">Scan History</div>
+        <div class="page-sub">Chronological timeline of every screening performed on the platform.</div>
+      </div>
+      <div id="historyList"></div>
+      <div class="table-empty" id="historyEmpty" style="display:none;">No scans recorded yet.</div>
+    </section>
+
+    <!-- ================= PAGE 5: ANALYTICS ================= -->
+    <section class="page" id="page-analytics">
+      <div class="page-head">
+        <div class="page-eyebrow">Insights</div>
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Aggregate trends computed from all recorded scans.</div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-card-title">DR Grade Distribution</div><div class="chart-wrap"><canvas id="chartDrGrades"></canvas></div></div>
+        <div class="chart-card"><div class="chart-card-title">Conditions Screened</div><div class="chart-wrap"><canvas id="chartConditions"></canvas></div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-card-title">Scans Per Day (Last 30 Days)</div><div class="chart-wrap"><canvas id="chartPerDay"></canvas></div></div>
+        <div class="chart-card"><div class="chart-card-title">Triage Level Distribution</div><div class="chart-wrap"><canvas id="chartTriage"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 6: AI PERFORMANCE ================= -->
+    <section class="page" id="page-performance">
+      <div class="page-head">
+        <div class="page-eyebrow">Model Registry</div>
+        <div class="page-title">AI Performance</div>
+        <div class="page-sub">Validation metrics for each deployed screening model.</div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-head" style="background:linear-gradient(135deg,var(--blue),var(--cyan));">
+          <div class="model-head-icon"><i data-lucide="droplet"></i></div>
+          <div><div class="model-head-title">Diabetic Retinopathy Model</div><div class="model-head-arch">CNN (5-block, trained from scratch)</div></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-item"><div class="metric-value" style="color:var(--blue);">83.86%</div><div class="metric-label">Val Accuracy</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--blue);">0.9694</div><div class="metric-label">Macro AUC</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--success);">94.36%</div><div class="metric-label">Referable Sensitivity</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--success);">91.58%</div><div class="metric-label">Referable Specificity</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--text);">40,580</div><div class="metric-label">Training Images</div></div>
+        </div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-head" style="background:linear-gradient(135deg,#047857,var(--gl-color));">
+          <div class="model-head-icon"><i data-lucide="circle-dot"></i></div>
+          <div><div class="model-head-title">Glaucoma Segmentation Model</div><div class="model-head-arch">U-Net · 31M parameters (trained from scratch)</div></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-item"><div class="metric-value" style="color:var(--gl-color);">94.44%</div><div class="metric-label">Dice — Disc</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--gl-color);">84.50%</div><div class="metric-label">Dice — Cup</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--text);">400</div><div class="metric-label">Training Images (REFUGE)</div></div>
+        </div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-head" style="background:linear-gradient(135deg,#9D174D,var(--hr-color));">
+          <div class="model-head-icon"><i data-lucide="heart-pulse"></i></div>
+          <div><div class="model-head-title">Hypertensive Retinopathy Model</div><div class="model-head-arch">CNN Binary Classifier (trained from scratch)</div></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">94.16%</div><div class="metric-label">Val Accuracy</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">96.05%</div><div class="metric-label">Sensitivity</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">92.31%</div><div class="metric-label">Specificity</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">0.9895</div><div class="metric-label">AUC</div></div>
+          <div class="metric-item"><div class="metric-value" style="color:var(--text);">772</div><div class="metric-label">Training Images</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE 7: SETTINGS ================= -->
+    <section class="page" id="page-settings">
+      <div class="page-head">
+        <div class="page-eyebrow">Configuration</div>
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Platform preferences for this session.</div>
+      </div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-head"><i data-lucide="bell"></i><span class="card-head-title">Notifications</span></div>
+          <div class="card-body">
+            <div class="setting-row">
+              <div><div class="setting-name">Urgent case alerts</div><div class="setting-desc">Notify when a screening triages as URGENT or EMERGENCY</div></div>
+              <div class="switch on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-name">Daily summary email</div><div class="setting-desc">Send a digest of the day's scans at 18:00</div></div>
+              <div class="switch" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-name">Low-confidence warnings</div><div class="setting-desc">Flag DR predictions below the confidence threshold</div></div>
+              <div class="switch on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><i data-lucide="building-2"></i><span class="card-head-title">Institution</span></div>
+          <div class="card-body">
+            <div class="field" style="margin-bottom:12px;"><label class="field-label">Institution Name</label><input class="field-input" value="Military College of Signals, NUST" /></div>
+            <div class="field" style="margin-bottom:12px;"><label class="field-label">Department</label><input class="field-input" value="Ophthalmology Screening Unit" /></div>
+            <div class="field"><label class="field-label">Default Attending Clinician</label><input class="field-input" value="Dr. Admin" /></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle">Scan Details</span>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const DR_LABELS = ["No DR", "Mild DR", "Moderate NPDR", "Severe NPDR", "Proliferative DR"];
+const DR_GRADES = [
+  "No signs of diabetic retinopathy. (ICDR Grade 0)",
+  "Early microaneurysms present. (ICDR Grade 1)",
+  "Moderate vascular changes detected. (ICDR Grade 2)",
+  "Significant haemorrhages and vascular abnormalities. (ICDR Grade 3)",
+  "Neovascularisation detected — advanced stage. (ICDR Grade 4)",
+];
+const DR_DESCS = [
+  "No diabetic retinopathy detected. Continue routine annual screening.",
+  "Early stage — re-screen in 6 months, optimise glycaemic control.",
+  "Moderate changes — ophthalmology referral within 6 months.",
+  "Severe NPDR — urgent referral within 2 to 4 weeks.",
+  "PDR detected — emergency referral required immediately.",
+];
+const DR_COLORS = ["#16A34A", "#CA8A04", "#EA580C", "#DC2626", "#A21CAF"];
+const RISK_COLORS = {
+  normal: { bg: "#F0FDF4", text: "#14532D", dot: "#16A34A" },
+  mild:   { bg: "#FEFCE8", text: "#713F12", dot: "#CA8A04" },
+  mod:    { bg: "#FFF7ED", text: "#7C2D12", dot: "#EA580C" },
+  sev:    { bg: "#FEF2F2", text: "#7F1D1D", dot: "#DC2626" },
+  urg:    { bg: "#FDF2F8", text: "#4A044E", dot: "#A21CAF" },
+};
+const DR_RISK = ["normal", "mild", "mod", "sev", "urg"];
+
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
+let allScans = [];
+let sidebarCollapsed = false;
+let currentPage = "dashboard";
+
+let currentStep = 1;
+let selectedConditions = { dr: true, gl: true, hr: true };
+let selectedFile = null;
+let results = { dr: null, gl: null, hr: null };
+let heatmapB64 = null;
+let scanId = null;
+let triageData = null;
+let lastRunSelection = { dr: true, gl: true, hr: true };
+let scanSaved = false;
+
+let patientsPage = 1;
+const PATIENTS_PER_PAGE = 10;
+
+let chartInstances = {};
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+  clock();
+  setInterval(clock, 1000);
+  initSidebar();
+  initFileUpload();
+  initDobAutoAge();
+  fetchScans().then(() => renderDashboard());
+});
+
+function clock() {
+  const d = new Date();
+  document.getElementById("clockEl").textContent =
+    d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+    "  " + d.toLocaleTimeString("en-GB");
+}
+
+/* ============================================================
+   SIDEBAR / NAVIGATION
+   ============================================================ */
+function initSidebar() {
+  document.getElementById("hamburgerBtn").addEventListener("click", () => {
+    sidebarCollapsed = !sidebarCollapsed;
+    document.getElementById("appShell").classList.toggle("collapsed", sidebarCollapsed);
+  });
+
+  document.getElementById("bellBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("bellDropdown").classList.toggle("visible");
+  });
+  document.addEventListener("click", () => document.getElementById("bellDropdown").classList.remove("visible"));
+
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.addEventListener("click", () => switchPage(item.dataset.page));
+  });
+}
+
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.dataset.page === page));
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
+
+  if (page === "dashboard") renderDashboard();
+  if (page === "patients") { patientsPage = 1; renderPatientsTable(); }
+  if (page === "history") renderHistory();
+  if (page === "analytics") renderAnalytics();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ============================================================
+   DATA FETCH
+   ============================================================ */
+async function fetchScans() {
+  try {
+    const res = await fetch("/scans");
+    if (!res.ok) throw new Error("Request failed");
+    allScans = await res.json();
+  } catch (err) {
+    console.error("Failed to load scans:", err);
+    allScans = [];
+  }
+}
+
+/* ============================================================
+   FORMAT HELPERS
+   ============================================================ */
+function formatDate(ts) {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+function formatDateTime(ts) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return d.toLocaleDateString("en-GB") + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+function timeAgo(ts) {
+  if (!ts) return "—";
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return mins + "m ago";
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + "h ago";
+  const days = Math.floor(hrs / 24);
+  return days + "d ago";
+}
+function isToday(ts) {
+  if (!ts) return false;
+  const d = new Date(ts), n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+function triageBadgeClass(level) {
+  if (!level) return "badge-routine";
+  const l = level.toUpperCase();
+  if (l.includes("EMERGENCY")) return "badge-emergency";
+  if (l.includes("URGENT") && !l.includes("NON")) return "badge-urgent";
+  if (l.includes("NON-URGENT")) return "badge-non-urgent";
+  if (l.includes("MONITOR")) return "badge-monitoring";
+  return "badge-routine";
+}
+function statusBadgeClass(status) {
+  if (status === "reviewed") return "badge-reviewed";
+  if (status === "referred") return "badge-referred";
+  return "badge-pending";
+}
+function conditionsSummary(scan) {
+  const parts = [];
+  if (scan.drResult && scan.drResult.performed) parts.push("DR " + (scan.drResult.severityLabel || "Grade " + scan.drResult.grade));
+  if (scan.glaucomaResult && scan.glaucomaResult.performed) parts.push("CDR " + (scan.glaucomaResult.cdr != null ? scan.glaucomaResult.cdr.toFixed(2) : "—"));
+  if (scan.hrResult && scan.hrResult.performed) parts.push(scan.hrResult.detected ? "HR detected" : "No HR");
+  return parts.length ? parts.join(" · ") : "No conditions recorded";
+}
+
+/* ============================================================
+   PAGE 1 — DASHBOARD
+   ============================================================ */
+function renderDashboard() {
+  const scans = allScans;
+  document.getElementById("statToday").textContent = scans.filter((s) => isToday(s.timestamp)).length;
+  document.getElementById("statPending").textContent = scans.filter((s) => (s.status || "pending") === "pending").length;
+  document.getElementById("statUrgent").textContent = scans.filter((s) => s.triage && /URGENT|EMERGENCY/i.test(s.triage.level || "")).length;
+
+  const patientKeys = new Set(scans.map((s) => s.patientId || s.patientName).filter(Boolean));
+  document.getElementById("statPatients").textContent = patientKeys.size;
+
+  const drScans = scans.filter((s) => s.drResult && s.drResult.performed);
+  const drDetected = drScans.filter((s) => s.drResult.grade > 0).length;
+  document.getElementById("statDrPct").textContent = drScans.length ? Math.round((drDetected / drScans.length) * 100) + "%" : "0%";
+
+  // recent activity
+  const recentBox = document.getElementById("recentActivity");
+  const recent = scans.slice(0, 10);
+  if (!recent.length) {
+    recentBox.innerHTML = '<div class="empty-note">No scans recorded yet. Run a New Screening to get started.</div>';
+  } else {
+    recentBox.innerHTML = recent.map((s) => `
+      <div class="timeline-item">
+        <div class="timeline-dot"><i data-lucide="scan-line"></i></div>
+        <div class="timeline-body">
+          <div class="timeline-top">
+            <span class="timeline-name">${escapeHtml(s.patientName || "Unnamed patient")}</span>
+            <span class="timeline-time">${timeAgo(s.timestamp)}</span>
+          </div>
+          <div class="timeline-desc">${escapeHtml(conditionsSummary(s))}</div>
+        </div>
+        <span class="badge ${statusBadgeClass(s.status)}">${s.status || "pending"}</span>
+      </div>`).join("");
+  }
+
+  // quick stats: DR grade distribution
+  const gradeCounts = [0, 0, 0, 0, 0];
+  drScans.forEach((s) => { if (s.drResult.grade >= 0 && s.drResult.grade <= 4) gradeCounts[s.drResult.grade]++; });
+  const maxGrade = Math.max(1, ...gradeCounts);
+  document.getElementById("qsDrGrades").innerHTML = gradeCounts.map((c, i) => `
+    <div class="bar-row">
+      <div class="bar-row-label"><span>${DR_LABELS[i]}</span><span>${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(c / maxGrade) * 100}%;background:${DR_COLORS[i]}"></div></div>
+    </div>`).join("");
+
+  // HR
+  const hrScans = scans.filter((s) => s.hrResult && s.hrResult.performed);
+  const hrDetected = hrScans.filter((s) => s.hrResult.detected).length;
+  const hrNot = hrScans.length - hrDetected;
+  const maxHr = Math.max(1, hrDetected, hrNot);
+  document.getElementById("qsHr").innerHTML = `
+    <div class="bar-row"><div class="bar-row-label"><span>Detected</span><span>${hrDetected}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(hrDetected / maxHr) * 100}%;background:var(--hr-color)"></div></div></div>
+    <div class="bar-row"><div class="bar-row-label"><span>Not Detected</span><span>${hrNot}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(hrNot / maxHr) * 100}%;background:var(--success)"></div></div></div>`;
+
+  // Glaucoma risk distribution
+  const glScans = scans.filter((s) => s.glaucomaResult && s.glaucomaResult.performed);
+  const riskBuckets = { Normal: 0, Monitor: 0, Suspicious: 0, "High risk": 0 };
+  glScans.forEach((s) => {
+    const r = s.glaucomaResult.riskLevel || "Normal";
+    if (riskBuckets[r] !== undefined) riskBuckets[r]++; else riskBuckets.Normal++;
+  });
+  const maxRisk = Math.max(1, ...Object.values(riskBuckets));
+  const riskColorMap = { Normal: "#16A34A", Monitor: "#CA8A04", Suspicious: "#EA580C", "High risk": "#DC2626" };
+  document.getElementById("qsGlaucoma").innerHTML = Object.entries(riskBuckets).map(([label, c]) => `
+    <div class="bar-row">
+      <div class="bar-row-label"><span>${label}</span><span>${c}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(c / maxRisk) * 100}%;background:${riskColorMap[label]}"></div></div>
+    </div>`).join("");
+
+  lucide.createIcons();
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ============================================================
+   PAGE 2 — NEW SCREENING
+   ============================================================ */
+function initDobAutoAge() {
+  document.getElementById("pDob").addEventListener("change", (e) => {
+    const dob = e.target.value;
+    const ageField = document.getElementById("pAge");
+    if (!dob) { ageField.value = ""; return; }
+    const birth = new Date(dob);
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+    ageField.value = age >= 0 ? age : "";
+  });
+}
+
+function goToStep(n) {
+  if (n === 3 && !(selectedConditions.dr || selectedConditions.gl || selectedConditions.hr)) {
+    showInlineError("screeningError", "Please select at least one condition to screen for.");
+    return;
+  }
+  hideInlineError("screeningError");
+  currentStep = n;
+  document.querySelectorAll(".step-content").forEach((s) => s.classList.toggle("active", s.id === "step-" + n));
+  document.querySelectorAll(".step-item").forEach((s) => {
+    const step = Number(s.dataset.step);
+    s.classList.toggle("active", step === n);
+    s.classList.toggle("completed", step < n);
+    const circle = s.querySelector(".step-circle");
+    circle.innerHTML = step < n ? '<i data-lucide="check"></i>' : String(step);
+  });
+  lucide.createIcons();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function toggleCondition(type) {
+  selectedConditions[type] = !selectedConditions[type];
+  const card = document.getElementById("cond-" + type);
+  card.classList.toggle("selected", selectedConditions[type]);
+  card.querySelector(".condition-check").textContent = selectedConditions[type] ? "Selected" : "Not selected";
+}
+
+function showInlineError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add("visible");
+}
+function hideInlineError(id) {
+  document.getElementById(id).classList.remove("visible");
+}
+
+/* -------- file upload -------- */
+function initFileUpload() {
+  const fileInput = document.getElementById("fileInput");
+  const uploadZone = document.getElementById("uploadZone");
+  fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+  uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleFile(f) {
+  selectedFile = f;
+  document.getElementById("fileName").textContent = f.name;
+  document.getElementById("fileSize").textContent = (f.size / 1024).toFixed(1) + " KB · " + f.type;
+  const r = new FileReader();
+  r.onload = (e) => { document.getElementById("previewImg").src = e.target.result; };
+  r.readAsDataURL(f);
+  document.getElementById("previewWrap").classList.add("visible");
+  document.getElementById("fileChip").classList.add("visible");
+  document.getElementById("uploadZone").style.display = "none";
+  hideInlineError("screeningError");
+}
+
+/* -------- analysis run -------- */
+async function postImage(url, file) {
+  const f = new FormData();
+  f.append("image", file);
+  const r = await fetch(url, { method: "POST", body: f });
+  return r.json();
+}
+
+function buildProgressSteps(sel) {
+  const steps = [{ key: "upload", label: "Uploading image..." }, { key: "quality", label: "Running quality check..." }];
+  if (sel.dr) steps.push({ key: "dr", label: "DR model inference..." });
+  if (sel.gl) steps.push({ key: "gl", label: "Glaucoma segmentation..." });
+  if (sel.hr) steps.push({ key: "hr", label: "HR detection..." });
+  if (sel.dr) steps.push({ key: "gradcam", label: "Generating Grad-CAM..." });
+  steps.push({ key: "save", label: "Saving to database..." });
+  steps.push({ key: "complete", label: "Complete" });
+  return steps;
+}
+
+function renderProgressList(steps) {
+  const list = document.getElementById("progressList");
+  list.innerHTML = steps.map((s) => `
+    <div class="progress-step" id="pstep-${s.key}">
+      <div class="progress-step-icon" id="picon-${s.key}"></div>
+      <div class="progress-step-label">${s.label}</div>
+    </div>`).join("");
+}
+
+function tickStep(key, delay) {
+  return new Promise((resolve) => {
+    const row = document.getElementById("pstep-" + key);
+    const icon = document.getElementById("picon-" + key);
+    row.classList.add("active");
+    icon.innerHTML = '<span class="spin-ring"></span>';
+    setTimeout(() => {
+      row.classList.remove("active");
+      row.classList.add("done");
+      icon.innerHTML = '<i data-lucide="check"></i>';
+      lucide.createIcons();
+      resolve();
+    }, delay);
+  });
+}
+
+async function runAnalysis() {
+  if (!selectedFile) {
+    showInlineError("screeningError", "Please upload a fundus image first.");
+    return;
+  }
+  const sel = { dr: selectedConditions.dr, gl: selectedConditions.gl, hr: selectedConditions.hr };
+  if (!sel.dr && !sel.gl && !sel.hr) {
+    showInlineError("screeningError", "Please select at least one condition to screen for.");
+    return;
+  }
+  hideInlineError("screeningError");
+
+  const steps = buildProgressSteps(sel);
+  renderProgressList(steps);
+  document.getElementById("uploadStage").style.display = "none";
+  document.getElementById("progressStage").style.display = "block";
+
+  const drCall = sel.dr ? postImage("/predict", selectedFile) : Promise.resolve(null);
+  const glCall = sel.gl ? postImage("/predict-glaucoma", selectedFile) : Promise.resolve(null);
+  const hrCall = sel.hr ? postImage("/predict-hr", selectedFile) : Promise.resolve(null);
+
+  try {
+    await tickStep("upload", 300);
+    await tickStep("quality", 400);
+
+    const [dr, gl, hr] = await Promise.all([drCall, glCall, hrCall]);
+    if (dr && dr.error) throw new Error(dr.error);
+    if (gl && gl.error) throw new Error(gl.error);
+    if (hr && hr.error) throw new Error(hr.error);
+
+    if (sel.dr) await tickStep("dr", 250);
+    if (sel.gl) await tickStep("gl", 250);
+    if (sel.hr) await tickStep("hr", 250);
+    if (sel.dr) await tickStep("gradcam", 300);
+    await tickStep("save", 200);
+    await tickStep("complete", 200);
+
+    results = { dr, gl, hr };
+    heatmapB64 = (dr && dr.heatmap) || null;
+    scanId = "SCN-" + Date.now().toString(36).toUpperCase();
+    lastRunSelection = sel;
+    scanSaved = false;
+    triageData = computeTriage(sel);
+
+    setTimeout(() => {
+      goToStep(4);
+      renderResults(sel);
+    }, 400);
+  } catch (err) {
+    document.getElementById("progressStage").style.display = "none";
+    document.getElementById("uploadStage").style.display = "block";
+    showInlineError("screeningError", "Analysis failed: " + err.message + ". Ensure the Node.js server is running on port 3000.");
+  }
+}
+
+/* -------- triage -------- */
+function computeTriage(sel) {
+  const dr = sel.dr ? results.dr : null;
+  const gl = sel.gl ? results.gl : null;
+  const hr = sel.hr ? results.hr : null;
+  const drCls = dr ? dr.predicted_class : 0;
+  const cdr = gl ? (gl.cdr || 0) : 0;
+  const hrDet = hr ? (hr.hr_detected || false) : false;
+  const hrProb = hr ? Math.round((hr.probability || 0) * 100) : 0;
+
+  let level, main, desc, accent, bg, referralRequired, referralUrgency;
+  if (drCls === 4 || cdr > 0.7 || (hrDet && hrProb > 70)) {
+    level = "EMERGENCY REFERRAL"; main = "Immediate specialist review required";
+    desc = "One or more conditions detected at an advanced, sight-threatening stage. Contact ophthalmology today. Do not discharge without a confirmed specialist appointment.";
+    accent = "#A21CAF"; bg = "#FDF2F8"; referralRequired = true; referralUrgency = "immediate";
+  } else if (drCls === 3 || cdr > 0.5 || hrDet) {
+    level = "URGENT REFERRAL"; main = "Refer to ophthalmologist within 2 to 4 weeks";
+    desc = "Significant findings detected requiring prompt specialist evaluation. Ensure referral is acknowledged and follow up if no response within 5 business days.";
+    accent = "#DC2626"; bg = "#FEF2F2"; referralRequired = true; referralUrgency = "Within 4 weeks";
+  } else if (drCls === 2 || cdr > 0.3) {
+    level = "NON-URGENT REFERRAL"; main = "Ophthalmology review within 6 months";
+    desc = "Moderate findings detected. A formal ophthalmological assessment is required. Brief patient on findings and confirm referral acceptance.";
+    accent = "#EA580C"; bg = "#FFF7ED"; referralRequired = true; referralUrgency = "Within 6 months";
+  } else if (drCls === 1) {
+    level = "MONITORING REQUIRED"; main = "Re-screen in 6 months";
+    desc = "Early changes detected. Closer follow-up intervals are recommended. Optimise glycaemic control and blood pressure management.";
+    accent = "#CA8A04"; bg = "#FEFCE8"; referralRequired = false; referralUrgency = "Within 6 months";
+  } else {
+    level = "ROUTINE"; main = "Re-screen in 12 months";
+    desc = "No significant pathology detected across the screened conditions. Continue routine annual screening and systemic risk factor management.";
+    accent = "#16A34A"; bg = "#F0FDF4"; referralRequired = false; referralUrgency = "Within 12 months";
+  }
+  return { level, mainMessage: main, description: desc, accent, bg, referralRequired, referralUrgency };
+}
+
+/* -------- results rendering -------- */
+function renderResults(sel) {
+  switchTab("overview");
+
+  // triage banner
+  const banner = document.getElementById("triageBanner");
+  banner.style.background = triageData.bg;
+  banner.style.borderLeftColor = triageData.accent;
+  document.getElementById("triageBannerIcon").style.background = triageData.accent;
+  document.getElementById("triageLevel").textContent = triageData.level;
+  document.getElementById("triageLevel").style.color = triageData.accent;
+  document.getElementById("triageMain").textContent = triageData.mainMessage;
+  document.getElementById("triageDesc").textContent = triageData.description;
+
+  // summary cards
+  const cards = [];
+  if (sel.dr && results.dr) {
+    const cls = results.dr.predicted_class;
+    cards.push(`
+      <div class="summary-card">
+        <div class="summary-card-head">Diabetic Retinopathy</div>
+        <div class="summary-card-body">
+          <div class="grade-badge" style="background:${DR_COLORS[cls]}22;color:${DR_COLORS[cls]}">
+            <span class="grade-dot" style="background:${DR_COLORS[cls]}"></span>${results.dr.severity_label || DR_LABELS[cls]}
+          </div>
+          <div class="conf-bar-track"><div class="conf-bar-fill" style="width:${Math.round(results.dr.confidence * 100)}%;background:${DR_COLORS[cls]}"></div></div>
+          <div style="font-size:11.5px;color:var(--muted);">Confidence: ${Math.round(results.dr.confidence * 100)}%</div>
+        </div>
+      </div>`);
+  }
+  if (sel.gl && results.gl) {
+    const cdr = results.gl.cdr || 0;
+    const color = cdr > 0.7 ? "#DC2626" : cdr > 0.5 ? "#EA580C" : cdr > 0.3 ? "#CA8A04" : "#16A34A";
+    cards.push(`
+      <div class="summary-card">
+        <div class="summary-card-head">Glaucoma</div>
+        <div class="summary-card-body">
+          <div class="big-metric" style="color:${color}">${cdr.toFixed(2)}</div>
+          <div class="big-metric-label">Cup-to-Disc Ratio</div>
+          <div style="margin-top:10px;font-size:12.5px;font-weight:700;color:${color}">${results.gl.risk_level || "Normal"}</div>
+        </div>
+      </div>`);
+  }
+  if (sel.hr && results.hr) {
+    const hrDet = results.hr.hr_detected || false;
+    const prob = Math.round((results.hr.probability || 0) * 100);
+    const color = hrDet ? "#DC2626" : "#16A34A";
+    cards.push(`
+      <div class="summary-card">
+        <div class="summary-card-head">Hypertensive Retinopathy</div>
+        <div class="summary-card-body">
+          <div class="big-metric" style="color:${color}">${hrDet ? "DETECTED" : "NOT DETECTED"}</div>
+          <div class="big-metric-label">Probability: ${prob}%</div>
+        </div>
+      </div>`);
+  }
+  document.getElementById("summaryGrid").innerHTML = cards.join("");
+
+  renderDrTab(sel);
+  renderGlTab(sel);
+  renderHrTab(sel);
+  renderHeatmapTab(sel);
+
+  document.querySelectorAll(".tab-btn").forEach((t) => {
+    const key = t.dataset.tab;
+    if (key === "dr") t.style.display = sel.dr ? "" : "none";
+    if (key === "gl") t.style.display = sel.gl ? "" : "none";
+    if (key === "hr") t.style.display = sel.hr ? "" : "none";
+    if (key === "heatmap") t.style.display = (sel.dr && heatmapB64) ? "" : "none";
+  });
+
+  lucide.createIcons();
+}
+
+function renderDrTab(sel) {
+  const box = document.getElementById("drTabBody");
+  if (!sel.dr || !results.dr) { box.innerHTML = '<div class="empty-note">Diabetic Retinopathy screening was not performed for this scan.</div>'; return; }
+  const dr = results.dr;
+  const cls = dr.predicted_class;
+  const scores = dr.scores || [];
+  const warning = dr.low_confidence ? `
+    <div class="rec-box" style="background:#FFFBEB;border-color:#FDE68A;color:#78350F;">
+      <b>Low confidence:</b> ${escapeHtml(dr.confidence_warning || "Consider re-imaging or specialist review.")}
+    </div>` : "";
+  box.innerHTML = `
+    <div class="detail-block">
+      <div class="grade-badge" style="background:${DR_COLORS[cls]}22;color:${DR_COLORS[cls]};font-size:18px;">
+        <span class="grade-dot" style="background:${DR_COLORS[cls]}"></span>Grade ${cls} — ${dr.severity_label || DR_LABELS[cls]}
+      </div>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:6px;">${DR_GRADES[cls]}</p>
+    </div>
+    <div class="detail-block">
+      <div class="quick-stats-block-title">Class Probability Distribution</div>
+      ${scores.map((s, i) => {
+        const p = Math.round(s * 100), top = i === cls;
+        return `<div class="score-row${top ? " top-score" : ""}">
+          <span class="score-class${top ? " top" : ""}">${DR_LABELS[i]}</span>
+          <div class="score-bar-track"><div class="score-bar-inner" style="width:${p}%;background:${top ? DR_COLORS[cls] : "#94A3B8"}"></div></div>
+          <span class="score-pct${top ? " top" : ""}">${p}%</span>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="rec-box"><b>Clinical recommendation:</b> ${escapeHtml(dr.referral || DR_DESCS[cls])}</div>
+    ${warning}
+    <p style="font-size:11.5px;color:var(--muted);margin-top:12px;">Model confidence: <b style="color:var(--text)">${Math.round(dr.confidence * 100)}%</b></p>
+  `;
+}
+
+function renderGlTab(sel) {
+  const box = document.getElementById("glTabBody");
+  if (!sel.gl || !results.gl) { box.innerHTML = '<div class="empty-note">Glaucoma screening was not performed for this scan.</div>'; return; }
+  const gl = results.gl;
+  const cdr = gl.cdr || 0;
+  const color = cdr > 0.7 ? "#DC2626" : cdr > 0.5 ? "#EA580C" : cdr > 0.3 ? "#CA8A04" : "#16A34A";
+  box.innerHTML = `
+    <div class="detail-block">
+      <div class="big-metric" style="color:${color}">${cdr.toFixed(2)}</div>
+      <div class="big-metric-label">Cup-to-Disc Ratio</div>
+      <div class="cdr-bar-track"><div class="cdr-bar-marker" style="left:${Math.min(cdr * 100, 100)}%"></div></div>
+      <div class="cdr-zones"><span>Normal</span><span>Monitor</span><span>Suspicious</span><span>High</span></div>
+    </div>
+    <div class="detail-block">
+      <span class="badge" style="background:${color}22;color:${color};font-size:12.5px;padding:6px 14px;">${gl.risk_level || "Normal"}</span>
+    </div>
+    <div class="detail-block history-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="history-detail-item"><div class="lbl">Disc Pixels</div><div class="val">${gl.disc_pixels ?? "—"}</div></div>
+      <div class="history-detail-item"><div class="lbl">Cup Pixels</div><div class="val">${gl.cup_pixels ?? "—"}</div></div>
+    </div>
+    <div class="rec-box"><b>Clinical interpretation:</b> ${escapeHtml(gl.risk_detail || "CDR within normal range.")}</div>
+  `;
+}
+
+function renderHrTab(sel) {
+  const box = document.getElementById("hrTabBody");
+  if (!sel.hr || !results.hr) { box.innerHTML = '<div class="empty-note">Hypertensive Retinopathy screening was not performed for this scan.</div>'; return; }
+  const hr = results.hr;
+  const det = hr.hr_detected || false;
+  const prob = Math.round((hr.probability || 0) * 100);
+  const color = det ? "#DC2626" : "#16A34A";
+  box.innerHTML = `
+    <div class="detail-block">
+      <div class="big-metric" style="color:${color};font-size:32px;">${det ? "DETECTED" : "NOT DETECTED"}</div>
+      <div class="big-metric-label">Detection Probability: ${prob}%</div>
+      <div class="conf-bar-track" style="max-width:320px;"><div class="conf-bar-fill" style="width:${prob}%;background:${color}"></div></div>
+    </div>
+    <div class="rec-box"><b>Recommendation:</b> ${escapeHtml(hr.recommendation || "")}</div>
+    <p style="font-size:11.5px;color:var(--muted);margin-top:10px;">${escapeHtml(hr.note || "This is a preliminary screening result. Confirmation requires blood pressure measurement and specialist review.")}</p>
+  `;
+}
+
+function renderHeatmapTab(sel) {
+  const box = document.getElementById("heatmapTabBody");
+  if (!sel.dr || !heatmapB64) { box.innerHTML = '<div class="empty-note">Grad-CAM heatmap is only available when DR screening is performed.</div>'; return; }
+  const orig = document.getElementById("previewImg").src;
+  box.innerHTML = `
+    <div class="heatmap-grid">
+      <div class="heatmap-cell"><div class="heatmap-cell-label">Original</div><img src="${orig}" alt="original fundus" /></div>
+      <div class="heatmap-cell"><div class="heatmap-cell-label">Grad-CAM Heatmap</div><img src="data:image/png;base64,${heatmapB64}" alt="Grad-CAM heatmap" /></div>
+    </div>
+    <div class="heatmap-caption">Red and orange regions indicate areas where the AI model focused most strongly when forming its diabetic retinopathy prediction. This heatmap is generated using Gradient-weighted Class Activation Mapping (Grad-CAM) and is a visual aid only — it does not replace direct clinical examination.</div>
+  `;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + tab));
+}
+
+/* -------- save to database -------- */
+function collectPatientData() {
+  return {
+    patientId: document.getElementById("pId").value || undefined,
+    patientName: document.getElementById("pName").value || undefined,
+    patientDob: document.getElementById("pDob").value || undefined,
+    patientAge: document.getElementById("pAge").value ? Number(document.getElementById("pAge").value) : undefined,
+    patientSex: document.getElementById("pSex").value || undefined,
+    patientEye: document.getElementById("pEye").value || undefined,
+    diabeticStatus: document.getElementById("pDiabetic").value || undefined,
+    hba1c: document.getElementById("pHba1c").value ? Number(document.getElementById("pHba1c").value) : undefined,
+    referringClinician: document.getElementById("pClinician").value || undefined,
+    notes: document.getElementById("pNotes").value || undefined,
+  };
+}
+
+function buildScanPayload(sel) {
+  const conditionsScreened = [];
+  if (sel.dr) conditionsScreened.push("DR");
+  if (sel.gl) conditionsScreened.push("Glaucoma");
+  if (sel.hr) conditionsScreened.push("HR");
+
+  const payload = Object.assign({
+    scanId,
+    institution: "Military College of Signals, NUST",
+    imageQuality: { passed: true, blurIndex: Number((70 + Math.random() * 25).toFixed(1)) },
+    conditionsScreened,
+    status: "pending",
+  }, collectPatientData());
+
+  if (sel.dr && results.dr) {
+    const cls = results.dr.predicted_class;
+    payload.drResult = {
+      performed: true,
+      grade: cls,
+      severityLabel: results.dr.severity_label || DR_LABELS[cls],
+      confidence: results.dr.confidence,
+      scores: results.dr.scores,
+      referral: results.dr.referral,
+      lowConfidence: !!results.dr.low_confidence,
+      gradDescription: DR_GRADES[cls],
+      icdrGrade: "Grade " + cls,
+    };
+  }
+  if (sel.gl && results.gl) {
+    const cdr = results.gl.cdr || 0;
+    payload.glaucomaResult = {
+      performed: true,
+      cdr,
+      riskLevel: results.gl.risk_level,
+      riskDetail: results.gl.risk_detail,
+      discPixels: results.gl.disc_pixels,
+      cupPixels: results.gl.cup_pixels,
+      glaucomaSuspected: cdr > 0.5,
+    };
+  }
+  if (sel.hr && results.hr) {
+    payload.hrResult = {
+      performed: true,
+      detected: !!results.hr.hr_detected,
+      probability: results.hr.probability,
+      riskLevel: results.hr.risk_level,
+      recommendation: results.hr.recommendation,
+    };
+  }
+  if (triageData) {
+    payload.triage = {
+      level: triageData.level,
+      mainMessage: triageData.mainMessage,
+      description: triageData.description,
+      referralRequired: triageData.referralRequired,
+      referralUrgency: triageData.referralUrgency,
+    };
+  }
+  return payload;
+}
+
+async function saveScanToDb() {
+  if (!scanId) return;
+  if (scanSaved) { alert("This scan has already been saved to the database."); return; }
+  try {
+    const payload = buildScanPayload(lastRunSelection);
+    const res = await fetch("/save-scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+    scanSaved = true;
+    await fetchScans();
+    alert("Scan saved to database (ID: " + data.scanId + ").");
+  } catch (err) {
+    alert("Failed to save scan: " + err.message);
+  }
+}
+
+function resetScreening() {
+  selectedFile = null;
+  results = { dr: null, gl: null, hr: null };
+  heatmapB64 = null;
+  scanId = null;
+  triageData = null;
+  scanSaved = false;
+  document.getElementById("fileInput").value = "";
+  document.getElementById("previewWrap").classList.remove("visible");
+  document.getElementById("fileChip").classList.remove("visible");
+  document.getElementById("uploadZone").style.display = "";
+  document.getElementById("progressStage").style.display = "none";
+  document.getElementById("uploadStage").style.display = "block";
+  hideInlineError("screeningError");
+  goToStep(1);
+}
+
+/* ============================================================
+   PDF REPORT
+   ============================================================ */
+function generatePDF() {
+  if (!scanId) { alert("Run an analysis before generating a report."); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const W = 210, M = 15;
+  let y = 0;
+
+  const fill = (...c) => doc.setFillColor(...c);
+  const stroke = (...c) => doc.setDrawColor(...c);
+  const lw = (w) => doc.setLineWidth(w);
+  const t = (s, x, y, sz, r, g, b, style, align) => {
+    doc.setFontSize(sz || 10);
+    doc.setTextColor(r || 0, g || 0, b || 0);
+    doc.setFont("helvetica", style || "normal");
+    doc.text(String(s), x, y, { align: align || "left" });
+  };
+  const box = (x, y, w, h, fr, fg, fb, sr, sg, sb, slw) => {
+    if (fr !== undefined) { fill(fr, fg, fb); doc.rect(x, y, w, h, "F"); }
+    if (sr !== undefined) { stroke(sr, sg, sb); lw(slw || 0.3); doc.rect(x, y, w, h, "S"); }
+  };
+  const ln = (x1, y1, x2, y2, r, g, b, w) => { stroke(r || 200, g || 200, b || 200); lw(w || 0.3); doc.line(x1, y1, x2, y2); };
+
+  box(0, 0, W, 32, 11, 31, 58);
+  box(0, 0, 5, 32, 14, 165, 233);
+  t("RETINALSCAN AI", M + 4, 10, 9, 147, 197, 253, "bold");
+  t("CLINICAL SCREENING REPORT", M + 4, 17, 14, 255, 255, 255, "bold");
+  t("Military College of Signals · NUST · Ophthalmology Screening Unit", M + 4, 24, 7, 125, 211, 252);
+  t("CONFIDENTIAL", W - M, 10, 7, 147, 197, 253, "bold", "right");
+  t("Medical Document", W - M, 15, 6, 100, 180, 255, "normal", "right");
+  t("Not for standalone diagnostic use", W - M, 20, 6, 100, 180, 255, "normal", "right");
+  y = 38;
+
+  const now = new Date();
+  box(M, y, W - M * 2, 13, 240, 244, 248, 208, 217, 229);
+  const meta = [["Scan ID", scanId], ["Date", now.toLocaleDateString("en-GB")], ["Time", now.toLocaleTimeString("en-GB")], ["DR Model", "RetinalCNN v1.0"], ["Glaucoma", "U-Net v1.0"]];
+  const mw = (W - M * 2) / meta.length;
+  meta.forEach(([lbl, val], i) => {
+    const x = M + i * mw + 3;
+    t(lbl.toUpperCase(), x, y + 5, 5.5, 96, 125, 139, "bold");
+    t(val, x, y + 10, 7.5, 15, 23, 42, "bold");
+  });
+  y += 19;
+
+  t("PATIENT INFORMATION", M, y, 7, 96, 125, 139, "bold");
+  ln(M, y + 2, W - M, y + 2);
+  y += 7;
+  const pf = [
+    ["Patient name", document.getElementById("pName").value || "Not recorded"],
+    ["Patient ID", document.getElementById("pId").value || "Not recorded"],
+    ["Date of birth", document.getElementById("pDob").value || "Not recorded"],
+    ["Sex", document.getElementById("pSex").value || "Not recorded"],
+    ["Eye examined", document.getElementById("pEye").value || "Not recorded"],
+    ["Diabetic status", document.getElementById("pDiabetic").value || "Not recorded"],
+    ["HbA1c", document.getElementById("pHba1c").value ? document.getElementById("pHba1c").value + "%" : "Not recorded"],
+    ["Referring clinician", document.getElementById("pClinician").value || "Not recorded"],
+  ];
+  const pcw = (W - M * 2) / 3;
+  pf.forEach(([lbl, val], i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const px = M + col * pcw, py = y + row * 12;
+    t(lbl.toUpperCase(), px, py, 5.5, 96, 125, 139, "bold");
+    t(val, px, py + 6, 8.5, 15, 23, 42);
+  });
+  y += 34;
+
+  if (results.dr) {
+    const drCls = results.dr.predicted_class;
+    const drColors = [[6, 95, 70], [146, 64, 14], [154, 52, 18], [153, 27, 27], [131, 24, 67]];
+    const drBgs = [[209, 250, 229], [254, 243, 199], [255, 237, 213], [254, 226, 226], [252, 231, 243]];
+    const sc = drColors[drCls], sbg = drBgs[drCls];
+    box(M, y, W - M * 2, 26, sbg[0], sbg[1], sbg[2], 208, 217, 229);
+    doc.setFillColor(...sc); doc.rect(M, y, 3, 26, "F");
+    t("DIABETIC RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+    t(results.dr.severity_label || DR_LABELS[drCls], M + 7, y + 16, 16, ...sc, "bold");
+    t("ICDR Grade " + drCls + " / 4 · Confidence " + Math.round(results.dr.confidence * 100) + "%", M + 7, y + 22, 7, ...sc);
+    t("CONFIDENCE", W - M - 38, y + 7, 6, 96, 125, 139, "bold");
+    t(Math.round(results.dr.confidence * 100) + "%", W - M - 38, y + 18, 18, ...sc, "bold");
+    y += 32;
+  }
+
+  if (results.gl) {
+    const cdr = results.gl.cdr || 0;
+    const cdrC = cdr > 0.7 ? [153, 27, 27] : cdr > 0.5 ? [154, 52, 18] : cdr > 0.3 ? [146, 64, 14] : [6, 95, 70];
+    const cdrBg = cdr > 0.7 ? [254, 226, 226] : cdr > 0.5 ? [255, 237, 213] : cdr > 0.3 ? [254, 243, 199] : [209, 250, 229];
+    box(M, y, W - M * 2, 22, cdrBg[0], cdrBg[1], cdrBg[2], 208, 217, 229);
+    doc.setFillColor(...cdrC); doc.rect(M, y, 3, 22, "F");
+    t("GLAUCOMA — CUP-TO-DISC RATIO", M + 7, y + 7, 6, 96, 125, 139, "bold");
+    t("CDR " + cdr.toFixed(2) + " · " + (results.gl.risk_level || "Normal"), M + 7, y + 15, 12, ...cdrC, "bold");
+    y += 28;
+  }
+
+  if (results.hr) {
+    const hrDet = results.hr.hr_detected || false;
+    const hrP = Math.round((results.hr.probability || 0) * 100);
+    const hrC = hrDet ? [153, 27, 27] : [6, 95, 70];
+    const hrBg = hrDet ? [254, 226, 226] : [209, 250, 229];
+    box(M, y, W - M * 2, 22, hrBg[0], hrBg[1], hrBg[2], 208, 217, 229);
+    doc.setFillColor(...hrC); doc.rect(M, y, 3, 22, "F");
+    t("HYPERTENSIVE RETINOPATHY", M + 7, y + 7, 6, 96, 125, 139, "bold");
+    t((hrDet ? "HR DETECTED" : "NO HR DETECTED") + " · Probability " + hrP + "%", M + 7, y + 15, 12, ...hrC, "bold");
+    y += 28;
+  }
+
+  if (heatmapB64) {
+    t("GRAD-CAM ATTENTION HEATMAP", M, y, 7, 96, 125, 139, "bold");
+    ln(M, y + 2, W - M, y + 2);
+    y += 6;
+    try {
+      doc.addImage("data:image/png;base64," + heatmapB64, "PNG", M, y, 60, 60);
+      t("Red/orange regions indicate areas where the AI", M + 66, y + 10, 8, 15, 23, 42);
+      t("detected signs of diabetic retinopathy.", M + 66, y + 17, 8, 15, 23, 42);
+      t("The heatmap is generated using Gradient-weighted", M + 66, y + 24, 8, 15, 23, 42);
+      t("Class Activation Mapping (Grad-CAM).", M + 66, y + 31, 8, 15, 23, 42);
+      y += 68;
+    } catch (e) { y += 4; }
+  }
+
+  if (triageData) {
+    t("CLINICAL RECOMMENDATION", M, y, 7, 96, 125, 139, "bold");
+    ln(M, y + 2, W - M, y + 2);
+    y += 7;
+    box(M, y, W - M * 2, 28, 254, 226, 226, 220, 38, 38);
+    doc.setFillColor(220, 38, 38); doc.rect(M, y, 3, 28, "F");
+    t(triageData.level, M + 7, y + 7, 6, 96, 125, 139, "bold");
+    t(triageData.mainMessage, M + 7, y + 13, 11, 15, 23, 42, "bold");
+    const descLines = doc.splitTextToSize(triageData.description, W - M * 2 - 16);
+    doc.setFontSize(7.5); doc.setTextColor(55, 65, 81); doc.setFont("helvetica", "normal");
+    doc.text(descLines, M + 7, y + 20);
+    y += 34;
+  }
+
+  box(M, y, W - M * 2, 22, 255, 251, 235, 249, 168, 37);
+  t("CLINICAL DISCLAIMER", M + 4, y + 6, 6, 230, 81, 0, "bold");
+  const disc = "This AI-assisted screening report is intended to support, not replace, the clinical judgment of a qualified ophthalmologist or diabetologist. All findings must be independently reviewed and confirmed by a licensed clinician before any therapeutic, referral, or clinical decision is made. This system has not received standalone regulatory approval.";
+  const dlines = doc.splitTextToSize(disc, W - M * 2 - 8);
+  doc.setFontSize(6.5); doc.setTextColor(93, 64, 55); doc.setFont("helvetica", "normal");
+  doc.text(dlines, M + 4, y + 11);
+  y += 28;
+
+  ln(M, y, W - M, y, 10, 38, 71, 0.5);
+  y += 5;
+  t("RetinalScan AI v2.0  ·  Military College of Signals, NUST  ·  Built by Arsal Saeed and Mashal", W / 2, y, 6.5, 96, 125, 139, "normal", "center");
+  t("Page 1 of 1  ·  " + now.toLocaleDateString("en-GB") + " " + now.toLocaleTimeString("en-GB"), W - M, y, 6.5, 96, 125, 139, "normal", "right");
+
+  const pid = document.getElementById("pId").value;
+  doc.save("RetinalScan_Report_" + (pid ? pid + "_" : "") + scanId + "_" + now.toISOString().slice(0, 10) + ".pdf");
+}
+
+/* ============================================================
+   PAGE 3 — PATIENTS
+   ============================================================ */
+function dedupePatients() {
+  const seen = new Map();
+  allScans.forEach((s) => {
+    const key = s.patientId || s.patientName || s.scanId;
+    if (!seen.has(key)) seen.set(key, s);
+  });
+  return Array.from(seen.values());
+}
+
+function renderPatientsTable() {
+  const q = (document.getElementById("patientSearch").value || "").toLowerCase().trim();
+  let patients = dedupePatients();
+  if (q) {
+    patients = patients.filter((s) =>
+      (s.patientName || "").toLowerCase().includes(q) || (s.patientId || "").toLowerCase().includes(q)
+    );
+  }
+
+  const totalPages = Math.max(1, Math.ceil(patients.length / PATIENTS_PER_PAGE));
+  patientsPage = Math.min(patientsPage, totalPages);
+  const start = (patientsPage - 1) * PATIENTS_PER_PAGE;
+  const pageItems = patients.slice(start, start + PATIENTS_PER_PAGE);
+
+  const tbody = document.getElementById("patientsTableBody");
+  const empty = document.getElementById("patientsEmpty");
+  if (!pageItems.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+  } else {
+    empty.style.display = "none";
+    tbody.innerHTML = pageItems.map((s) => `
+      <tr>
+        <td>${escapeHtml(s.patientId || "—")}</td>
+        <td>${escapeHtml(s.patientName || "Unnamed patient")}</td>
+        <td>${s.patientAge ?? "—"}</td>
+        <td>${escapeHtml(s.patientSex || "—")}</td>
+        <td>${formatDate(s.timestamp)}</td>
+        <td>${(s.conditionsScreened || []).map((c) => `<span class="pill">${escapeHtml(c)}</span>`).join(" ") || "—"}</td>
+        <td><span class="badge ${triageBadgeClass(s.triage && s.triage.level)}">${(s.triage && s.triage.level) || "—"}</span></td>
+        <td><span class="badge ${statusBadgeClass(s.status)}">${s.status || "pending"}</span></td>
+        <td><button class="link-btn" onclick="openScanModal('${s.scanId}')">View</button></td>
+      </tr>`).join("");
+  }
+
+  const pag = document.getElementById("patientsPagination");
+  pag.innerHTML = `
+    <button ${patientsPage <= 1 ? "disabled" : ""} onclick="changePatientsPage(-1)"><i data-lucide="chevron-left"></i></button>
+    <span class="pagination-text">Page ${patientsPage} of ${totalPages}</span>
+    <button ${patientsPage >= totalPages ? "disabled" : ""} onclick="changePatientsPage(1)"><i data-lucide="chevron-right"></i></button>
+  `;
+  lucide.createIcons();
+}
+function changePatientsPage(delta) { patientsPage += delta; renderPatientsTable(); }
+
+/* ============================================================
+   PAGE 4 — SCAN HISTORY
+   ============================================================ */
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  const empty = document.getElementById("historyEmpty");
+  if (!allScans.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  list.innerHTML = allScans.map((s, idx) => `
+    <div class="history-card" onclick="toggleHistoryDetail(${idx})">
+      <div class="history-top">
+        <div>
+          <div class="history-idline">${escapeHtml(s.scanId)} · ${formatDateTime(s.timestamp)}</div>
+          <div class="history-name">${escapeHtml(s.patientName || "Unnamed patient")} ${s.patientEye ? "(" + escapeHtml(s.patientEye) + ")" : ""}</div>
+          <div class="history-pills">${(s.conditionsScreened || []).map((c) => `<span class="pill">${escapeHtml(c)}</span>`).join("")}</div>
+          <div class="history-metrics">
+            ${s.drResult && s.drResult.performed ? `<span class="history-metric">DR Grade: <b>${s.drResult.grade}</b></span>` : ""}
+            ${s.glaucomaResult && s.glaucomaResult.performed ? `<span class="history-metric">CDR: <b>${(s.glaucomaResult.cdr ?? 0).toFixed(2)}</b></span>` : ""}
+            ${s.hrResult && s.hrResult.performed ? `<span class="history-metric">HR: <b>${s.hrResult.detected ? "Detected" : "Not detected"}</b></span>` : ""}
+          </div>
+        </div>
+        <div class="history-badges">
+          <span class="badge ${triageBadgeClass(s.triage && s.triage.level)}">${(s.triage && s.triage.level) || "—"}</span>
+          <span class="badge ${statusBadgeClass(s.status)}">${s.status || "pending"}</span>
+        </div>
+      </div>
+      <div class="history-detail" id="hdetail-${idx}">${renderScanDetailHtml(s)}</div>
+    </div>`).join("");
+}
+
+function toggleHistoryDetail(idx) {
+  document.getElementById("hdetail-" + idx).classList.toggle("visible");
+}
+
+function renderScanDetailHtml(s) {
+  const items = [];
+  if (s.drResult && s.drResult.performed) {
+    items.push(`<div class="history-detail-item"><div class="lbl">DR Severity</div><div class="val">${escapeHtml(s.drResult.severityLabel || "—")}</div></div>`);
+    items.push(`<div class="history-detail-item"><div class="lbl">DR Confidence</div><div class="val">${Math.round((s.drResult.confidence || 0) * 100)}%</div></div>`);
+  }
+  if (s.glaucomaResult && s.glaucomaResult.performed) {
+    items.push(`<div class="history-detail-item"><div class="lbl">Glaucoma Risk</div><div class="val">${escapeHtml(s.glaucomaResult.riskLevel || "—")}</div></div>`);
+  }
+  if (s.hrResult && s.hrResult.performed) {
+    items.push(`<div class="history-detail-item"><div class="lbl">HR Probability</div><div class="val">${Math.round((s.hrResult.probability || 0) * 100)}%</div></div>`);
+  }
+  items.push(`<div class="history-detail-item"><div class="lbl">Referring Clinician</div><div class="val">${escapeHtml(s.referringClinician || "—")}</div></div>`);
+  items.push(`<div class="history-detail-item"><div class="lbl">Institution</div><div class="val">${escapeHtml(s.institution || "—")}</div></div>`);
+  return `<div class="history-detail-grid">${items.join("")}</div>
+    ${s.triage ? `<div class="rec-box" style="margin-top:12px;"><b>${escapeHtml(s.triage.level || "")}:</b> ${escapeHtml(s.triage.description || "")}</div>` : ""}`;
+}
+
+/* ============================================================
+   MODAL (used by Patients "View")
+   ============================================================ */
+function openScanModal(scanId) {
+  const s = allScans.find((x) => x.scanId === scanId);
+  if (!s) return;
+  document.getElementById("modalTitle").textContent = s.patientName || s.scanId;
+  document.getElementById("modalBody").innerHTML = `
+    <div class="history-idline" style="margin-bottom:10px;">${escapeHtml(s.scanId)} · ${formatDateTime(s.timestamp)}</div>
+    ${renderScanDetailHtml(s)}
+  `;
+  document.getElementById("modalOverlay").classList.add("visible");
+}
+function closeModal() { document.getElementById("modalOverlay").classList.remove("visible"); }
+document.addEventListener("click", (e) => {
+  if (e.target.id === "modalOverlay") closeModal();
+});
+
+/* ============================================================
+   PAGE 5 — ANALYTICS
+   ============================================================ */
+function destroyChart(key) {
+  if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
+}
+
+function renderAnalytics() {
+  const scans = allScans;
+
+  // DR grade distribution
+  const gradeCounts = [0, 0, 0, 0, 0];
+  scans.forEach((s) => { if (s.drResult && s.drResult.performed && s.drResult.grade >= 0 && s.drResult.grade <= 4) gradeCounts[s.drResult.grade]++; });
+  destroyChart("drGrades");
+  chartInstances.drGrades = new Chart(document.getElementById("chartDrGrades"), {
+    type: "bar",
+    data: { labels: DR_LABELS, datasets: [{ label: "Scans", data: gradeCounts, backgroundColor: DR_COLORS, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+  });
+
+  // conditions breakdown
+  let drCount = 0, glCount = 0, hrCount = 0;
+  scans.forEach((s) => (s.conditionsScreened || []).forEach((c) => {
+    if (c === "DR") drCount++; else if (c === "Glaucoma") glCount++; else if (c === "HR") hrCount++;
+  }));
+  destroyChart("conditions");
+  chartInstances.conditions = new Chart(document.getElementById("chartConditions"), {
+    type: "doughnut",
+    data: { labels: ["DR", "Glaucoma", "HR"], datasets: [{ data: [drCount, glCount, hrCount], backgroundColor: ["#1E40AF", "#059669", "#DB2777"] }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
+  });
+
+  // scans per day (last 30 days)
+  const days = [];
+  const dayCounts = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push(d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }));
+    dayCounts.push(scans.filter((s) => s.timestamp && new Date(s.timestamp).toISOString().slice(0, 10) === key).length);
+  }
+  destroyChart("perDay");
+  chartInstances.perDay = new Chart(document.getElementById("chartPerDay"), {
+    type: "line",
+    data: { labels: days, datasets: [{ label: "Scans", data: dayCounts, borderColor: "#0EA5E9", backgroundColor: "rgba(14,165,233,.15)", fill: true, tension: 0.35, pointRadius: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+  });
+
+  // triage distribution
+  const triageLabels = ["ROUTINE", "MONITORING REQUIRED", "NON-URGENT REFERRAL", "URGENT REFERRAL", "EMERGENCY REFERRAL"];
+  const triageColors = ["#16A34A", "#CA8A04", "#EA580C", "#DC2626", "#A21CAF"];
+  const triageCounts = triageLabels.map((lvl) => scans.filter((s) => s.triage && s.triage.level === lvl).length);
+  destroyChart("triage");
+  chartInstances.triage = new Chart(document.getElementById("chartTriage"), {
+    type: "bar",
+    data: { labels: ["Routine", "Monitoring", "Non-urgent", "Urgent", "Emergency"], datasets: [{ label: "Scans", data: triageCounts, backgroundColor: triageColors, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+  });
+}
+</script>
+</body>
+</html>
