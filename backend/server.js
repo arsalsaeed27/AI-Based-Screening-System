@@ -30,9 +30,7 @@ const HR_MODEL_PATH = path.join(
   "hr_efficientnet_model.onnx",
 );
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/?appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/retinal_system?retryWrites=true&w=majority';
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -634,7 +632,10 @@ function startGradCam() {
 
 async function start() {
   try {
-    await mongoose.connect(MONGODB_URI);
+   await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      family: 4
+    });
     console.log("MongoDB connected");
   } catch (err) {
     console.error("MongoDB connection failed, continuing without it:", err.message);
