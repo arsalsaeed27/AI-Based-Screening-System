@@ -626,8 +626,13 @@ function startGradCam() {
 }
 
 async function start() {
-  await mongoose.connect(MONGODB_URI);
-  console.log("MongoDB connected");
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log("MongoDB connected");
+  } catch (err) {
+    console.error("MongoDB connection failed, continuing without it:", err.message);
+    console.error("Scan history will not be saved until MongoDB is reachable.");
+  }
 
   gradcamProcess = startGradCam();
 
