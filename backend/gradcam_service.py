@@ -57,6 +57,11 @@ class GradCAM:
         if cam.max() > 0:
             cam = cam / cam.max()
 
+        # only show top 70% of attention
+        cam_threshold = cam.copy()
+        cam_threshold[cam_threshold < 0.3] = 0
+        cam = cam_threshold
+
         return cam, predicted_class
 
 
