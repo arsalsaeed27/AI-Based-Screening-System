@@ -679,11 +679,18 @@ app.delete("/scans/:scanId", async (req, res) => {
   }
 });
 
+const GRADCAM_PYTHON =
+  process.env.GRADCAM_PYTHON || "C:/gradcam-venv/Scripts/python.exe";
+
 function startGradCam() {
-  const gradcam = spawn("python", [path.join(__dirname, "gradcam_service.py")], {
-    detached: false,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const gradcam = spawn(
+    GRADCAM_PYTHON,
+    [path.join(__dirname, "gradcam_service.py")],
+    {
+      detached: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
 
   gradcam.stdout.on("data", (data) => {
     console.log("[GradCAM]", data.toString().trim());
