@@ -48,6 +48,36 @@ const REFERRAL_GUIDANCE = {
   4: "Emergency referral - high risk of vision loss",
 };
 
+const eyeResultsSchema = {
+  drResult: {
+    performed: Boolean,
+    grade: Number,
+    severityLabel: String,
+    confidence: Number,
+    scores: [Number],
+    referral: String,
+    lowConfidence: Boolean,
+    gradDescription: String,
+    icdrGrade: String,
+  },
+  glaucomaResult: {
+    performed: Boolean,
+    cdr: Number,
+    riskLevel: String,
+    riskDetail: String,
+    discPixels: Number,
+    cupPixels: Number,
+    glaucomaSuspected: Boolean,
+  },
+  hrResult: {
+    performed: Boolean,
+    detected: Boolean,
+    probability: Number,
+    riskLevel: String,
+    recommendation: String,
+  },
+};
+
 const scanSchema = new mongoose.Schema(
   {
     // Scan metadata
@@ -119,11 +149,24 @@ const scanSchema = new mongoose.Schema(
       referralUrgency: String, // Within 12 months / 6 months / 4 weeks / immediate
     },
 
+    // Dual-eye (OU) results — populated instead of the top-level
+    // drResult/glaucomaResult/hrResult when both eyes are screened separately.
+    odResults: eyeResultsSchema,
+    osResults: eyeResultsSchema,
+
     // Follow up
     followUpDate: Date,
+    followUpReason: String,
+    followUpReminder: Boolean,
     notes: String,
-    status: { type: String, default: "pending" }, // pending / reviewed / referred
+    status: { type: String, default: "ai_completed" }, // pending / ai_completed / reviewed / referred / follow_up
     reviewedBy: String,
+
+    // Referral (set when status = "referred")
+    referredTo: String,
+    referralUrgency: String, // Routine / Within 4 weeks / Within 1 week / Immediate
+    referralNotes: String,
+    referralDate: Date,
   },
   { timestamps: true },
 );
@@ -583,14 +626,30 @@ app.get("/scans/:scanId", async (req, res) => {
   }
 });
 
+const PATCHABLE_FIELDS = [
+  "status",
+  "reviewedBy",
+  "notes",
+  "followUpDate",
+  "followUpReason",
+  "followUpReminder",
+  "referredTo",
+  "referralUrgency",
+  "referralNotes",
+  "referralDate",
+  "patientName",
+  "patientId",
+  "patientAge",
+  "patientSex",
+  "referringClinician",
+];
+
 app.patch("/scans/:scanId", async (req, res) => {
   try {
-    const { status, reviewedBy, notes, followUpDate } = req.body;
     const update = {};
-    if (status !== undefined) update.status = status;
-    if (reviewedBy !== undefined) update.reviewedBy = reviewedBy;
-    if (notes !== undefined) update.notes = notes;
-    if (followUpDate !== undefined) update.followUpDate = followUpDate;
+    for (const field of PATCHABLE_FIELDS) {
+      if (req.body[field] !== undefined) update[field] = req.body[field];
+    }
 
     const scan = await Scan.findOneAndUpdate(
       { scanId: req.params.scanId },
@@ -604,6 +663,19 @@ app.patch("/scans/:scanId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update scan" });
+  }
+});
+
+app.delete("/scans/:scanId", async (req, res) => {
+  try {
+    const result = await Scan.deleteOne({ scanId: req.params.scanId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Scan not found" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete scan" });
   }
 });
 
