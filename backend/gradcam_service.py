@@ -76,17 +76,24 @@ def apply_circular_mask(heatmap, image):
     h, w = heatmap.shape[:2]
     center_x, center_y = w // 2, h // 2
 
-    # radius is 90% of half the smaller dimension
-    radius = int(min(h, w) * 0.45)
+    # radius is 46% of the smaller dimension
+    radius = int(min(h, w) * 0.46)
 
-    # create circular mask
-    mask = np.zeros((h, w), dtype=np.uint8)
-    cv2.circle(mask, (center_x, center_y), radius, 255, -1)
+    # create distance map from center
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center_x) ** 2 + (Y - center_y) ** 2)
 
-    # apply mask to heatmap
-    heatmap_masked = heatmap.copy()
-    heatmap_masked[mask == 0] = 0
-    return heatmap_masked
+    # create soft mask — 1.0 inside, gradual fade at edge
+    # transition zone is 8% of radius width
+    transition = radius * 0.08
+    mask = np.clip((radius - dist_from_center) / transition, 0, 1).astype(np.float32)
+
+    # apply soft mask to each channel of heatmap
+    if len(heatmap.shape) == 3:
+        mask = mask[:, :, np.newaxis]
+
+    heatmap_masked = heatmap * mask
+    return heatmap_masked.astype(heatmap.dtype)
 
 
 def overlay_heatmap(cam, original_bgr):
