@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const dns = require("dns");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -679,12 +680,18 @@ app.delete("/scans/:scanId", async (req, res) => {
   }
 });
 
-const GRADCAM_PYTHON =
-  process.env.GRADCAM_PYTHON || "C:/gradcam-venv/Scripts/python.exe";
+function getGradCamPython() {
+  const venvPath = "C:/gradcam-venv/Scripts/python.exe";
+  if (fs.existsSync(venvPath)) {
+    return venvPath;
+  }
+  // fallback to system python
+  return process.env.GRADCAM_PYTHON || "python";
+}
 
 function startGradCam() {
   const gradcam = spawn(
-    GRADCAM_PYTHON,
+    getGradCamPython(),
     [path.join(__dirname, "gradcam_service.py")],
     {
       detached: false,
