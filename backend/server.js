@@ -1,4 +1,5 @@
 const path = require("path");
+const dns = require("dns");
 const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -7,6 +8,12 @@ const ort = require("onnxruntime-node");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
 const { spawn } = require("child_process");
+
+// Node's default DNS resolver can fail SRV lookups (mongodb+srv://) on
+// machines where a local stub resolver/VPN doesn't support that record
+// type, even though the OS resolver works fine. Point Node at public
+// resolvers so the srv:// connection string always resolves.
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const PORT = 3000;
 const MODEL_PATH = path.join(__dirname, "..", "models", "smoke_test.onnx");
