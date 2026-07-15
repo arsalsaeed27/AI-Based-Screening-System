@@ -20,7 +20,7 @@ def main():
     model.load_state_dict(torch.load(args.weights, map_location="cpu"))
     model.eval()
 
-    dummy_input = torch.randn(1, 3, 224, 224)
+    dummy_input = torch.randn(1, 3,224, 224)
 
     torch.onnx.export(
         model,
