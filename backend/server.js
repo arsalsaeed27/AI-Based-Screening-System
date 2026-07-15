@@ -185,17 +185,17 @@ let hrSession;
 let gradcamProcess;
 
 async function preprocessImageDR(buffer) {
-  // Change 224 to 300 here
+  // Change 224 to 224 here
   const { data } = await sharp(buffer)
-    .resize(300, 300) 
+    .resize(224, 224) 
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  // Update these dimensions to 300
-  const float32Data = new Float32Array(3 * 300 * 300);
-  const pixelCount = 300 * 300;
+  // Update these dimensions to 224
+  const float32Data = new Float32Array(3 * 224 * 224);
+  const pixelCount = 224 * 224;
 
   for (let i = 0; i < pixelCount; i++) {
     float32Data[i] = data[i * 3] / 255;
@@ -204,19 +204,19 @@ async function preprocessImageDR(buffer) {
   }
 
   // Update the tensor shape here
-  return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
+  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
 }
 
 async function preprocessImageHREfficientNet(buffer) {
   const { data } = await sharp(buffer)
-    .resize(300, 300)
+    .resize(224, 224)
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const float32Data = new Float32Array(3 * 300 * 300);
-  const pixelCount = 300 * 300;
+  const float32Data = new Float32Array(3 * 224 * 224);
+  const pixelCount = 224 * 224;
 
   for (let i = 0; i < pixelCount; i++) {
     float32Data[i] = data[i * 3] / 255;
@@ -224,7 +224,7 @@ async function preprocessImageHREfficientNet(buffer) {
     float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
   }
 
-  return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
+  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
 }
 
 function softmax(scores) {
