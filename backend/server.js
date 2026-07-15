@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const dns = require("dns");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -30,7 +31,9 @@ const HR_MODEL_PATH = path.join(
   "hr_efficientnet_model.onnx",
 );
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/retinal_system?retryWrites=true&w=majority';
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/retinal_system?retryWrites=true&w=majority";
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -679,12 +682,18 @@ app.delete("/scans/:scanId", async (req, res) => {
   }
 });
 
-const GRADCAM_PYTHON =
-  process.env.GRADCAM_PYTHON || "C:/gradcam-venv/Scripts/python.exe";
+function getGradCamPython() {
+  const venvPath = "C:/gradcam-venv/Scripts/python.exe";
+  if (fs.existsSync(venvPath)) {
+    return venvPath;
+  }
+  // fallback to system python
+  return process.env.GRADCAM_PYTHON || "python";
+}
 
 function startGradCam() {
   const gradcam = spawn(
-    GRADCAM_PYTHON,
+    getGradCamPython(),
     [path.join(__dirname, "gradcam_service.py")],
     {
       detached: false,
@@ -711,13 +720,16 @@ function startGradCam() {
 
 async function start() {
   try {
-   await mongoose.connect(MONGODB_URI, {
+    await mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
-      family: 4
+      family: 4,
     });
     console.log("MongoDB connected");
   } catch (err) {
-    console.error("MongoDB connection failed, continuing without it:", err.message);
+    console.error(
+      "MongoDB connection failed, continuing without it:",
+      err.message,
+    );
     console.error("Scan history will not be saved until MongoDB is reachable.");
   }
 
