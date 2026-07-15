@@ -7,3 +7,4 @@ pillow
 onnx
 flask
 timm
+segmentation-models-pytorch
