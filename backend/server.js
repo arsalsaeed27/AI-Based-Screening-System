@@ -185,13 +185,15 @@ let hrSession;
 let gradcamProcess;
 
 async function preprocessImageDR(buffer) {
+  // Change 224 to 300 here
   const { data } = await sharp(buffer)
-    .resize(300, 300)
+    .resize(300, 300) 
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
+  // Update these dimensions to 300
   const float32Data = new Float32Array(3 * 300 * 300);
   const pixelCount = 300 * 300;
 
@@ -201,6 +203,7 @@ async function preprocessImageDR(buffer) {
     float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
   }
 
+  // Update the tensor shape here
   return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
