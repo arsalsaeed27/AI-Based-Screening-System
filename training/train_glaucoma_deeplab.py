@@ -72,8 +72,15 @@ def build_optimizer(model):
     return AdamW(param_groups)
 
 
+def fix_bn(model):
+    for module in model.encoder.modules():
+        if isinstance(module, torch.nn.BatchNorm2d):
+            module.eval()
+
+
 def run_train_epoch(model, loader, optimizer, device):
     model.train()
+    fix_bn(model)
     total_loss = 0.0
     total = 0
 
