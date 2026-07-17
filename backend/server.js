@@ -52,6 +52,8 @@ const REFERRAL_GUIDANCE = {
 };
 
 const eyeResultsSchema = {
+  fundusImage: String, // base64 data URL of the uploaded fundus photograph
+  heatmapImage: String, // base64 Grad-CAM heatmap overlay, if generated
   drResult: {
     performed: Boolean,
     grade: Number,
@@ -109,6 +111,10 @@ const scanSchema = new mongoose.Schema(
 
     // Conditions screened
     conditionsScreened: [String], // DR, Glaucoma, HR
+
+    // Fundus image (single-eye mode) — the source photograph the AI screened
+    fundusImage: String, // base64 data URL
+    heatmapImage: String, // base64 Grad-CAM heatmap overlay, if generated
 
     // DR result
     drResult: {
@@ -179,7 +185,7 @@ const Scan = mongoose.model("Scan", scanSchema);
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
 
 let session;
 let glaucomaSession;
@@ -187,29 +193,6 @@ let hrSession;
 let gradcamProcess;
 
 async function preprocessImageDR(buffer) {
-  // Change 224 to 224 here
-  const { data } = await sharp(buffer)
-    .resize(224, 224) 
-    .removeAlpha()
-    .toColorspace("srgb")
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  // Update these dimensions to 224
-  const float32Data = new Float32Array(3 * 224 * 224);
-  const pixelCount = 224 * 224;
-
-  for (let i = 0; i < pixelCount; i++) {
-    float32Data[i] = data[i * 3] / 255;
-    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
-    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
-  }
-
-  // Update the tensor shape here
-  return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
-}
-
-async function preprocessImageHREfficientNet(buffer) {
   const { data } = await sharp(buffer)
     .resize(224, 224)
     .removeAlpha()
@@ -227,6 +210,26 @@ async function preprocessImageHREfficientNet(buffer) {
   }
 
   return new ort.Tensor("float32", float32Data, [1, 3, 224, 224]);
+}
+
+async function preprocessImageHREfficientNet(buffer) {
+  const { data } = await sharp(buffer)
+    .resize(300, 300)
+    .removeAlpha()
+    .toColorspace("srgb")
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const float32Data = new Float32Array(3 * 300 * 300);
+  const pixelCount = 300 * 300;
+
+  for (let i = 0; i < pixelCount; i++) {
+    float32Data[i] = data[i * 3] / 255;
+    float32Data[pixelCount + i] = data[i * 3 + 1] / 255;
+    float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
+  }
+
+  return new ort.Tensor("float32", float32Data, [1, 3, 300, 300]);
 }
 
 function softmax(scores) {
@@ -721,6 +724,27 @@ function startGradCam() {
   return gradcam;
 }
 
+function checkModelInputSize(label, session, expectedSize) {
+  try {
+    const inputName = session.inputNames[0];
+    const dims = session.inputMetadata?.[0]?.shape || session.inputMetadata?.[inputName]?.dimensions;
+    if (!dims) return;
+
+    const [, , h, w] = dims;
+    if (h !== expectedSize || w !== expectedSize) {
+      console.warn(
+        `[WARNING] ${label} expects input ${h}x${w}, but the server is configured to preprocess at ` +
+          `${expectedSize}x${expectedSize}. Predictions from this model will fail or be wrong. ` +
+          `Update the matching preprocess function in server.js to resize to ${h}x${w}.`,
+      );
+    } else {
+      console.log(`${label}: input size OK (${h}x${w})`);
+    }
+  } catch (err) {
+    console.warn(`Could not verify input size for ${label}:`, err.message);
+  }
+}
+
 async function start() {
   try {
     await mongoose.connect(MONGODB_URI, {
@@ -743,6 +767,11 @@ async function start() {
   session = await ort.InferenceSession.create(MODEL_PATH);
   glaucomaSession = await ort.InferenceSession.create(GLAUCOMA_MODEL_PATH);
   hrSession = await ort.InferenceSession.create(HR_MODEL_PATH);
+
+  checkModelInputSize("DR (smoke_test.onnx)", session, 224);
+  checkModelInputSize("Glaucoma (glaucoma_model.onnx)", glaucomaSession, 512);
+  checkModelInputSize("HR (hr_efficientnet_model.onnx)", hrSession, 300);
+
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
