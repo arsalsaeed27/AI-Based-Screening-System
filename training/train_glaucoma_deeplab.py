@@ -73,7 +73,7 @@ def build_optimizer(model):
 
 
 def fix_bn(model):
-    for module in model.encoder.modules():
+    for module in model.modules():
         if isinstance(module, torch.nn.BatchNorm2d):
             module.eval()
 
