@@ -245,14 +245,14 @@ function sigmoid(logit) {
 
 async function preprocessImageGlaucoma(buffer) {
   const { data } = await sharp(buffer)
-    .resize(512, 512)
+    .resize(640, 640)
     .removeAlpha()
     .toColorspace("srgb")
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const float32Data = new Float32Array(3 * 512 * 512);
-  const pixelCount = 512 * 512;
+  const float32Data = new Float32Array(3 * 640 * 640);
+  const pixelCount = 640 * 640;
 
   for (let i = 0; i < pixelCount; i++) {
     float32Data[i] = data[i * 3] / 255;
@@ -260,7 +260,7 @@ async function preprocessImageGlaucoma(buffer) {
     float32Data[2 * pixelCount + i] = data[i * 3 + 2] / 255;
   }
 
-  return new ort.Tensor("float32", float32Data, [1, 3, 512, 512]);
+  return new ort.Tensor("float32", float32Data, [1, 3, 640, 640]);
 }
 
 function regionBrightness(data, imageSize, startX, startY, regionSize) {
@@ -538,7 +538,7 @@ app.post("/predict-glaucoma", upload.single("image"), async (req, res) => {
     const outputTensor = results[glaucomaSession.outputNames[0]];
 
     const data = outputTensor.data;
-    const pixelCount = 512 * 512;
+    const pixelCount = 640 * 640;
 
     let discPixels = 0;
     let cupPixels = 0;
@@ -769,7 +769,7 @@ async function start() {
   hrSession = await ort.InferenceSession.create(HR_MODEL_PATH);
 
   checkModelInputSize("DR (smoke_test.onnx)", session, 224);
-  checkModelInputSize("Glaucoma (glaucoma_model.onnx)", glaucomaSession, 512);
+  checkModelInputSize("Glaucoma (glaucoma_model.onnx)", glaucomaSession, 640);
   checkModelInputSize("HR (hr_efficientnet_model.onnx)", hrSession, 300);
 
   app.listen(PORT, () => {

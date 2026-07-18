@@ -501,6 +501,16 @@
   .heatmap-cell img{width:100%;aspect-ratio:1;object-fit:contain;display:block;}
   .heatmap-caption{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
 
+  .overview-image-row{display:none;align-items:center;gap:12px;margin-bottom:16px;}
+  .overview-image-row img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:#0F172A;flex-shrink:0;}
+  .overview-image-row-label{font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .overview-image-row-sub{font-size:10.5px;color:var(--muted);}
+  .image-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1300;padding:30px;cursor:zoom-out;}
+  .image-lightbox.visible{display:flex;}
+  .image-lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5);cursor:default;}
+  .image-lightbox-close{position:absolute;top:20px;right:24px;background:rgba(255,255,255,.12);border:none;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;}
+  .image-lightbox-close i{width:18px;height:18px;}
+
   .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;padding-top:20px;border-top:1px solid var(--border);}
 
   /* ============ TABLE / FILTERS ============ */
@@ -1102,6 +1112,13 @@
 
         <!-- OVERVIEW -->
         <div class="tab-panel active" id="tab-overview">
+          <div class="overview-image-row" id="overviewImageRow">
+            <img id="overviewImageThumb" src="" alt="Fundus photograph" onclick="openImageLightbox()" />
+            <div>
+              <div class="overview-image-row-label">Fundus Photograph</div>
+              <button class="link-btn" onclick="openImageLightbox()">View full size</button>
+            </div>
+          </div>
           <div class="triage-banner" id="triageBanner">
             <div class="triage-banner-icon" id="triageBannerIcon"><i data-lucide="shield-alert"></i></div>
             <div>
@@ -1491,6 +1508,12 @@
 
 <!-- ============ TOASTS ============ -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- ============ IMAGE LIGHTBOX ============ -->
+<div class="image-lightbox" id="imageLightbox" onclick="closeImageLightbox()">
+  <button class="image-lightbox-close" onclick="closeImageLightbox()"><i data-lucide="x"></i></button>
+  <img id="imageLightboxImg" src="" alt="Fundus photograph — full size" onclick="event.stopPropagation()" />
+</div>
 
 <!-- ============ MODAL ============ -->
 <div class="modal-overlay" id="modalOverlay">
@@ -2378,6 +2401,15 @@ async function runDualAnalysis() {
 /* -------- eye result helpers -------- */
 function currentResults() { return dualEyeMode ? (activeResultEye === "OS" ? resultsOS : resultsOD) : results; }
 function currentHeatmap() { return dualEyeMode ? (activeResultEye === "OS" ? heatmapOS : heatmapOD) : heatmapB64; }
+function currentFundusImage() { return dualEyeMode ? (activeResultEye === "OS" ? fundusImageDataUrlOS : fundusImageDataUrlOD) : fundusImageDataUrl; }
+
+function openImageLightbox() {
+  const src = document.getElementById("overviewImageThumb").src;
+  if (!src) return;
+  document.getElementById("imageLightboxImg").src = src;
+  document.getElementById("imageLightbox").classList.add("visible");
+}
+function closeImageLightbox() { document.getElementById("imageLightbox").classList.remove("visible"); }
 function currentTriage() { return dualEyeMode ? (activeResultEye === "OS" ? triageOS : triageOD) : triageData; }
 function switchResultEye(eye) {
   activeResultEye = eye;
@@ -2426,6 +2458,15 @@ function renderResultsForEye(sel) {
   const r = currentResults();
   const hm = currentHeatmap();
   const tri = currentTriage();
+
+  const overviewImage = currentFundusImage();
+  const overviewImageRow = document.getElementById("overviewImageRow");
+  if (overviewImage) {
+    document.getElementById("overviewImageThumb").src = overviewImage;
+    overviewImageRow.style.display = "flex";
+  } else {
+    overviewImageRow.style.display = "none";
+  }
 
   const banner = document.getElementById("triageBanner");
   banner.style.background = tri.bg;
