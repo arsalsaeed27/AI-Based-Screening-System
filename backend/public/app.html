@@ -65,7 +65,7 @@
     background:linear-gradient(180deg,var(--sidebar-bg),#081627);
     z-index:300;
     display:flex;flex-direction:column;
-    transition:width .2s ease;
+    transition:width .25s ease;
     overflow:hidden;
   }
   .app-shell.collapsed .sidebar{width:var(--sidebar-width-collapsed);}
@@ -75,12 +75,6 @@
     border-bottom:1px solid rgba(255,255,255,.08);
     flex-shrink:0;
   }
-  .sidebar-brand-mark{
-    width:32px;height:32px;border-radius:8px;flex-shrink:0;
-    background:linear-gradient(135deg,var(--cyan),var(--blue));
-    display:flex;align-items:center;justify-content:center;
-  }
-  .sidebar-brand-mark i{width:18px;height:18px;stroke:#fff;}
   .sidebar-brand-text{font-size:14px;font-weight:800;color:#fff;white-space:nowrap;}
   .app-shell.collapsed .sidebar-brand-text{display:none;}
   .sidebar-nav{flex:1;padding:14px 0;overflow-y:auto;}
@@ -106,6 +100,15 @@
     font-size:10px;color:#64748B;line-height:1.5;white-space:nowrap;
   }
   .app-shell.collapsed .sidebar-foot{display:none;}
+  .sidebar-toggle-btn{
+    width:32px;height:32px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    background:none;border:none;border-radius:8px;
+    color:#fff;font-size:20px;line-height:1;
+    cursor:pointer;padding:8px;
+    transition:background .12s;
+  }
+  .sidebar-toggle-btn:hover{background:rgba(255,255,255,.12);}
 
   /* ============ TOPBAR ============ */
   .topbar{
@@ -115,21 +118,14 @@
     border-bottom:1px solid var(--border);
     display:flex;align-items:center;justify-content:space-between;
     padding:0 22px;z-index:250;
-    transition:left .2s ease;
+    transition:left .25s ease;
     gap:16px;
   }
   .app-shell.collapsed .topbar{left:var(--sidebar-width-collapsed);}
   .topbar-left{display:flex;align-items:center;gap:16px;min-width:0;}
-  .hamburger{
-    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
-    background:var(--surface);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    transition:background .12s;
-  }
-  .hamburger:hover{background:var(--bg);}
-  .hamburger i{width:18px;height:18px;stroke:var(--text);}
   .topbar-brand{display:flex;flex-direction:column;min-width:0;}
-  .topbar-brand-name{font-size:15px;font-weight:800;color:var(--navy);white-space:nowrap;}
+  .topbar-brand-name{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:var(--navy);white-space:nowrap;}
+  .topbar-brand-icon{width:24px;height:24px;flex-shrink:0;stroke:#0EA5E9;}
   .topbar-brand-sub{font-size:10.5px;color:var(--muted);white-space:nowrap;}
   .topbar-search{
     position:relative;
@@ -155,10 +151,19 @@
   .search-result-name{font-size:12.5px;font-weight:700;color:var(--text);}
   .search-result-meta{font-size:10.5px;color:var(--muted);margin-top:2px;}
   .search-empty{padding:16px;text-align:center;font-size:12px;color:var(--muted);}
+  .patient-loaded-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:12px;padding:10px 14px;
+    background:rgba(16,185,129,.12);border:1px solid #10B981;border-radius:var(--radius);
+    color:#059669;font-size:12.5px;font-weight:700;
+  }
+  .patient-loaded-banner i{width:14px;height:14px;vertical-align:-2px;}
   .topbar-right{display:flex;align-items:center;gap:18px;flex-shrink:0;}
   .status-dots{display:flex;align-items:center;gap:12px;}
   .status-dot-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600;}
   .status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.18);animation:dotpulse 2s infinite;}
+  .status-dot.checking{background:var(--warning);box-shadow:0 0 0 3px rgba(245,158,11,.18);}
+  .status-dot.offline{background:var(--danger);box-shadow:0 0 0 3px rgba(239,68,68,.18);animation:none;}
   @keyframes dotpulse{0%,100%{opacity:1;}50%{opacity:.4;}}
   .topbar-clock{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500;}
   .bell-wrap{position:relative;}
@@ -182,10 +187,12 @@
     box-shadow:var(--shadow);overflow:hidden;z-index:400;
   }
   .bell-dropdown.visible{display:block;}
-  .bell-dropdown-head{padding:10px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
+  .bell-dropdown-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
+  .bell-dropdown-list{max-height:320px;overflow-y:auto;}
   .bell-item{padding:10px 14px;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);}
   .bell-item:last-child{border-bottom:none;}
   .bell-item-time{font-size:10px;color:var(--muted);margin-top:2px;}
+  .bell-unread-dot{width:7px;height:7px;border-radius:50%;background:var(--danger);flex-shrink:0;margin-top:4px;}
   .user-chip{display:flex;align-items:center;gap:9px;padding-left:14px;border-left:1px solid var(--border);}
   .user-avatar{
     width:34px;height:34px;border-radius:50%;flex-shrink:0;
@@ -258,12 +265,17 @@
   .badge-urgent{background:#FEF2F2;color:#991B1B;}
   .badge-emergency{background:#FDF2F8;color:#831843;}
 
-  /* ============ DASHBOARD LINE CHARTS ============ */
-  .disease-chart-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px;}
-  .disease-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm);}
-  .disease-chart-card-title{font-size:11.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
-  .disease-chart-wrap{height:230px;position:relative;}
-  .chart-no-data{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--muted);font-size:12.5px;text-align:center;padding:20px;}
+  /* ============ DASHBOARD LAST 7 DAYS SUMMARY ============ */
+  .day-bar-row{display:flex;align-items:center;gap:10px;padding:5px 0;}
+  .day-bar-label{width:38px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--muted);}
+  .day-bar-track{flex:1;height:14px;background:var(--bg);border-radius:7px;overflow:hidden;}
+  .day-bar-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--navy),var(--cyan));transition:width .3s ease;}
+  .day-bar-count{width:26px;flex-shrink:0;text-align:right;font-size:11.5px;font-weight:800;color:var(--text);}
+  .week-summary-block{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+  .week-summary-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .week-summary-pills{display:flex;flex-wrap:wrap;gap:8px;}
+  .week-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;background:var(--bg);font-size:11.5px;font-weight:700;color:var(--text);}
+  .week-pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
   /* ============ STEPPER ============ */
   .stepper{display:flex;align-items:flex-start;margin-bottom:26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 26px;box-shadow:var(--shadow-sm);}
@@ -576,11 +588,21 @@
   .hd-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
   .hd-patient-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
   .hd-action-row{display:flex;gap:8px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);}
-  .review-image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
-  .review-image-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
-  .review-image-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#0f172a;}
-  .review-image-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;}
-  .review-image-empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;padding:24px;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius-lg);}
+  .fundus-image-eye-title{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .fundus-image-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .fundus-image-cell{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .fundus-image-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .fundus-image-photo{width:100%;height:280px;max-height:280px;object-fit:contain;border-radius:var(--radius-lg);background:#0F172A;display:block;}
+  .fundus-image-placeholder{
+    background:#0F172A;border-radius:var(--radius-lg);height:280px;max-height:280px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    color:#94A3B8;font-size:11.5px;text-align:center;padding:16px;
+  }
+  .fundus-image-placeholder-icon{font-size:32px;line-height:1;}
+
+  /* ============ HR SEVERITY PANEL ============ */
+  .hr-severity-panel{border-radius:var(--radius-lg);padding:16px 18px;}
+  .hr-severity-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:800;}
 
   /* ============ ANALYTICS ============ */
   .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
@@ -598,6 +620,12 @@
   .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;padding:20px;}
   .metric-value{font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;}
   .metric-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:4px;font-weight:700;}
+  .model-head-badge{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.22);font-size:10.5px;font-weight:800;color:#fff;letter-spacing:.02em;white-space:nowrap;}
+  .model-metric-rows{padding:6px 20px 14px;}
+  .model-metric-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .model-metric-row:last-child{border-bottom:none;}
+  .model-metric-row .mlbl{font-size:12.5px;color:var(--muted);font-weight:600;}
+  .model-metric-row .mval{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
 
   /* ============ SETTINGS ============ */
   .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
@@ -695,8 +723,8 @@
   :root[data-theme="dark"] .nav-item.active{ background:var(--sidebar-active-bg); color:var(--sidebar-active-text); border-left-color:var(--sidebar-active-text); }
 
   :root[data-theme="dark"] .topbar{ background:var(--surface); border-color:var(--border); }
-  :root[data-theme="dark"] .hamburger,:root[data-theme="dark"] .bell-btn{ background:var(--surface); border-color:var(--border); }
-  :root[data-theme="dark"] .hamburger:hover,:root[data-theme="dark"] .bell-btn:hover{ background:var(--surface-2); }
+  :root[data-theme="dark"] .bell-btn{ background:var(--surface); border-color:var(--border); }
+  :root[data-theme="dark"] .bell-btn:hover{ background:var(--surface-2); }
   :root[data-theme="dark"] .bell-dropdown,:root[data-theme="dark"] .search-dropdown{ background:var(--surface); border-color:var(--border); }
 
   :root[data-theme="dark"] .card,
@@ -707,7 +735,6 @@
   :root[data-theme="dark"] .history-card2,
   :root[data-theme="dark"] .history-detail-col,
   :root[data-theme="dark"] .chart-card,
-  :root[data-theme="dark"] .disease-chart-card,
   :root[data-theme="dark"] .model-card{
     background:var(--surface); border-color:var(--border);
   }
@@ -771,7 +798,6 @@
   @media (max-width:1100px){
     .stat-grid{grid-template-columns:repeat(3,1fr);}
     .chart-row{grid-template-columns:1fr;}
-    .disease-chart-grid{grid-template-columns:1fr;}
     .form-grid{grid-template-columns:repeat(2,1fr);}
     .condition-grid{grid-template-columns:1fr;}
     .summary-grid{grid-template-columns:1fr;}
@@ -797,7 +823,7 @@
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-mark"><i data-lucide="eye"></i></div>
+      <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Toggle sidebar"><span id="sidebarToggleIcon">☰</span></button>
       <div class="sidebar-brand-text">RetinalScan AI</div>
     </div>
     <nav class="sidebar-nav" id="sidebarNav">
@@ -817,9 +843,8 @@
   <!-- ============ TOPBAR ============ -->
   <header class="topbar">
     <div class="topbar-left">
-      <button class="hamburger" id="hamburgerBtn"><i data-lucide="menu"></i></button>
       <div class="topbar-brand">
-        <div class="topbar-brand-name">RetinalScan AI</div>
+        <div class="topbar-brand-name"><i data-lucide="eye" class="topbar-brand-icon"></i>RetinalScan AI</div>
         <div class="topbar-brand-sub">Military College of Signals, NUST</div>
       </div>
     </div>
@@ -830,18 +855,19 @@
     </div>
     <div class="topbar-right">
       <div class="status-dots">
-        <div class="status-dot-item"><span class="status-dot"></span>AI</div>
-        <div class="status-dot-item"><span class="status-dot"></span>MongoDB</div>
-        <div class="status-dot-item"><span class="status-dot"></span>Server</div>
+        <div class="status-dot-item"><span class="status-dot" id="dotAI"></span>AI</div>
+        <div class="status-dot-item"><span class="status-dot" id="dotMongo"></span><span id="mongoStatusLabel">MongoDB</span></div>
+        <div class="status-dot-item"><span class="status-dot" id="dotServer"></span><span id="serverStatusLabel">Server</span></div>
       </div>
       <div class="topbar-clock" id="clockEl">—</div>
       <div class="bell-wrap">
-        <button class="bell-btn" id="bellBtn"><i data-lucide="bell"></i><span class="bell-badge">3</span></button>
+        <button class="bell-btn" id="bellBtn"><i data-lucide="bell"></i><span class="bell-badge" id="bellBadge" style="display:none;">0</span></button>
         <div class="bell-dropdown" id="bellDropdown">
-          <div class="bell-dropdown-head">Notifications</div>
-          <div class="bell-item">Urgent case flagged for review<div class="bell-item-time">12 minutes ago</div></div>
-          <div class="bell-item">Nightly model health check passed<div class="bell-item-time">1 hour ago</div></div>
-          <div class="bell-item">3 scans pending clinician review<div class="bell-item-time">Today</div></div>
+          <div class="bell-dropdown-head">
+            <span>Notifications</span>
+            <button class="link-btn" id="markAllReadBtn" style="padding:3px 9px;font-size:10.5px;" onclick="markAllNotificationsRead()">Mark all read</button>
+          </div>
+          <div id="bellDropdownList" class="bell-dropdown-list"></div>
         </div>
       </div>
       <div class="user-chip">
@@ -907,27 +933,11 @@
         </div>
       </div>
 
-      <div class="disease-chart-grid">
-        <div class="disease-chart-card">
-          <div class="disease-chart-card-title">Diabetic Retinopathy — Last 7 Days</div>
-          <div class="disease-chart-wrap">
-            <canvas id="chartDashDr"></canvas>
-            <div class="chart-no-data" id="dashDrNoData">No data yet — run your first scan</div>
-          </div>
-        </div>
-        <div class="disease-chart-card">
-          <div class="disease-chart-card-title">Glaucoma — Last 7 Days</div>
-          <div class="disease-chart-wrap">
-            <canvas id="chartDashGl"></canvas>
-            <div class="chart-no-data" id="dashGlNoData">No data yet — run your first scan</div>
-          </div>
-        </div>
-        <div class="disease-chart-card">
-          <div class="disease-chart-card-title">Hypertensive Retinopathy — Last 7 Days</div>
-          <div class="disease-chart-wrap">
-            <canvas id="chartDashHr"></canvas>
-            <div class="chart-no-data" id="dashHrNoData">No data yet — run your first scan</div>
-          </div>
+      <div class="card" style="margin-top:20px;">
+        <div class="card-head"><i data-lucide="bar-chart-2"></i><span class="card-head-title">Last 7 Days Summary</span></div>
+        <div class="card-body">
+          <div id="last7DaysBars"></div>
+          <div id="last7DaysSummary"></div>
         </div>
       </div>
     </section>
@@ -951,6 +961,19 @@
 
       <!-- STEP 1 -->
       <div class="step-content active" id="step-1">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body">
+            <div class="field" id="patientSearchWrap" style="position:relative;">
+              <label class="field-label">Returning Patient? Search by name or ID</label>
+              <input class="field-input" id="patientSearchInput" placeholder="Type at least 2 characters…" autocomplete="off" oninput="onPatientSearchInput()" />
+              <div class="search-dropdown" id="patientSearchDropdown" style="left:0;right:0;"></div>
+            </div>
+            <div id="patientLoadedBanner" class="patient-loaded-banner" style="display:none;">
+              <span><i data-lucide="check-circle"></i> Patient loaded — existing record</span>
+              <button class="btn" style="padding:5px 12px;font-size:11.5px;" onclick="startNewPatient()">New Patient</button>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-head"><i data-lucide="user"></i><span class="card-head-title">Patient Information</span></div>
           <div class="card-body">
@@ -972,7 +995,7 @@
                 <select class="field-input" id="pDiabetic"><option value="">—</option><option>Type 1</option><option>Type 2</option><option>No</option></select>
               </div>
               <div class="field"><label class="field-label">HbA1c (%)</label><input class="field-input" id="pHba1c" type="number" step="0.1" placeholder="e.g. 7.2" /></div>
-              <div class="field"><label class="field-label">Blood Pressure</label><input class="field-input" id="pBp" placeholder="e.g. 130/85" /></div>
+              <div class="field"><label class="field-label">Blood Pressure</label><input class="field-input" id="pBp" placeholder="120/80" maxlength="7" /></div>
               <div class="field span-2"><label class="field-label">Referring Clinician</label><input class="field-input" id="pClinician" placeholder="Dr. Name / Clinic" /></div>
               <div class="field span-3"><label class="field-label">Notes</label><textarea class="field-input" id="pNotes" placeholder="Additional clinical notes"></textarea></div>
             </div>
@@ -1041,28 +1064,7 @@
             <div id="dualEyeUpload" style="display:none;">
               <div class="dual-upload-grid">
                 <div>
-                  <div class="dual-upload-col-label">Right Eye (OD)</div>
-                  <div class="preview-wrap" id="previewWrapOD">
-                    <span class="preview-badge">OD loaded</span>
-                    <img id="previewImgOD" src="" alt="OD preview" />
-                  </div>
-                  <div class="preview-actions" id="previewActionsOD">
-                    <button class="btn" onclick="clearImage('OD')"><i data-lucide="x"></i>Clear</button>
-                    <button class="btn btn-primary" onclick="document.getElementById('fileInputOD').click()"><i data-lucide="repeat"></i>Change</button>
-                  </div>
-                  <div class="upload-zone" id="uploadZoneOD">
-                    <input type="file" id="fileInputOD" accept="image/*" />
-                    <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
-                    <p class="upload-title">Drop OD photograph</p>
-                    <p class="upload-hint">or <b>click to browse</b></p>
-                  </div>
-                  <div class="file-chip" id="fileChipOD">
-                    <div class="file-chip-icon"><i data-lucide="file-image"></i></div>
-                    <div><div class="file-chip-name" id="fileNameOD">—</div><div class="file-chip-size" id="fileSizeOD">—</div></div>
-                  </div>
-                </div>
-                <div>
-                  <div class="dual-upload-col-label">Left Eye (OS)</div>
+                  <div class="dual-upload-col-label"><i data-lucide="eye" style="width:14px;height:14px;vertical-align:-2px;"></i> Left Eye (OS)</div>
                   <div class="preview-wrap" id="previewWrapOS">
                     <span class="preview-badge">OS loaded</span>
                     <img id="previewImgOS" src="" alt="OS preview" />
@@ -1080,6 +1082,27 @@
                   <div class="file-chip" id="fileChipOS">
                     <div class="file-chip-icon"><i data-lucide="file-image"></i></div>
                     <div><div class="file-chip-name" id="fileNameOS">—</div><div class="file-chip-size" id="fileSizeOS">—</div></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="dual-upload-col-label"><i data-lucide="eye" style="width:14px;height:14px;vertical-align:-2px;"></i> Right Eye (OD)</div>
+                  <div class="preview-wrap" id="previewWrapOD">
+                    <span class="preview-badge">OD loaded</span>
+                    <img id="previewImgOD" src="" alt="OD preview" />
+                  </div>
+                  <div class="preview-actions" id="previewActionsOD">
+                    <button class="btn" onclick="clearImage('OD')"><i data-lucide="x"></i>Clear</button>
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInputOD').click()"><i data-lucide="repeat"></i>Change</button>
+                  </div>
+                  <div class="upload-zone" id="uploadZoneOD">
+                    <input type="file" id="fileInputOD" accept="image/*" />
+                    <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+                    <p class="upload-title">Drop OD photograph</p>
+                    <p class="upload-hint">or <b>click to browse</b></p>
+                  </div>
+                  <div class="file-chip" id="fileChipOD">
+                    <div class="file-chip-icon"><i data-lucide="file-image"></i></div>
+                    <div><div class="file-chip-name" id="fileNameOD">—</div><div class="file-chip-size" id="fileSizeOD">—</div></div>
                   </div>
                 </div>
               </div>
@@ -1266,42 +1289,53 @@
       </div>
 
       <div class="model-card">
-        <div class="model-head" style="background:linear-gradient(135deg,var(--blue),var(--cyan));">
+        <div class="model-head" style="background:linear-gradient(135deg,var(--indigo),#818CF8);">
           <div class="model-head-icon"><i data-lucide="droplet"></i></div>
-          <div><div class="model-head-title">Diabetic Retinopathy Model</div><div class="model-head-arch">CNN (5-block, trained from scratch)</div></div>
+          <div><div class="model-head-title">Diabetic Retinopathy Model</div><div class="model-head-arch">EfficientNet-B3</div></div>
+          <div class="model-head-badge">★ Production Model</div>
         </div>
-        <div class="metric-grid">
-          <div class="metric-item"><div class="metric-value" style="color:var(--blue);">83.86%</div><div class="metric-label">Val Accuracy</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--blue);">0.9694</div><div class="metric-label">Macro AUC</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--success);">94.36%</div><div class="metric-label">Referable Sensitivity</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--success);">91.58%</div><div class="metric-label">Referable Specificity</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--text);">40,580</div><div class="metric-label">Training Images</div></div>
+        <div class="model-metric-rows">
+          <div class="model-metric-row"><span class="mlbl">Val Accuracy</span><span class="mval" style="color:var(--indigo);">83.86%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Macro AUC</span><span class="mval" style="color:var(--indigo);">0.9694</span></div>
+          <div class="model-metric-row"><span class="mlbl">Referable DR Sensitivity</span><span class="mval" style="color:var(--indigo);">94.36%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Referable DR Specificity</span><span class="mval" style="color:var(--indigo);">91.58%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Training Images</span><span class="mval" style="color:var(--text);">40,580 balanced</span></div>
+          <div class="model-metric-row"><span class="mlbl">Grades</span><span class="mval" style="color:var(--text);">0–4</span></div>
         </div>
       </div>
 
       <div class="model-card">
-        <div class="model-head" style="background:linear-gradient(135deg,#047857,var(--gl-color));">
+        <div class="model-head" style="background:linear-gradient(135deg,var(--cyan),#38BDF8);">
           <div class="model-head-icon"><i data-lucide="circle-dot"></i></div>
-          <div><div class="model-head-title">Glaucoma Segmentation Model</div><div class="model-head-arch">U-Net · 31M parameters (trained from scratch)</div></div>
+          <div><div class="model-head-title">Glaucoma Segmentation Model</div><div class="model-head-arch">DeepLabV3+ ResNet50</div></div>
+          <div class="model-head-badge">★ Production Model</div>
         </div>
-        <div class="metric-grid">
-          <div class="metric-item"><div class="metric-value" style="color:var(--gl-color);">94.44%</div><div class="metric-label">Dice — Disc</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--gl-color);">84.50%</div><div class="metric-label">Dice — Cup</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--text);">400</div><div class="metric-label">Training Images (REFUGE)</div></div>
+        <div class="model-metric-rows">
+          <div class="model-metric-row"><span class="mlbl">Dice — Disc</span><span class="mval" style="color:var(--cyan);">96.58%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Dice — Cup</span><span class="mval" style="color:var(--cyan);">93.69%</span></div>
+          <div class="model-metric-row"><span class="mlbl">CDR Mean Error</span><span class="mval" style="color:var(--cyan);">0.0196</span></div>
+          <div class="model-metric-row"><span class="mlbl">CDR within 0.05</span><span class="mval" style="color:var(--cyan);">94% (376/400)</span></div>
+          <div class="model-metric-row"><span class="mlbl">CDR within 0.10</span><span class="mval" style="color:var(--cyan);">100% (400/400)</span></div>
+          <div class="model-metric-row"><span class="mlbl">Glaucoma Sensitivity</span><span class="mval" style="color:var(--cyan);">91.67%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Specificity</span><span class="mval" style="color:var(--cyan);">99.74%</span></div>
+          <div class="model-metric-row"><span class="mlbl">AUC</span><span class="mval" style="color:var(--cyan);">0.9570</span></div>
+          <div class="model-metric-row"><span class="mlbl">Training Images</span><span class="mval" style="color:var(--text);">1,200 (REFUGE)</span></div>
         </div>
       </div>
 
       <div class="model-card">
-        <div class="model-head" style="background:linear-gradient(135deg,#9D174D,var(--hr-color));">
+        <div class="model-head" style="background:linear-gradient(135deg,#F43F5E,#FB7185);">
           <div class="model-head-icon"><i data-lucide="heart-pulse"></i></div>
-          <div><div class="model-head-title">Hypertensive Retinopathy Model</div><div class="model-head-arch">CNN Binary Classifier (trained from scratch)</div></div>
+          <div><div class="model-head-title">Hypertensive Retinopathy Model</div><div class="model-head-arch">EfficientNet-B3</div></div>
+          <div class="model-head-badge">★ Production Model</div>
         </div>
-        <div class="metric-grid">
-          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">94.16%</div><div class="metric-label">Val Accuracy</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">96.05%</div><div class="metric-label">Sensitivity</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">92.31%</div><div class="metric-label">Specificity</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--hr-color);">0.9895</div><div class="metric-label">AUC</div></div>
-          <div class="metric-item"><div class="metric-value" style="color:var(--text);">772</div><div class="metric-label">Training Images</div></div>
+        <div class="model-metric-rows">
+          <div class="model-metric-row"><span class="mlbl">Val Accuracy</span><span class="mval" style="color:#F43F5E;">94.16%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Sensitivity</span><span class="mval" style="color:#F43F5E;">96.05%</span></div>
+          <div class="model-metric-row"><span class="mlbl">Specificity</span><span class="mval" style="color:#F43F5E;">92.31%</span></div>
+          <div class="model-metric-row"><span class="mlbl">AUC</span><span class="mval" style="color:#F43F5E;">0.9895</span></div>
+          <div class="model-metric-row"><span class="mlbl">Optimal Threshold</span><span class="mval" style="color:#F43F5E;">0.20</span></div>
+          <div class="model-metric-row"><span class="mlbl">Training Images</span><span class="mval" style="color:var(--text);">772 balanced (386 HR, 386 Normal)</span></div>
         </div>
       </div>
     </section>
@@ -1628,6 +1662,9 @@ if (window.Chart) Chart.register(chartEndLabelPlugin);
    GLOBAL STATE
    ============================================================ */
 let allScans = [];
+let scansCache = null;
+let scansCacheTime = null;
+const CACHE_TTL = 30000; // 30 seconds
 let sidebarCollapsed = false;
 let currentPage = "dashboard";
 let settings = Object.assign({}, DEFAULT_SETTINGS);
@@ -1650,6 +1687,7 @@ let heatmapOD = null, heatmapOS = null;
 let fundusImageDataUrlOD = null, fundusImageDataUrlOS = null;
 let triageOD = null, triageOS = null;
 let activeResultEye = "OD";
+let activeSubTab = "overview";
 
 let scanId = null;
 let lastRunSelection = { dr: true, gl: true, hr: true };
@@ -1713,9 +1751,18 @@ document.addEventListener("DOMContentLoaded", () => {
   initFileUpload();
   initDobAutoAge();
   initGlobalSearch();
+  initPatientSearch();
+  initBpAutoFormat();
   renderFilterOptions();
   document.getElementById("pId").value = generatePatientId();
-  fetchScans().then(() => renderDashboard());
+  fetchScans().then(() => {
+    refreshCurrentPage();
+    refreshNotifications();
+  });
+  setInterval(() => { fetchScans().then(refreshNotifications); }, 60000);
+
+  checkMongoHealth();
+  setInterval(checkMongoHealth, 30000);
 });
 
 function clock() {
@@ -1740,9 +1787,11 @@ function saveSettings() {
   if (settings.sidebarDefault === "collapsed" && !sidebarCollapsed) {
     sidebarCollapsed = true;
     document.getElementById("appShell").classList.add("collapsed");
+    updateSidebarToggleIcon();
   } else if (settings.sidebarDefault === "expanded" && sidebarCollapsed) {
     sidebarCollapsed = false;
     document.getElementById("appShell").classList.remove("collapsed");
+    updateSidebarToggleIcon();
   }
   const note = document.getElementById("settingsSavedNote");
   note.classList.add("visible");
@@ -1796,10 +1845,7 @@ function applySettingsToForm() {
    SIDEBAR / NAVIGATION
    ============================================================ */
 function initSidebar() {
-  document.getElementById("hamburgerBtn").addEventListener("click", () => {
-    sidebarCollapsed = !sidebarCollapsed;
-    document.getElementById("appShell").classList.toggle("collapsed", sidebarCollapsed);
-  });
+  updateSidebarToggleIcon();
 
   document.getElementById("bellBtn").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -1810,6 +1856,16 @@ function initSidebar() {
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", () => switchPage(item.dataset.page));
   });
+}
+
+function toggleSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  document.getElementById("appShell").classList.toggle("collapsed", sidebarCollapsed);
+  updateSidebarToggleIcon();
+}
+
+function updateSidebarToggleIcon() {
+  document.getElementById("sidebarToggleIcon").textContent = "☰";
 }
 
 function switchPage(page) {
@@ -1890,14 +1946,161 @@ function selectSearchResult(scanId) {
 /* ============================================================
    DATA FETCH
    ============================================================ */
-async function fetchScans() {
+async function fetchScans(forceRefresh) {
+  const now = Date.now();
+  if (!forceRefresh && scansCache && scansCacheTime && (now - scansCacheTime) < CACHE_TTL) {
+    allScans = scansCache;
+    return;
+  }
   try {
-    const res = await fetch("/scans");
+    const res = await fetch("/scans?limit=100");
     if (!res.ok) throw new Error("Request failed");
     allScans = await res.json();
+    scansCache = allScans;
+    scansCacheTime = now;
   } catch (err) {
     console.error("Failed to load scans:", err);
     allScans = [];
+  }
+}
+
+// GET /scans excludes fundus/heatmap images for speed — detail views (patients
+// view modal, scan history panel, doctor review modal) need the full scan
+// including images, so they fetch it individually via /scans/:scanId.
+async function fetchFullScan(scanId) {
+  try {
+    const res = await fetch("/scans/" + encodeURIComponent(scanId));
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("Failed to load full scan:", err);
+    return null;
+  }
+}
+
+/* ============================================================
+   NOTIFICATION BELL (live, generated from /scans)
+   ============================================================ */
+let notifications = [];
+
+function generateNotifications(scans) {
+  const result = [];
+  const now = new Date();
+
+  scans.slice(0, 20).forEach((scan) => {
+    const time = new Date(scan.timestamp);
+    const mins = Math.floor((now - time) / 60000);
+    const timeLabel = mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
+
+    // urgent cases
+    if (scan.triage && /URGENT|EMERGENCY/i.test(scan.triage.level || "")) {
+      result.push({
+        icon: "🚨",
+        color: "#EF4444",
+        title: `Urgent case — ${scan.patientName || "Unknown"}`,
+        body: scan.triage.level + " referral required",
+        time: timeLabel,
+        unread: scan.status === "ai_completed",
+      });
+    }
+    // new scans
+    if (scan.status === "ai_completed") {
+      result.push({
+        icon: "🔬",
+        color: "#3B82F6",
+        title: `New scan — ${scan.patientName || "Unknown"}`,
+        body: `Awaiting doctor review`,
+        time: timeLabel,
+        unread: true,
+      });
+    }
+    // reviewed
+    if (scan.status === "reviewed") {
+      result.push({
+        icon: "✓",
+        color: "#10B981",
+        title: `Reviewed — ${scan.patientName || "Unknown"}`,
+        body: `Review completed`,
+        time: timeLabel,
+        unread: false,
+      });
+    }
+  });
+  return result.slice(0, 10);
+}
+
+function refreshNotifications() {
+  notifications = generateNotifications(allScans);
+  renderNotificationBell();
+}
+
+function renderNotificationBell() {
+  const unread = notifications.filter((n) => n.unread).length;
+  const badge = document.getElementById("bellBadge");
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? "9+" : String(unread);
+    badge.style.display = "flex";
+  } else {
+    badge.style.display = "none";
+  }
+
+  const list = document.getElementById("bellDropdownList");
+  list.innerHTML = notifications.length
+    ? notifications.map((n) => `
+      <div class="bell-item">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="font-size:14px;flex-shrink:0;">${n.icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:${n.color};">${escapeHtml(n.title)}</div>
+            <div style="color:var(--muted);font-size:11px;margin-top:1px;">${escapeHtml(n.body)}</div>
+            <div class="bell-item-time">${escapeHtml(n.time)}</div>
+          </div>
+          ${n.unread ? '<span class="bell-unread-dot"></span>' : ""}
+        </div>
+      </div>`).join("")
+    : '<div class="bell-item" style="text-align:center;color:var(--muted);">No recent activity</div>';
+}
+
+function markAllNotificationsRead() {
+  notifications.forEach((n) => { n.unread = false; });
+  renderNotificationBell();
+}
+
+/* ============================================================
+   MONGODB / HEALTH STATUS
+   ============================================================ */
+async function checkMongoHealth() {
+  const dot = document.getElementById("dotMongo");
+  const label = document.getElementById("mongoStatusLabel");
+  const serverDot = document.getElementById("dotServer");
+  const serverLabel = document.getElementById("serverStatusLabel");
+  dot.classList.remove("offline");
+  dot.classList.add("checking");
+  label.textContent = "Checking...";
+  try {
+    const res = await fetch("/health", { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error("bad status");
+    const data = await res.json();
+
+    serverDot.classList.remove("offline", "checking");
+    serverLabel.textContent = "Server";
+
+    if (data.mongodb === "connected") {
+      dot.classList.remove("checking", "offline");
+      label.textContent = "MongoDB";
+    } else {
+      dot.classList.remove("checking");
+      dot.classList.add("offline");
+      label.textContent = "MongoDB Offline";
+    }
+  } catch (err) {
+    dot.classList.remove("checking");
+    dot.classList.add("offline");
+    label.textContent = "MongoDB Offline";
+
+    serverDot.classList.remove("checking");
+    serverDot.classList.add("offline");
+    serverLabel.textContent = "Server Offline";
   }
 }
 
@@ -1959,6 +2162,36 @@ function triageBg(level) {
   const map = { "ROUTINE": "#F0FDF4", "MONITORING REQUIRED": "#FEFCE8", "NON-URGENT REFERRAL": "#FFF7ED", "URGENT REFERRAL": "#FEF2F2", "EMERGENCY REFERRAL": "#FDF2F8" };
   return map[level] || "#F0FDF4";
 }
+/* Maps an HR probability (0-1 fraction) to its display severity band. */
+function getHRSeverity(probability) {
+  const pct = (probability || 0) * 100;
+  if (pct >= 90) {
+    return {
+      label: "Severe HR Detected",
+      severity: "Very High Risk — Significant hypertensive retinopathy, urgent referral required",
+      bgColor: "rgba(139, 0, 0, 0.15)", borderColor: "#7F1D1D", badgeColor: "#991B1B", icon: "🚨",
+    };
+  }
+  if (pct >= 60) {
+    return {
+      label: "HR Detected",
+      severity: "High Risk — Signs of hypertensive retinopathy detected, referral recommended",
+      bgColor: "rgba(239, 68, 68, 0.1)", borderColor: "#EF4444", badgeColor: "#EF4444", icon: "⚠",
+    };
+  }
+  if (pct >= 30) {
+    return {
+      label: "Borderline",
+      severity: "Low-Moderate Risk — Borderline findings, consider follow-up",
+      bgColor: "rgba(245, 158, 11, 0.1)", borderColor: "#F59E0B", badgeColor: "#F59E0B", icon: "⚠",
+    };
+  }
+  return {
+    label: "No HR Detected",
+    severity: "Very Low Risk — No signs of hypertensive retinopathy detected",
+    bgColor: "rgba(16, 185, 129, 0.1)", borderColor: "#10B981", badgeColor: "#10B981", icon: "✓",
+  };
+}
 function themedBanner(accent, lightBg, icon, label) {
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
   const bg = dark ? accent + "33" : lightBg;
@@ -1998,117 +2231,115 @@ function renderDashboard() {
   const drDetected = drScans.filter((s) => s.drResult.grade > 0).length;
   document.getElementById("statDrPct").textContent = drScans.length ? Math.round((drDetected / drScans.length) * 100) + "%" : "0%";
 
-  const recentBox = document.getElementById("recentActivity");
-  const recent = scans.slice(0, 10);
-  if (!recent.length) {
-    recentBox.innerHTML = '<div class="empty-note">No scans recorded yet. Run a New Screening to get started.</div>';
-  } else {
-    recentBox.innerHTML = recent.map((s) => `
-      <div class="timeline-item">
-        <div class="timeline-dot"><i data-lucide="scan-line"></i></div>
-        <div class="timeline-body">
-          <div class="timeline-top">
-            <span class="timeline-name">${escapeHtml(s.patientName || "Unnamed patient")}</span>
-            <span class="timeline-time">${timeAgo(s.timestamp)}</span>
-          </div>
-          <div class="timeline-desc">${escapeHtml(conditionsSummary(s))}</div>
-        </div>
-        <span class="badge ${statusBadgeClass(s.status)}">${statusLabel(s.status)}</span>
-      </div>`).join("");
-  }
-
-  renderDashboardCharts();
+  renderRecentActivity();
+  renderLast7DaysSummary();
   lucide.createIcons();
 }
 
-function renderDashboardCharts() {
-  const noData = allScans.length === 0;
-  const noDataEls = ["dashDrNoData", "dashGlNoData", "dashHrNoData"];
-  const canvasIds = ["chartDashDr", "chartDashGl", "chartDashHr"];
-  noDataEls.forEach((id) => { document.getElementById(id).style.display = noData ? "flex" : "none"; });
-  canvasIds.forEach((id) => { document.getElementById(id).style.display = noData ? "none" : "block"; });
-  if (noData) { destroyChart("dashDr"); destroyChart("dashGl"); destroyChart("dashHr"); return; }
+let recentActivityExpanded = false;
+
+function renderRecentActivity() {
+  const recentBox = document.getElementById("recentActivity");
+  const full = allScans.slice(0, 20);
+  if (!full.length) {
+    recentBox.innerHTML = '<div class="empty-note">No scans recorded yet. Run a New Screening to get started.</div>';
+    return;
+  }
+  const visible = recentActivityExpanded ? full : full.slice(0, 4);
+  const itemsHtml = visible.map((s) => `
+    <div class="timeline-item" style="cursor:pointer;" onclick="goToScanInHistory('${s.scanId}')">
+      <div class="timeline-dot"><i data-lucide="scan-line"></i></div>
+      <div class="timeline-body">
+        <div class="timeline-top">
+          <span class="timeline-name">${escapeHtml(s.patientName || "Unnamed patient")}</span>
+          <span class="timeline-time">${timeAgo(s.timestamp)}</span>
+        </div>
+        <div class="timeline-desc">${escapeHtml(s.scanId)} · ${escapeHtml(conditionsSummary(s))}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <span class="badge ${triageBadgeClass(s.triage && s.triage.level)}">${escapeHtml((s.triage && s.triage.level) || "—")}</span>
+          <span class="badge ${statusBadgeClass(s.status)}">${statusLabel(s.status)}</span>
+        </div>
+      </div>
+    </div>`).join("");
+  const toggleHtml = full.length > 4
+    ? `<button class="link-btn" style="margin-top:10px;" onclick="toggleRecentActivityExpanded()">${recentActivityExpanded ? "Show Less" : "See More"}</button>`
+    : "";
+  recentBox.innerHTML = itemsHtml + toggleHtml;
+  lucide.createIcons();
+}
+
+function toggleRecentActivityExpanded() {
+  recentActivityExpanded = !recentActivityExpanded;
+  renderRecentActivity();
+}
+
+function goToScanInHistory(scanId) {
+  switchPage("history");
+  setTimeout(() => selectHistoryScan(scanId), 50);
+}
+
+function renderLast7DaysSummary() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const weekScans = allScans.filter((s) => s.timestamp && new Date(s.timestamp) >= sevenDaysAgo);
 
   const days = [];
   for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
   const dayKeys = days.map((d) => d.toISOString().slice(0, 10));
-  const dayLabels = days.map((d) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }));
+  const dayLabels = days.map((d) => d.toLocaleDateString("en-GB", { weekday: "short" }));
+  const dayCounts = dayKeys.map((key) => allScans.filter((s) => s.timestamp && new Date(s.timestamp).toISOString().slice(0, 10) === key).length);
+  const maxCount = Math.max(1, ...dayCounts);
 
-  const drScansAll = allScans.filter((s) => s.drResult && s.drResult.performed);
-  const drDatasets = DR_LABELS.map((label, grade) => {
-    const total = drScansAll.filter((s) => s.drResult.grade === grade).length;
-    return {
-      label: "Grade " + grade + " " + label,
-      data: dayKeys.map((key) => drScansAll.filter((s) => s.drResult.grade === grade && s.timestamp && new Date(s.timestamp).toISOString().slice(0, 10) === key).length),
-      borderColor: DR_COLORS[grade], backgroundColor: DR_COLORS[grade], tension: 0.3, pointRadius: 2,
-      _endLabel: DR_LABELS_SHORT[grade] + ": " + total,
-    };
-  });
-  destroyChart("dashDr");
-  chartInstances.dashDr = new Chart(document.getElementById("chartDashDr"), {
-    type: "line",
-    data: { labels: dayLabels, datasets: drDatasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 90 } },
-      plugins: { legend: { display: false }, tooltip: { mode: "index", intersect: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
-  });
+  const barsBox = document.getElementById("last7DaysBars");
+  barsBox.innerHTML = dayLabels.map((label, i) => `
+    <div class="day-bar-row">
+      <span class="day-bar-label">${label}</span>
+      <div class="day-bar-track"><div class="day-bar-fill" style="width:${Math.round((dayCounts[i] / maxCount) * 100)}%;"></div></div>
+      <span class="day-bar-count">${dayCounts[i]}</span>
+    </div>`).join("");
 
+  const summaryBox = document.getElementById("last7DaysSummary");
+  if (!weekScans.length) {
+    summaryBox.innerHTML = '<div class="empty-note" style="margin-top:14px;">No scans in the last 7 days</div>';
+    return;
+  }
+
+  const drWeek = weekScans.filter((s) => s.drResult && s.drResult.performed);
+  const drCounts = DR_LABELS_SHORT.map((label, grade) => ({ label, color: DR_COLORS[grade], count: drWeek.filter((s) => s.drResult.grade === grade).length }));
+
+  const glWeek = weekScans.filter((s) => s.glaucomaResult && s.glaucomaResult.performed);
   const glBuckets = [
     { label: "Normal", color: "#16A34A", test: (s) => (s.glaucomaResult.cdr || 0) < 0.3 },
     { label: "Monitor", color: "#CA8A04", test: (s) => (s.glaucomaResult.cdr || 0) >= 0.3 && (s.glaucomaResult.cdr || 0) < 0.5 },
     { label: "Suspicious", color: "#EA580C", test: (s) => (s.glaucomaResult.cdr || 0) >= 0.5 && (s.glaucomaResult.cdr || 0) < 0.7 },
     { label: "High Risk", color: "#DC2626", test: (s) => (s.glaucomaResult.cdr || 0) >= 0.7 },
   ];
-  const glScansAll = allScans.filter((s) => s.glaucomaResult && s.glaucomaResult.performed);
-  const glDatasets = glBuckets.map((b) => {
-    const total = glScansAll.filter(b.test).length;
-    return {
-      label: b.label,
-      data: dayKeys.map((key) => glScansAll.filter((s) => s.timestamp && new Date(s.timestamp).toISOString().slice(0, 10) === key && b.test(s)).length),
-      borderColor: b.color, backgroundColor: b.color, tension: 0.3, pointRadius: 2,
-      _endLabel: b.label + ": " + total,
-    };
-  });
-  destroyChart("dashGl");
-  chartInstances.dashGl = new Chart(document.getElementById("chartDashGl"), {
-    type: "line",
-    data: { labels: dayLabels, datasets: glDatasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 90 } },
-      plugins: { legend: { display: false }, tooltip: { mode: "index", intersect: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
-  });
+  const glCounts = glBuckets.map((b) => ({ label: b.label, color: b.color, count: glWeek.filter(b.test).length }));
 
-  const hrScansAll = allScans.filter((s) => s.hrResult && s.hrResult.performed);
-  const hrBuckets = [
-    { label: "HR Detected", color: "#DC2626", test: (s) => s.hrResult.detected },
-    { label: "No HR", color: "#16A34A", test: (s) => !s.hrResult.detected },
+  const hrWeek = weekScans.filter((s) => s.hrResult && s.hrResult.performed);
+  const hrCounts = [
+    { label: "Detected", color: "#DC2626", count: hrWeek.filter((s) => s.hrResult.detected).length },
+    { label: "Not Detected", color: "#16A34A", count: hrWeek.filter((s) => !s.hrResult.detected).length },
   ];
-  const hrDatasets = hrBuckets.map((b) => {
-    const total = hrScansAll.filter(b.test).length;
-    return {
-      label: b.label,
-      data: dayKeys.map((key) => hrScansAll.filter((s) => s.timestamp && new Date(s.timestamp).toISOString().slice(0, 10) === key && b.test(s)).length),
-      borderColor: b.color, backgroundColor: b.color, tension: 0.3, pointRadius: 2,
-      _endLabel: b.label + ": " + total,
-    };
-  });
-  destroyChart("dashHr");
-  chartInstances.dashHr = new Chart(document.getElementById("chartDashHr"), {
-    type: "line",
-    data: { labels: dayLabels, datasets: hrDatasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 90 } },
-      plugins: { legend: { display: false }, tooltip: { mode: "index", intersect: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
-  });
+
+  const pillsHtml = (counts) => counts.map((c) => `<span class="week-pill"><span class="week-pill-dot" style="background:${c.color};"></span>${escapeHtml(c.label)}: ${c.count}</span>`).join("");
+
+  summaryBox.innerHTML = `
+    <div class="week-summary-block">
+      <div class="week-summary-title">DR Summary</div>
+      <div class="week-summary-pills">${pillsHtml(drCounts)}</div>
+    </div>
+    <div class="week-summary-block">
+      <div class="week-summary-title">Glaucoma Summary</div>
+      <div class="week-summary-pills">${pillsHtml(glCounts)}</div>
+    </div>
+    <div class="week-summary-block">
+      <div class="week-summary-title">HR Summary</div>
+      <div class="week-summary-pills">${pillsHtml(hrCounts)}</div>
+    </div>
+  `;
 }
 
 /* ============================================================
@@ -2131,6 +2362,101 @@ function initDobAutoAge() {
     if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
     ageField.value = age >= 0 ? age : "";
   });
+}
+
+/* -------- blood pressure auto-slash -------- */
+function initBpAutoFormat() {
+  const input = document.getElementById("pBp");
+  input.addEventListener("input", function (e) {
+    if (e.inputType && e.inputType.indexOf("delete") === 0) return; // let backspace work naturally
+    let val = e.target.value.replace(/[^\d]/g, "");
+    if (val.length > 3) {
+      val = val.slice(0, 3) + "/" + val.slice(3, 6);
+    }
+    e.target.value = val;
+  });
+}
+
+/* -------- returning patient search -------- */
+let selectedExistingPatient = false;
+
+function getPatientDirectory() {
+  const map = new Map();
+  allScans.forEach((s) => {
+    if (!s.patientId) return;
+    const existing = map.get(s.patientId);
+    if (!existing || new Date(s.timestamp) > new Date(existing.timestamp)) {
+      map.set(s.patientId, s);
+    }
+  });
+  return Array.from(map.values());
+}
+
+function initPatientSearch() {
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#patientSearchWrap")) {
+      document.getElementById("patientSearchDropdown").classList.remove("visible");
+    }
+  });
+}
+
+function onPatientSearchInput() {
+  const q = document.getElementById("patientSearchInput").value.trim().toLowerCase();
+  const dropdown = document.getElementById("patientSearchDropdown");
+  if (q.length < 2) { dropdown.classList.remove("visible"); dropdown.innerHTML = ""; return; }
+
+  const matches = getPatientDirectory().filter((s) =>
+    (s.patientName || "").toLowerCase().includes(q) || (s.patientId || "").toLowerCase().includes(q)
+  ).slice(0, 6);
+
+  dropdown.innerHTML = matches.length
+    ? matches.map((s) => `
+      <div class="search-result-item" onclick="selectExistingPatient('${s.patientId}')">
+        <div>
+          <div class="search-result-name">${escapeHtml(s.patientName || "Unnamed patient")}</div>
+          <div class="search-result-meta">${escapeHtml(s.patientId)} · Last visit ${formatDate(s.timestamp)}</div>
+        </div>
+      </div>`).join("")
+    : '<div class="search-empty">No matching patients</div>';
+  dropdown.classList.add("visible");
+}
+
+function selectExistingPatient(patientId) {
+  const s = getPatientDirectory().find((x) => x.patientId === patientId);
+  if (!s) return;
+  document.getElementById("pName").value = s.patientName || "";
+  document.getElementById("pId").value = s.patientId || "";
+  document.getElementById("pAge").value = s.patientAge != null ? s.patientAge : "";
+  document.getElementById("pSex").value = s.patientSex || "";
+  document.getElementById("pDob").value = s.patientDob || "";
+  document.getElementById("pEye").value = s.patientEye || "";
+  document.getElementById("pDiabetic").value = s.diabeticStatus || "";
+  document.getElementById("pHba1c").value = s.hba1c != null ? s.hba1c : "";
+  document.getElementById("pClinician").value = s.referringClinician || "";
+
+  document.getElementById("patientSearchInput").value = s.patientName || "";
+  document.getElementById("patientSearchDropdown").classList.remove("visible");
+  document.getElementById("patientLoadedBanner").style.display = "flex";
+  selectedExistingPatient = true;
+  lucide.createIcons();
+}
+
+function startNewPatient() {
+  selectedExistingPatient = false;
+  document.getElementById("patientLoadedBanner").style.display = "none";
+  document.getElementById("patientSearchInput").value = "";
+  document.getElementById("patientSearchDropdown").classList.remove("visible");
+  document.getElementById("pId").value = generatePatientId();
+  document.getElementById("pName").value = "";
+  document.getElementById("pAge").value = "";
+  document.getElementById("pSex").value = "";
+  document.getElementById("pDob").value = "";
+  document.getElementById("pEye").value = "";
+  document.getElementById("pDiabetic").value = "";
+  document.getElementById("pHba1c").value = "";
+  document.getElementById("pBp").value = "";
+  document.getElementById("pClinician").value = "";
+  document.getElementById("pNotes").value = "";
 }
 
 function goToStep(n) {
@@ -2321,6 +2647,7 @@ async function runAnalysis() {
     lastRunSelection = sel;
     scanSaved = false;
     triageData = computeTriage(sel, results);
+    activeSubTab = "overview";
 
     setTimeout(() => {
       goToStep(4);
@@ -2383,6 +2710,7 @@ async function runDualAnalysis() {
     triageOD = computeTriage(sel, resultsOD);
     triageOS = computeTriage(sel, resultsOS);
     activeResultEye = "OD";
+    activeSubTab = "overview";
     document.getElementById("eyeSubtabs").style.display = "flex";
     document.querySelectorAll(".eye-subtab-btn").forEach((b) => b.classList.toggle("active", b.dataset.eye === "OD"));
 
@@ -2414,6 +2742,7 @@ function currentTriage() { return dualEyeMode ? (activeResultEye === "OS" ? tria
 function switchResultEye(eye) {
   activeResultEye = eye;
   document.querySelectorAll(".eye-subtab-btn").forEach((b) => b.classList.toggle("active", b.dataset.eye === eye));
+  // do NOT reset activeSubTab — re-render the same sub-tab for the newly active eye
   renderResultsForEye(lastRunSelection);
 }
 
@@ -2454,7 +2783,6 @@ function computeTriage(sel, r) {
 
 /* -------- results rendering -------- */
 function renderResultsForEye(sel) {
-  switchTab("overview");
   const r = currentResults();
   const hm = currentHeatmap();
   const tri = currentTriage();
@@ -2516,16 +2844,19 @@ function renderResultsForEye(sel) {
       </div>`);
   }
   if (sel.hr && r.hr) {
-    const hrDet = r.hr.hr_detected || false;
-    const prob = Math.round((r.hr.probability || 0) * 100);
-    const color = hrDet ? "#DC2626" : "#16A34A";
+    const hrProb = r.hr.probability || 0;
+    const hrSeverity = getHRSeverity(hrProb);
+    const prob = Math.round(hrProb * 100);
     cards.push(`
       <div class="summary-card">
         <div class="summary-card-head">Hypertensive Retinopathy</div>
         <div class="summary-card-body">
-          <div class="big-metric" style="color:${color}">${hrDet ? "DETECTED" : "NOT DETECTED"}</div>
-          <div class="big-metric-label">Probability: ${prob}%</div>
-          <div class="summary-detail-row" style="margin-top:12px;"><span>Recommendation</span><span>${escapeHtml(r.hr.recommendation || "")}</span></div>
+          <div class="grade-badge" style="background:${hrSeverity.badgeColor}22;color:${hrSeverity.borderColor};border:1px solid ${hrSeverity.borderColor}44;">
+            <span class="grade-dot" style="background:${hrSeverity.badgeColor}"></span>${hrSeverity.icon} ${escapeHtml(hrSeverity.label)}
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:6px 0 12px;">${escapeHtml(hrSeverity.severity)}</p>
+          <div class="summary-detail-row"><span>Probability</span><span>${prob}%</span></div>
+          <div class="summary-detail-row"><span>Recommendation</span><span>${escapeHtml(r.hr.recommendation || "")}</span></div>
         </div>
       </div>`);
   }
@@ -2545,6 +2876,7 @@ function renderResultsForEye(sel) {
     if (key === "heatmap") t.style.display = (sel.dr && hm) ? "" : "none";
   });
 
+  switchTab(activeSubTab);
   lucide.createIcons();
 }
 
@@ -2634,14 +2966,15 @@ function renderHrTab(sel) {
   const r = currentResults();
   if (!sel.hr || !r.hr) { box.innerHTML = '<div class="empty-note">Hypertensive Retinopathy screening was not performed for this scan.</div>'; return; }
   const hr = r.hr;
-  const det = hr.hr_detected || false;
-  const prob = Math.round((hr.probability || 0) * 100);
-  const color = det ? "#DC2626" : "#16A34A";
+  const prob = hr.probability || 0;
+  const pct = Math.round(prob * 100);
+  const sev = getHRSeverity(prob);
   box.innerHTML = `
-    <div class="detail-block">
-      <div class="big-metric" style="color:${color};font-size:32px;">${det ? "DETECTED" : "NOT DETECTED"}</div>
-      <div class="big-metric-label">Detection Probability: ${prob}%</div>
-      <div class="conf-bar-track" style="max-width:320px;"><div class="conf-bar-fill" style="width:${prob}%;background:${color}"></div></div>
+    <div class="detail-block hr-severity-panel" style="background:${sev.bgColor};border:1px solid ${sev.borderColor};">
+      <div class="big-metric" style="color:${sev.borderColor};font-size:30px;">${sev.icon} ${escapeHtml(sev.label)}</div>
+      <div class="big-metric-label">Detection Probability: ${pct}%</div>
+      <div class="conf-bar-track" style="max-width:320px;"><div class="conf-bar-fill" style="width:${pct}%;background:${sev.badgeColor}"></div></div>
+      <p style="font-size:12px;color:var(--text);margin-top:10px;">${escapeHtml(sev.severity)}</p>
     </div>
     <div class="rec-box"><b>Recommendation:</b> ${escapeHtml(hr.recommendation || "")}</div>
     <p style="font-size:11.5px;color:var(--muted);margin-top:10px;">${escapeHtml(hr.note || "This is a preliminary screening result. Confirmation requires blood pressure measurement and specialist review.")}</p>
@@ -2664,6 +2997,7 @@ function renderHeatmapTab(sel) {
 }
 
 function switchTab(tab) {
+  activeSubTab = tab;
   document.querySelectorAll(".tab-btn").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + tab));
 }
@@ -2756,7 +3090,7 @@ async function saveScanToDb() {
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
     scanSaved = true;
-    await fetchScans();
+    await fetchScans(true);
     refreshCurrentPage();
     showToast("Scan saved to database (ID: " + data.scanId + ").", "success");
   } catch (err) {
@@ -2773,6 +3107,7 @@ function resetScreening() {
   fundusImageDataUrl = null; fundusImageDataUrlOD = null; fundusImageDataUrlOS = null;
   scanId = null; triageData = null; triageOD = null; triageOS = null;
   scanSaved = false; dualEyeMode = false; activeResultEye = "OD";
+  activeSubTab = "overview";
 
   ["", "OD", "OS"].forEach((suffix) => {
     const fi = document.getElementById("fileInput" + suffix); if (fi) fi.value = "";
@@ -2799,6 +3134,11 @@ function resetScreening() {
   document.getElementById("pBp").value = "";
   document.getElementById("pClinician").value = "";
   document.getElementById("pNotes").value = "";
+
+  selectedExistingPatient = false;
+  document.getElementById("patientLoadedBanner").style.display = "none";
+  document.getElementById("patientSearchInput").value = "";
+  document.getElementById("patientSearchDropdown").classList.remove("visible");
 
   selectedConditions = { dr: settings.defaultDr !== false, gl: settings.defaultGl !== false, hr: settings.defaultHr !== false };
   if (!selectedConditions.dr && !selectedConditions.gl && !selectedConditions.hr) selectedConditions = { dr: true, gl: true, hr: true };
@@ -3232,47 +3572,72 @@ function selectHistoryScan(scanId) {
   renderHistoryDetail(scanId);
 }
 
-function renderFundusImageBlock(s) {
-  const cards = [];
-  const addCard = (label, image, heatmap) => {
-    if (!image && !heatmap) return;
-    cards.push(`
-      <div class="review-image-card">
-        <div class="review-image-label">${escapeHtml(label)}</div>
-        <img src="${heatmap || image}" alt="${escapeHtml(label)} fundus photograph" />
-      </div>`);
-  };
-
-  // Note: Mongoose always materializes odResults/osResults as (possibly
-  // empty) objects even when never set, so check for actual image content
-  // rather than mere presence of the odResults/osResults object.
-  const odHasImage = !!(s.odResults && (s.odResults.fundusImage || s.odResults.heatmapImage));
-  const osHasImage = !!(s.osResults && (s.osResults.fundusImage || s.osResults.heatmapImage));
-
-  if (odHasImage || osHasImage) {
-    if (odHasImage) {
-      addCard("OD — Fundus", s.odResults.fundusImage, s.odResults.heatmapImage);
-      if (s.odResults.heatmapImage && s.odResults.fundusImage) addCard("OD — Original", s.odResults.fundusImage, null);
-    }
-    if (osHasImage) {
-      addCard("OS — Fundus", s.osResults.fundusImage, s.osResults.heatmapImage);
-      if (s.osResults.heatmapImage && s.osResults.fundusImage) addCard("OS — Original", s.osResults.fundusImage, null);
-    }
-  } else {
-    addCard("Fundus Photograph", s.fundusImage, s.heatmapImage);
-    if (s.heatmapImage && s.fundusImage) addCard("Original (no overlay)", s.fundusImage, null);
-  }
-
-  if (!cards.length) {
-    return `<div class="review-image-empty">No fundus image was saved with this scan.</div>`;
-  }
-  return `<div class="review-image-grid">${cards.join("")}</div>`;
+function fundusPhotoOrPlaceholder(imageUrl, missingText) {
+  if (imageUrl) return `<img class="fundus-image-photo" src="${imageUrl}" alt="Fundus photograph" />`;
+  return `<div class="fundus-image-placeholder"><span class="fundus-image-placeholder-icon">📷</span><span>${escapeHtml(missingText)}</span></div>`;
 }
 
-function renderHistoryDetail(scanId) {
-  const s = allScans.find((x) => x.scanId === scanId);
+function heatmapPhotoOrPlaceholder(heatmap) {
+  if (heatmap) {
+    const src = heatmap.startsWith("data:") ? heatmap : "data:image/png;base64," + heatmap;
+    return `<img class="fundus-image-photo" src="${src}" alt="Grad-CAM heatmap" />`;
+  }
+  return `<div class="fundus-image-placeholder"><span class="fundus-image-placeholder-icon">🌡</span><span>Heatmap generated during DR screening</span></div>`;
+}
+
+function renderFundusImageForEye(r) {
+  const drPerformed = !!(r && r.drResult && r.drResult.performed);
+  const glPerformed = !!(r && r.glaucomaResult && r.glaucomaResult.performed);
+  const hrPerformed = !!(r && r.hrResult && r.hrResult.performed);
+  const fundusImage = r && r.fundusImage;
+  const heatmap = r && r.heatmapImage;
+
+  if (drPerformed) {
+    return `
+      <div class="fundus-image-grid">
+        <div class="fundus-image-cell">
+          <div class="fundus-image-label">Fundus Image</div>
+          ${fundusPhotoOrPlaceholder(fundusImage, "Fundus photograph captured during screening")}
+        </div>
+        <div class="fundus-image-cell">
+          <div class="fundus-image-label">Grad-CAM Heatmap</div>
+          ${heatmapPhotoOrPlaceholder(heatmap)}
+        </div>
+      </div>`;
+  }
+
+  if (glPerformed || hrPerformed) {
+    const condition = glPerformed && hrPerformed ? "Glaucoma/HR" : glPerformed ? "Glaucoma" : "HR";
+    return `
+      <div class="fundus-image-cell">
+        <div class="fundus-image-label">Fundus Image — ${escapeHtml(condition)} Screening</div>
+        ${fundusPhotoOrPlaceholder(fundusImage, `Fundus photograph used for ${condition} screening. Grad-CAM heatmap only available for DR screening.`)}
+      </div>`;
+  }
+
+  return `<div class="empty-note">No AI results recorded for this scan.</div>`;
+}
+
+function renderFundusImageBlock(s) {
+  // Note: Mongoose always materializes odResults/osResults as (possibly
+  // empty) objects even when never set, so use hasEyeResults() to check for
+  // actual performed results rather than mere presence of the object.
+  if (hasEyeResults(s.odResults) || hasEyeResults(s.osResults)) {
+    const blocks = [];
+    if (hasEyeResults(s.odResults)) blocks.push(`<div class="fundus-image-eye-title">OD — Right Eye</div>${renderFundusImageForEye(s.odResults)}`);
+    if (hasEyeResults(s.osResults)) blocks.push(`<div class="fundus-image-eye-title"${blocks.length ? ' style="margin-top:18px;"' : ""}>OS — Left Eye</div>${renderFundusImageForEye(s.osResults)}`);
+    return blocks.join("");
+  }
+  return renderFundusImageForEye(s);
+}
+
+async function renderHistoryDetail(scanId) {
+  const cached = allScans.find((x) => x.scanId === scanId);
   const col = document.getElementById("historyDetailCol");
-  if (!s) { col.innerHTML = `<div class="history-detail-empty"><i data-lucide="mouse-pointer-click"></i><span>Select a scan from the left to view details</span></div>`; lucide.createIcons(); return; }
+  if (!cached) { col.innerHTML = `<div class="history-detail-empty"><i data-lucide="mouse-pointer-click"></i><span>Select a scan from the left to view details</span></div>`; lucide.createIcons(); return; }
+
+  const s = (await fetchFullScan(scanId)) || cached;
+  if (selectedHistoryScanId !== scanId) return; // user selected a different scan while this was in flight
 
   const tri = s.triage;
   col.innerHTML = `
@@ -3356,12 +3721,15 @@ function renderHistoryResultBlock(r) {
       </div>`);
   }
   if (r.hrResult && r.hrResult.performed) {
-    const det = r.hrResult.detected;
-    const color = det ? "#DC2626" : "#16A34A";
+    const prob = r.hrResult.probability || 0;
+    const pct = Math.round(prob * 100);
+    const sev = getHRSeverity(prob);
     parts.push(`
-      <div class="detail-block">
-        <div class="big-metric" style="color:${color};font-size:26px;">${det ? "DETECTED" : "NOT DETECTED"}</div>
-        <div class="summary-detail-row"><span>Probability</span><span>${Math.round((r.hrResult.probability || 0) * 100)}%</span></div>
+      <div class="detail-block hr-severity-panel" style="background:${sev.bgColor};border:1px solid ${sev.borderColor};">
+        <span class="hr-severity-badge" style="background:${sev.badgeColor}22;color:${sev.badgeColor};">${sev.icon} ${escapeHtml(sev.label)}</span>
+        <div class="summary-detail-row" style="margin-top:10px;"><span>Probability</span><span>${pct}%</span></div>
+        <p style="font-size:11.5px;color:var(--text);margin-top:6px;">${escapeHtml(sev.severity)}</p>
+        ${r.hrResult.recommendation ? `<p style="font-size:11.5px;color:var(--text);margin-top:6px;"><b>Recommendation:</b> ${escapeHtml(r.hrResult.recommendation)}</p>` : ""}
       </div>`);
   }
   return parts.join("") || '<div class="empty-note">No AI results recorded for this scan.</div>';
@@ -3375,7 +3743,7 @@ async function quickStatusUpdate(scanId, status) {
     });
     if (!res.ok) throw new Error("Update failed");
     delete statusPanelEditMode[scanId];
-    await fetchScans();
+    await fetchScans(true);
     renderHistoryDetail(scanId);
     renderHistory();
     refreshCurrentPage();
@@ -3393,7 +3761,7 @@ async function addQuickNote(scanId) {
       body: JSON.stringify({ notes: combined }),
     });
     if (!res.ok) throw new Error("Update failed");
-    await fetchScans();
+    await fetchScans(true);
     renderHistoryDetail(scanId);
   } catch (err) { showToast("Failed to add note: " + err.message, "error"); }
 }
@@ -3407,23 +3775,37 @@ function renderScanDetailHtml(s) {
   if (s.glaucomaResult && s.glaucomaResult.performed) {
     items.push(`<div class="history-detail-item"><div class="lbl">Glaucoma Risk</div><div class="val">${escapeHtml(s.glaucomaResult.riskLevel || "—")}</div></div>`);
   }
+  let hrBlock = "";
   if (s.hrResult && s.hrResult.performed) {
-    items.push(`<div class="history-detail-item"><div class="lbl">HR Probability</div><div class="val">${Math.round((s.hrResult.probability || 0) * 100)}%</div></div>`);
+    const prob = s.hrResult.probability || 0;
+    const pct = Math.round(prob * 100);
+    const sev = getHRSeverity(prob);
+    items.push(`<div class="history-detail-item"><div class="lbl">HR Probability</div><div class="val">${pct}%</div></div>`);
+    hrBlock = `
+    <div class="hr-severity-panel" style="background:${sev.bgColor};border:1px solid ${sev.borderColor};margin-top:12px;">
+      <span class="hr-severity-badge" style="background:${sev.badgeColor}22;color:${sev.badgeColor};">${sev.icon} ${escapeHtml(sev.label)}</span>
+      <p style="font-size:11.5px;color:var(--text);margin-top:8px;">${escapeHtml(sev.severity)}</p>
+      ${s.hrResult.recommendation ? `<p style="font-size:11.5px;color:var(--text);margin-top:6px;"><b>Recommendation:</b> ${escapeHtml(s.hrResult.recommendation)}</p>` : ""}
+    </div>`;
   }
   items.push(`<div class="history-detail-item"><div class="lbl">Referring Clinician</div><div class="val">${escapeHtml(s.referringClinician || "—")}</div></div>`);
   items.push(`<div class="history-detail-item"><div class="lbl">Institution</div><div class="val">${escapeHtml(s.institution || "—")}</div></div>`);
   return `<div class="history-detail-grid">${items.join("")}</div>
+    ${hrBlock}
     ${s.triage ? `<div class="rec-box" style="margin-top:12px;"><b>${escapeHtml(s.triage.level || "")}:</b> ${escapeHtml(s.triage.description || "")}</div>` : ""}`;
 }
 
 /* ============================================================
    MODAL (used by Patients / Admin "View")
    ============================================================ */
-function openScanModal(scanId) {
-  const s = allScans.find((x) => x.scanId === scanId);
-  if (!s) return;
+async function openScanModal(scanId) {
+  const cached = allScans.find((x) => x.scanId === scanId);
+  if (!cached) return;
+  document.getElementById("modalTitle").dataset.scanId = scanId;
+  const s = (await fetchFullScan(scanId)) || cached;
+  if (document.getElementById("modalTitle").dataset.scanId !== scanId) return; // superseded by another click
+
   document.getElementById("modalTitle").textContent = s.patientName || s.scanId;
-  document.getElementById("modalTitle").dataset.scanId = s.scanId;
   document.getElementById("modalBody").innerHTML = `
     <div class="history-idline" style="margin-bottom:10px;">${escapeHtml(s.scanId)} · ${formatDateTime(s.timestamp)}</div>
     <div class="hd-section">
@@ -3496,11 +3878,14 @@ function renderDoctorTable() {
     </tr>`).join("");
 }
 
-function openReviewModal(id) {
-  const s = allScans.find((x) => x.scanId === id);
-  if (!s) return;
+async function openReviewModal(id) {
+  const cached = allScans.find((x) => x.scanId === id);
+  if (!cached) return;
+  document.getElementById("modalTitle").dataset.scanId = id;
+  const s = (await fetchFullScan(id)) || cached;
+  if (document.getElementById("modalTitle").dataset.scanId !== id) return; // superseded by another click
+
   document.getElementById("modalTitle").textContent = "Review — " + (s.patientName || s.scanId);
-  document.getElementById("modalTitle").dataset.scanId = s.scanId;
   document.getElementById("modalBody").innerHTML = `
     <div class="history-idline" style="margin-bottom:14px;">${escapeHtml(s.scanId)} · ${formatDateTime(s.timestamp)} · <span class="badge ${statusBadgeClass(s.status)}">${statusLabel(s.status)}</span></div>
     <div class="hd-section">
@@ -3688,7 +4073,7 @@ function enterStatusEditMode(scanId) {
 }
 
 async function refreshScanViews(id, refetch) {
-  if (refetch !== false) await fetchScans();
+  if (refetch !== false) await fetchScans(true);
   const modalVisible = document.getElementById("modalOverlay").classList.contains("visible");
   const modalScanId = document.getElementById("modalTitle").dataset.scanId;
   if (modalVisible && modalScanId === id) openReviewModal(id);
@@ -3877,7 +4262,7 @@ async function saveAdminEdit(scanId) {
     });
     if (!res.ok) throw new Error("Update failed");
     closeModal();
-    await fetchScans();
+    await fetchScans(true);
     refreshCurrentPage();
   } catch (err) { showToast("Failed to save changes: " + err.message, "error"); }
 }
@@ -3889,7 +4274,7 @@ async function confirmDeleteScan(scanId) {
   try {
     const res = await fetch("/scans/" + encodeURIComponent(scanId), { method: "DELETE" });
     if (!res.ok) throw new Error("Delete failed");
-    await fetchScans();
+    await fetchScans(true);
     refreshCurrentPage();
   } catch (err) { showToast("Failed to delete scan: " + err.message, "error"); }
 }

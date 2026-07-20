@@ -180,6 +180,10 @@ const scanSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+scanSchema.index({ timestamp: -1 });
+scanSchema.index({ patientId: 1 });
+scanSchema.index({ status: 1 });
+
 const Scan = mongoose.model("Scan", scanSchema);
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -472,8 +476,15 @@ function getRiskLevel(cdr) {
   };
 }
 
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+app.get("/health", async (req, res) => {
+  let dbStatus = "disconnected";
+  try {
+    await mongoose.connection.db.admin().ping();
+    dbStatus = "connected";
+  } catch (e) {
+    dbStatus = "disconnected";
+  }
+  res.json({ status: "ok", mongodb: dbStatus, timestamp: new Date() });
 });
 
 app.post("/predict", upload.single("image"), async (req, res) => {
@@ -612,9 +623,21 @@ app.post("/save-scan", async (req, res) => {
 
 app.get("/scans", async (req, res) => {
   try {
-    const scans = await Scan.find({}, { heatmap: 0 })
+    const limit = parseInt(req.query.limit) || 100;
+    const skip = parseInt(req.query.skip) || 0;
+    const scans = await Scan.find({}, {
+      fundusImage: 0,
+      heatmapImage: 0,
+      "odResults.fundusImage": 0,
+      "odResults.heatmapImage": 0,
+      "osResults.fundusImage": 0,
+      "osResults.heatmapImage": 0,
+    })
       .sort({ timestamp: -1 })
-      .limit(50);
+      .skip(skip)
+      .limit(limit)
+      .allowDiskUse(true)
+      .lean();
     res.json(scans);
   } catch (err) {
     console.error(err);
@@ -624,7 +647,7 @@ app.get("/scans", async (req, res) => {
 
 app.get("/scans/:scanId", async (req, res) => {
   try {
-    const scan = await Scan.findOne({ scanId: req.params.scanId });
+    const scan = await Scan.findOne({ scanId: req.params.scanId }).lean();
     if (!scan) {
       return res.status(404).json({ error: "Scan not found" });
     }

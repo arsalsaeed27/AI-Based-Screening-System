@@ -1,6 +1,7 @@
 import base64
 import os
 import sys
+import threading
 
 import cv2
 import numpy as np
@@ -122,6 +123,14 @@ model.eval()
 
 grad_cam = GradCAM(model, model.stages[-1])
 
+# grad_cam wraps a single shared model instance and stores each request's
+# activations/gradients as instance attributes via forward/backward hooks.
+# Concurrent requests (e.g. OD + OS fired together for a dual-eye scan) could
+# otherwise interleave and clobber each other's hook state, causing both eyes
+# to receive the same or a wrong heatmap. Serialize each request's full
+# forward -> backward -> hook-read cycle so it completes atomically.
+grad_cam_lock = threading.Lock()
+
 
 @app.route("/gradcam", methods=["POST"])
 def gradcam():
@@ -134,7 +143,8 @@ def gradcam():
         return jsonify({"error": "Could not decode image"}), 400
 
     input_tensor, resized_original = preprocess_image(image_bgr)
-    cam, predicted_class = grad_cam.generate(input_tensor)
+    with grad_cam_lock:
+        cam, predicted_class = grad_cam.generate(input_tensor)
     cam = apply_circular_mask(cam, resized_original)
     overlay = overlay_heatmap(cam, resized_original)
     heatmap_b64 = encode_image_base64(overlay)
