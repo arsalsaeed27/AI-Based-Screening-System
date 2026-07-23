@@ -19,5 +19,9 @@
     "node-fetch": "^2.7.0",
     "onnxruntime-node": "^1.27.0",
     "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
