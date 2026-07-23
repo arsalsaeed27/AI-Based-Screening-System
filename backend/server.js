@@ -686,7 +686,7 @@ app.patch("/scans/:scanId", async (req, res) => {
     const scan = await Scan.findOneAndUpdate(
       { scanId: req.params.scanId },
       update,
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!scan) {
       return res.status(404).json({ error: "Scan not found" });
