@@ -1,3 +1,4 @@
+require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
 const dns = require("dns");
@@ -9,6 +10,9 @@ const ort = require("onnxruntime-node");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
 const { spawn } = require("child_process");
+const Groq = require("groq-sdk");
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Node's default DNS resolver can fail SRV lookups (mongodb+srv://) on
 // machines where a local stub resolver/VPN doesn't support that record
@@ -176,6 +180,9 @@ const scanSchema = new mongoose.Schema(
     referralUrgency: String, // Routine / Within 4 weeks / Within 1 week / Immediate
     referralNotes: String,
     referralDate: Date,
+
+    // AI-drafted clinical report (edited/finalized by the reviewing clinician)
+    generatedReport: String,
   },
   { timestamps: true },
 );
@@ -610,6 +617,101 @@ app.post("/predict-hr", upload.single("image"), async (req, res) => {
   }
 });
 
+app.post("/generate-report", express.json(), async (req, res) => {
+  try {
+    const {
+      patientName, patientAge, patientSex, patientEye,
+      diabeticStatus, hba1c, bloodPressure,
+      referringClinician, institution, notes,
+      drResult, glaucomaResult, hrResult,
+      conditionsScreened,
+    } = req.body;
+
+    // Build clinical context
+    const drSection = drResult?.performed ? `
+Diabetic Retinopathy Screening:
+  Grade: ${drResult.grade} — ${drResult.severityLabel}
+  Confidence: ${Math.round(drResult.confidence * 100)}%
+  Referable DR: ${drResult.grade >= 2 ? "Yes" : "No"}
+  Referral guidance: ${drResult.referral}
+  Low confidence flag: ${drResult.lowConfidence ? "Yes" : "No"}
+` : "Diabetic Retinopathy: Not screened";
+
+    const glaucomaSection = glaucomaResult?.performed ? `
+Glaucoma Screening:
+  Cup-to-Disc Ratio (CDR): ${glaucomaResult.cdr}
+  Risk Level: ${glaucomaResult.riskLevel}
+  Risk Detail: ${glaucomaResult.riskDetail}
+  Disc pixels: ${glaucomaResult.discPixels}
+  Cup pixels: ${glaucomaResult.cupPixels}
+` : "Glaucoma: Not screened";
+
+    const hrSection = hrResult?.performed ? `
+Hypertensive Retinopathy Screening:
+  Detected: ${hrResult.detected ? "Yes" : "No"}
+  Probability: ${Math.round(hrResult.probability * 100)}%
+  Risk Level: ${hrResult.riskLevel}
+  Recommendation: ${hrResult.recommendation}
+` : "Hypertensive Retinopathy: Not screened";
+
+    const prompt = `You are a senior ophthalmologist writing a formal clinical report based on AI-assisted retinal screening results. Write in professional medical language. Be concise, accurate, and clinically appropriate.
+
+PATIENT INFORMATION:
+Name: ${patientName || "Not provided"}
+Age: ${patientAge || "Not provided"} years
+Sex: ${patientSex || "Not provided"}
+Eye Examined: ${patientEye || "Not provided"}
+Diabetic Status: ${diabeticStatus || "Not provided"}
+HbA1c: ${hba1c ? hba1c + "%" : "Not provided"}
+Blood Pressure: ${bloodPressure || "Not provided"}
+Referring Clinician: ${referringClinician || "Not provided"}
+Clinical Notes: ${notes || "None"}
+
+AI SCREENING RESULTS:
+${drSection}
+${glaucomaSection}
+${hrSection}
+
+Write a formal clinical report with exactly these four sections:
+
+CLINICAL FINDINGS:
+[Describe what was found in each screened condition. Use clinical terminology. Mention specific values like CDR, DR grade, probability scores where relevant.]
+
+INTERPRETATION:
+[Interpret the clinical significance of the findings. Correlate findings with patient history like diabetic status and blood pressure where relevant.]
+
+RECOMMENDATION:
+[Provide specific actionable recommendations — referral urgency, follow-up timeline, lifestyle advice, further investigations needed.]
+
+FOLLOW-UP:
+[State the recommended follow-up interval and what to monitor.]
+
+Important rules:
+- Do not mention AI, machine learning, or model confidence in the report
+- Write as if a clinician examined the patient directly
+- Use standard ophthalmology terminology
+- Keep each section to 2-4 sentences
+- Be specific with timeframes for follow-up
+- If a condition was not screened, do not mention it`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 1000,
+      temperature: 0.2,
+    });
+
+    const report = completion.choices[0].message.content;
+    res.json({ success: true, report });
+  } catch (err) {
+    console.error("Report generation error:", err);
+    res.status(500).json({
+      error: "Report generation failed",
+      details: err.message,
+    });
+  }
+});
+
 app.post("/save-scan", async (req, res) => {
   try {
     const scan = new Scan(req.body);
@@ -674,6 +776,7 @@ const PATCHABLE_FIELDS = [
   "patientAge",
   "patientSex",
   "referringClinician",
+  "generatedReport",
 ];
 
 app.patch("/scans/:scanId", async (req, res) => {

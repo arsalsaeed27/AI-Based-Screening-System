@@ -525,6 +525,20 @@
 
   .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;padding-top:20px;border-top:1px solid var(--border);}
 
+  /* ============ CLINICAL REPORT PANEL ============ */
+  .report-loading{display:flex;align-items:center;gap:10px;margin-top:18px;font-size:13px;color:var(--muted);font-weight:600;}
+  .report-loading .spin-ring{width:16px;height:16px;border:2px solid rgba(14,165,233,.25);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+  .report-panel{margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .report-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);}
+  .report-panel-title{font-size:14px;font-weight:800;color:var(--navy);}
+  .report-panel-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .report-panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .report-include-toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text);font-weight:600;cursor:pointer;}
+  .report-body{padding:20px 22px;font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+  .report-body[contenteditable="true"]{outline:2px dashed var(--cyan);background:var(--bg);border-radius:8px;}
+  .report-body .report-section-heading{display:block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:16px 0 4px;}
+  .report-body .report-section-heading:first-child{margin-top:0;}
+
   /* ============ TABLE / FILTERS ============ */
   .table-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
   .toolbar-actions{display:flex;gap:10px;align-items:center;}
@@ -1182,8 +1196,32 @@
 
         <div class="action-bar">
           <button class="btn btn-navy" onclick="generatePDF()"><i data-lucide="file-text"></i>Generate PDF Report</button>
+          <button class="btn" onclick="generateClinicalReport()" id="generateReportBtn"><i data-lucide="notebook-pen"></i>Generate Clinical Report</button>
           <button class="btn btn-primary" onclick="saveScanToDb()"><i data-lucide="save"></i>Save to Database</button>
           <button class="btn" onclick="resetScreening()"><i data-lucide="refresh-cw"></i>New Scan</button>
+        </div>
+
+        <div class="report-loading" id="reportLoading" style="display:none;">
+          <span class="spin-ring"></span>
+          <span>Generating clinical report...</span>
+        </div>
+
+        <div class="report-panel" id="reportPanel" style="display:none;">
+          <div class="report-panel-head">
+            <div>
+              <div class="report-panel-title">AI-Generated Clinical Report</div>
+              <div class="report-panel-sub">Draft for physician review — edit before finalizing</div>
+            </div>
+            <div class="report-panel-actions">
+              <label class="report-include-toggle">
+                <input type="checkbox" id="reportIncludeInPdf" checked />
+                Include in PDF
+              </label>
+              <button class="btn" id="reportEditBtn" onclick="toggleReportEdit()"><i data-lucide="pencil"></i>Edit Report</button>
+              <button class="btn btn-primary" onclick="finalizeReport()"><i data-lucide="check-circle"></i>Finalize &amp; Save</button>
+            </div>
+          </div>
+          <div class="report-body" id="reportBody" contenteditable="false"></div>
         </div>
       </div>
     </section>
@@ -1692,6 +1730,7 @@ let activeSubTab = "overview";
 let scanId = null;
 let lastRunSelection = { dr: true, gl: true, hr: true };
 let scanSaved = false;
+let lastGeneratedReport = null;
 
 let patientsPage = 1;
 const PATIENTS_PER_PAGE = 10;
@@ -3098,6 +3137,118 @@ async function saveScanToDb() {
   }
 }
 
+function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function formatReportHtml(text) {
+  const headings = ["CLINICAL FINDINGS:", "INTERPRETATION:", "RECOMMENDATION:", "FOLLOW-UP:"];
+  let html = escapeHtml(text).trim();
+  headings.forEach((h) => {
+    const label = h.slice(0, -1);
+    html = html.replace(
+      new RegExp(escapeRegExp(h), "g"),
+      `<span class="report-section-heading">${label}</span>`,
+    );
+  });
+  return html;
+}
+
+async function generateClinicalReport() {
+  if (!scanId) { showToast("Run an analysis before generating a report.", "warning"); return; }
+
+  const btn = document.getElementById("generateReportBtn");
+  btn.disabled = true;
+  document.getElementById("reportPanel").style.display = "none";
+  document.getElementById("reportLoading").style.display = "flex";
+
+  try {
+    const sel = lastRunSelection;
+    const r = currentResults();
+    const eyeBlock = buildEyeResultBlock(sel, r, null, null);
+    const patient = collectPatientData();
+
+    const conditionsScreened = [];
+    if (sel.dr) conditionsScreened.push("DR");
+    if (sel.gl) conditionsScreened.push("Glaucoma");
+    if (sel.hr) conditionsScreened.push("HR");
+
+    const payload = Object.assign({}, patient, {
+      bloodPressure: document.getElementById("pBp").value || undefined,
+      institution: settings.hospitalName || "Military College of Signals, NUST",
+      conditionsScreened,
+      drResult: eyeBlock.drResult,
+      glaucomaResult: eyeBlock.glaucomaResult,
+      hrResult: eyeBlock.hrResult,
+    });
+
+    const res = await fetch("/generate-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || data.details || "Report generation failed");
+
+    lastGeneratedReport = data.report;
+    document.getElementById("reportBody").innerHTML = formatReportHtml(data.report);
+    document.getElementById("reportBody").setAttribute("contenteditable", "false");
+    document.getElementById("reportEditBtn").innerHTML = '<i data-lucide="pencil"></i>Edit Report';
+    document.getElementById("reportPanel").style.display = "block";
+    lucide.createIcons();
+    showToast("Clinical report generated.", "success");
+  } catch (err) {
+    showToast("Failed to generate report: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    document.getElementById("reportLoading").style.display = "none";
+  }
+}
+
+function toggleReportEdit() {
+  const body = document.getElementById("reportBody");
+  const btn = document.getElementById("reportEditBtn");
+  const editing = body.getAttribute("contenteditable") === "true";
+
+  if (editing) {
+    body.setAttribute("contenteditable", "false");
+    btn.innerHTML = '<i data-lucide="pencil"></i>Edit Report';
+    lastGeneratedReport = body.innerText.trim();
+  } else {
+    body.setAttribute("contenteditable", "true");
+    body.focus();
+    btn.innerHTML = '<i data-lucide="check"></i>Done Editing';
+  }
+  lucide.createIcons();
+}
+
+async function finalizeReport() {
+  const reportText = document.getElementById("reportBody").innerText.trim();
+  if (!reportText) { showToast("Nothing to save — generate a report first.", "warning"); return; }
+  if (!scanId) { showToast("Run an analysis before finalizing a report.", "warning"); return; }
+  if (!scanSaved) { showToast("Save the scan to the database first, then finalize the report.", "warning"); return; }
+
+  lastGeneratedReport = reportText;
+
+  try {
+    const res = await fetch("/scans/" + encodeURIComponent(scanId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generatedReport: reportText }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save report");
+
+    const body = document.getElementById("reportBody");
+    body.setAttribute("contenteditable", "false");
+    document.getElementById("reportEditBtn").innerHTML = '<i data-lucide="pencil"></i>Edit Report';
+    lucide.createIcons();
+
+    await fetchScans(true);
+    showToast("Clinical report finalized and saved.", "success");
+  } catch (err) {
+    showToast("Failed to save report: " + err.message, "error");
+  }
+}
+
 function resetScreening() {
   selectedFile = null; selectedFileOD = null; selectedFileOS = null;
   results = { dr: null, gl: null, hr: null };
@@ -3108,6 +3259,11 @@ function resetScreening() {
   scanId = null; triageData = null; triageOD = null; triageOS = null;
   scanSaved = false; dualEyeMode = false; activeResultEye = "OD";
   activeSubTab = "overview";
+  lastGeneratedReport = null;
+  document.getElementById("reportPanel").style.display = "none";
+  document.getElementById("reportLoading").style.display = "none";
+  document.getElementById("reportBody").innerHTML = "";
+  document.getElementById("reportBody").setAttribute("contenteditable", "false");
 
   ["", "OD", "OS"].forEach((suffix) => {
     const fi = document.getElementById("fileInput" + suffix); if (fi) fi.value = "";
@@ -3157,6 +3313,10 @@ function resetScreening() {
 function generatePDF() {
   if (!scanId) { showToast("Run an analysis before generating a report.", "warning"); return; }
   const payload = buildScanPayload(lastRunSelection);
+  const includeToggle = document.getElementById("reportIncludeInPdf");
+  if (lastGeneratedReport && includeToggle && includeToggle.checked) {
+    payload.generatedReport = lastGeneratedReport;
+  }
   generatePDFReport(payload, currentHeatmap());
 }
 
@@ -3348,6 +3508,26 @@ function generatePDFReport(scan, heatmapForPdf) {
       t("Follow-up date: " + new Date(scan.followUpDate).toLocaleDateString("en-GB"), M, y, 7.5, 15, 23, 42, "bold"); y += 5.5;
     }
     y += 1;
+  }
+
+  if (scan.generatedReport) {
+    ensureSpace(18);
+    sectionHeading("CLINICAL REPORT");
+    doc.setFontSize(7.2); doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "normal");
+    const reportLines = doc.splitTextToSize(scan.generatedReport, W - M * 2);
+    reportLines.forEach((line) => {
+      ensureSpace(4.2);
+      const isHeading = /^(CLINICAL FINDINGS|INTERPRETATION|RECOMMENDATION|FOLLOW-UP):?\s*$/i.test(line.trim());
+      if (isHeading) {
+        doc.setFont("helvetica", "bold"); doc.setTextColor(11, 31, 58); doc.setFontSize(7.6);
+        y += 1.5;
+      } else {
+        doc.setFont("helvetica", "normal"); doc.setTextColor(15, 23, 42); doc.setFontSize(7.2);
+      }
+      doc.text(line, M, y);
+      y += 4.2;
+    });
+    y += 2;
   }
 
   // ── DISCLAIMER + FOOTER (pinned to bottom of the page they land on) ──
