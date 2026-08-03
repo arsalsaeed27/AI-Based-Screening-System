@@ -4,5 +4,6 @@ __pycache__
 *.pyc
 node_modules
 *.onnx
+.env
 
 KGAT_1c8748c568cf53976e8783b8aad7572a*
