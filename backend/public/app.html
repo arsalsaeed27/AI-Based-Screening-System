@@ -3330,7 +3330,7 @@ function generatePDFReport(scan, heatmapForPdf) {
   if (!scan || !scan.scanId) { showToast("No scan data available to generate a report.", "error"); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const W = 210, M = 14;
+  const W = 210, H = 297, M = 12;
   let y = 0;
 
   const fill = (...c) => doc.setFillColor(...c);
@@ -3344,210 +3344,455 @@ function generatePDFReport(scan, heatmapForPdf) {
   };
   const box = (x, y, w, h, fr, fg, fb, sr, sg, sb, slw) => {
     if (fr !== undefined) { fill(fr, fg, fb); doc.rect(x, y, w, h, "F"); }
-    if (sr !== undefined) { stroke(sr, sg, sb); lw(slw || 0.25); doc.rect(x, y, w, h, "S"); }
+    if (sr !== undefined) { stroke(sr, sg, sb); lw(slw || 0.3); doc.rect(x, y, w, h, "S"); }
   };
-  const ln = (x1, y1, x2, y2, r, g, b, w) => { stroke(r || 200, g || 200, b || 200); lw(w || 0.25); doc.line(x1, y1, x2, y2); };
+  const pillBadge = (x, y, w, h, bg, textColor, text, fontSize) => {
+    if (bg) { fill(...bg); doc.roundedRect(x, y, w, h, 1.5, 1.5, "F"); }
+    else { stroke(209, 213, 219); lw(0.3); doc.roundedRect(x, y, w, h, 1.5, 1.5, "S"); }
+    t(text, x + w / 2, y + h / 2 + (fontSize || 7) / 3.2, fontSize || 7, textColor[0], textColor[1], textColor[2], "bold", "center");
+  };
+  const ln = (x1, y1, x2, y2, r, g, b, w) => { stroke(r || 209, g || 213, b || 219); lw(w || 0.3); doc.line(x1, y1, x2, y2); };
   const ensureSpace = (needed) => { if (y + needed > 283) { doc.addPage(); y = 16; } };
-  const sectionHeading = (label) => { t(label, M, y, 6.5, 100, 116, 139, "bold"); ln(M, y + 1.6, W - M, y + 1.6, 226, 232, 240); y += 5.5; };
+  // Fix 6: 4mm gap before a section title, 2mm gap after its underline before content starts.
+  const sectionTitle = (label) => {
+    y += 4;
+    ensureSpace(8.5);
+    t(label, M, y, 10, 28, 43, 58, "bold");
+    ln(M, y + 1.8, W - M, y + 1.8, 209, 213, 219, 0.3);
+    y += 6.5 + 2;
+  };
 
-  const hospitalName = settings.hospitalName || "Military College of Signals, NUST";
-  const department = settings.department || "Ophthalmology Screening Unit";
+  const now = scan.timestamp ? new Date(scan.timestamp) : new Date();
+  const dateStr = now.toLocaleDateString("en-GB");
+  const hasReport = !!(scan.generatedReport && String(scan.generatedReport).trim());
+
+  // Fix 5: detect dual-eye (OU) scans by actual per-eye content, not mere
+  // presence of the odResults/osResults sub-document (Mongoose always
+  // materializes those as objects even when never populated).
+  const isDualEye = hasEyeResults(scan.odResults) || hasEyeResults(scan.osResults);
 
   // ── HEADER ──
-  box(0, 0, W, 22, 11, 31, 58);
-  box(0, 0, 4, 22, 14, 165, 233);
-  t("RETINALSCAN AI — CLINICAL REPORT", M + 3, 9.5, 11, 255, 255, 255, "bold");
-  t(hospitalName + " · " + department, M + 3, 16.5, 7, 148, 199, 245);
-  t("CONFIDENTIAL", W - M, 8.5, 6.5, 147, 197, 253, "bold", "right");
-  t("Not for standalone diagnostic use", W - M, 16, 5.8, 122, 176, 255, "normal", "right");
-  y = 27;
-
-  // ── META STRIP ──
-  const now = scan.timestamp ? new Date(scan.timestamp) : new Date();
-  box(M, y, W - M * 2, 10.5, 240, 244, 248, 224, 231, 240);
-  const meta = [["Scan ID", scan.scanId], ["Date", now.toLocaleDateString("en-GB")], ["Time", now.toLocaleTimeString("en-GB")], ["Status", statusLabel(scan.status)], ["Eye", scan.patientEye || "—"]];
-  const mw = (W - M * 2) / meta.length;
-  meta.forEach(([lbl, val], i) => {
-    const x = M + i * mw + 3;
-    t(lbl.toUpperCase(), x, y + 4, 5, 100, 116, 139, "bold");
-    t(String(val), x, y + 8.3, 7, 15, 23, 42, "bold");
-  });
-  y += 14;
-
-  // ── PATIENT DETAILS ──
-  sectionHeading("PATIENT DETAILS");
-  const pf = [
-    ["Patient name", scan.patientName || "Not recorded"],
-    ["Patient ID", scan.patientId || "Not recorded"],
-    ["Date of birth", scan.patientDob || "Not recorded"],
-    ["Sex", scan.patientSex || "Not recorded"],
-    ["Eye examined", scan.patientEye || "Not recorded"],
-    ["Diabetic status", scan.diabeticStatus || "Not recorded"],
-    ["HbA1c", scan.hba1c ? scan.hba1c + "%" : "Not recorded"],
-    ["Referring clinician", scan.referringClinician || "Not recorded"],
-  ];
-  const pcw = (W - M * 2) / 3;
-  const pRowH = 8.5;
-  const pRows = Math.ceil(pf.length / 3);
-  pf.forEach(([lbl, val], i) => {
-    const col = i % 3, row = Math.floor(i / 3);
-    const px = M + col * pcw, py = y + row * pRowH;
-    t(lbl.toUpperCase(), px, py, 5, 100, 116, 139, "bold");
-    t(String(val), px, py + 4.6, 7.8, 15, 23, 42);
-  });
-  y += pRows * pRowH + 4;
-
-  if (scan.notes) {
-    ensureSpace(14);
-    sectionHeading("PATIENT CLINICAL NOTES");
-    const noteLines = doc.splitTextToSize(scan.notes, W - M * 2);
-    doc.setFontSize(7.5); doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "normal");
-    doc.text(noteLines, M, y);
-    y += noteLines.length * 3.8 + 5;
+  function drawHeader(subtitle) {
+    box(0, 0, W, 18, 28, 43, 58);
+    t("ARMED FORCES INSTITUTE OF OPHTHALMOLOGY", M, 8, 11, 255, 255, 255, "bold");
+    t(subtitle, M, 14, 9, 156, 163, 175, "normal");
+    t("Scan ID: " + scan.scanId, W - M, 7.5, 9, 156, 163, 175, "normal", "right");
+    t("Date: " + dateStr, W - M, 13.5, 9, 156, 163, 175, "normal", "right");
+    y = 24;
   }
 
-  function drawEyeResults(label, eyeScan) {
-    if (!eyeScan) return;
-    ensureSpace(22);
-    if (label) { t(label, M, y, 7.5, 11, 31, 58, "bold"); y += 5; }
-    if (eyeScan.drResult && eyeScan.drResult.performed) {
-      ensureSpace(20);
-      const drCls = eyeScan.drResult.grade;
-      const drColors = [[6, 95, 70], [146, 64, 14], [154, 52, 18], [153, 27, 27], [131, 24, 67]];
-      const drBgs = [[209, 250, 229], [254, 243, 199], [255, 237, 213], [254, 226, 226], [252, 231, 243]];
-      const sc = drColors[drCls], sbg = drBgs[drCls];
-      box(M, y, W - M * 2, 19, sbg[0], sbg[1], sbg[2], 224, 231, 240);
-      doc.setFillColor(...sc); doc.rect(M, y, 2.5, 19, "F");
-      t("DIABETIC RETINOPATHY SCREENING", M + 6, y + 5.5, 5.5, 100, 116, 139, "bold");
-      t(eyeScan.drResult.severityLabel || DR_LABELS[drCls], M + 6, y + 13, 12.5, ...sc, "bold");
-      t("ICDR " + drCls + "/4", W - M - 30, y + 5.5, 5.5, 100, 116, 139, "bold");
-      t(Math.round((eyeScan.drResult.confidence || 0) * 100) + "%", W - M - 30, y + 15, 14, ...sc, "bold");
-      y += 22;
+  // ── PATIENT STRIP ──
+  function drawPatientStrip() {
+    ln(M, y, W - M, y, 209, 213, 219, 0.3);
+    box(M, y, W - M * 2, 12, 249, 250, 251);
+    const bp = scan.bloodPressure || (document.getElementById("pBp") ? document.getElementById("pBp").value : "") || "Not recorded";
 
-      if (settings.includeProbTableInPdf && eyeScan.drResult.scores && eyeScan.drResult.scores.length) {
-        const rowH = 4.1;
-        const tblH = 4.5 + eyeScan.drResult.scores.length * rowH;
-        ensureSpace(tblH + 3);
-        box(M, y, W - M * 2, tblH, 250, 250, 252, 224, 231, 240);
-        t("CLASS PROBABILITY DISTRIBUTION", M + 3.5, y + 3.6, 5, 100, 116, 139, "bold");
-        eyeScan.drResult.scores.forEach((s, i) => {
-          const py = y + 8 + i * rowH;
-          t(DR_LABELS_SHORT[i] || DR_LABELS[i], M + 3.5, py, 6, 51, 65, 81);
-          t(Math.round(s * 100) + "%", W - M - 3.5, py, 6, 51, 65, 81, "normal", "right");
-        });
-        y += tblH + 3;
+    let x = M + 3;
+    const seg = (label, value) => {
+      t(label, x, y + 4.5, 8, 107, 114, 128, "bold");
+      x += doc.getTextWidth(label) + 1.5;
+      t(value, x, y + 4.5, 8, 15, 23, 42, "normal");
+      x += doc.getTextWidth(value) + 5;
+    };
+    seg("Patient:", (scan.patientName || "Not recorded") + "  ·  " + (scan.patientSex || "—") + "/" + (scan.patientAge ?? "—") + "  ·  ID: " + (scan.patientId || "—"));
+
+    x = M + 3;
+    const seg2 = (label, value) => {
+      t(label, x, y + 9, 8, 107, 114, 128, "bold");
+      x += doc.getTextWidth(label) + 1.5;
+      t(value, x, y + 9, 8, 15, 23, 42, "normal");
+      x += doc.getTextWidth(value) + 5;
+    };
+    seg2("DM:", (scan.diabeticStatus || "—") + "  ·  HbA1c: " + (scan.hba1c ? scan.hba1c + "%" : "—") + "  ·  BP: " + bp + "  ·  Eye: " + (scan.patientEye || "—"));
+    t("Ref:", W - M - doc.getTextWidth(scan.referringClinician || "Not recorded") - 3 - doc.getTextWidth("Ref: "), y + 9, 8, 107, 114, 128, "bold");
+    t(scan.referringClinician || "Not recorded", W - M - 3, y + 9, 8, 15, 23, 42, "normal", "right");
+
+    ln(M, y + 12, W - M, y + 12, 209, 213, 219, 0.3);
+    y += 16;
+  }
+
+  // ── IMAGES ROW (Fix 1: 80x80 centered pair; Fix 5: dual-eye 2-column stacked variant) ──
+  function addImageToBox(dataUrl, x, y, boxW, boxH, pad, emptyLabel) {
+    box(x, y, boxW, boxH, undefined, undefined, undefined, 209, 213, 219, 0.3);
+    if (dataUrl) {
+      const imgW = boxW - pad * 2, imgH = boxH - pad * 2;
+      try { doc.addImage(dataUrl, "PNG", x + pad, y + pad, imgW, imgH); }
+      catch (e) { try { doc.addImage(dataUrl, "JPEG", x + pad, y + pad, imgW, imgH); } catch (e2) {} }
+    } else {
+      t(emptyLabel, x + boxW / 2, y + boxH / 2 + 2, 7.5, 156, 163, 175, "normal", "center");
+    }
+  }
+
+  function drawImagesRowSingleEye() {
+    const boxSize = 48, gap = 6, pad = 2;
+    const pairWidth = boxSize * 2 + gap;
+    const leftX = M + (186 - pairWidth) / 2;
+    const rightX = leftX + boxSize + gap;
+
+    t("FUNDUS IMAGE (" + (scan.patientEye || "OD/OS") + ")", leftX + boxSize / 2, y, 7, 107, 114, 128, "normal", "center");
+    t("GRAD-CAM HEATMAP (" + (scan.patientEye || "OD/OS") + ")", rightX + boxSize / 2, y, 7, 107, 114, 128, "normal", "center");
+    y += 3;
+
+    const fundus = scan.fundusImage;
+    const heatmap = heatmapForPdf ? "data:image/png;base64," + heatmapForPdf : scan.heatmapImage;
+    addImageToBox(fundus, leftX, y, boxSize, boxSize, pad, "No fundus image available");
+    addImageToBox(heatmap, rightX, y, boxSize, boxSize, pad, "Heatmap not available");
+
+    y += boxSize + 3;
+  }
+
+  function drawImagesRowDualEye() {
+    const boxSize = 42, colGap = 6, rowGap = 3, pad = 2;
+    const colW = (186 - colGap) / 2;
+    const odX = M + (colW - boxSize) / 2;
+    const osX = M + colW + colGap + (colW - boxSize) / 2;
+    const startY = y;
+
+    t("RIGHT EYE (OD)", M + colW / 2, y, 7.5, 28, 43, 58, "bold", "center");
+    t("LEFT EYE (OS)", M + colW + colGap + colW / 2, y, 7.5, 28, 43, 58, "bold", "center");
+    y += 4;
+
+    const odFundus = (scan.odResults && scan.odResults.fundusImage) || null;
+    const odHeatmap = (scan.odResults && scan.odResults.heatmapImage) || null;
+    const osFundus = (scan.osResults && scan.osResults.fundusImage) || null;
+    const osHeatmap = (scan.osResults && scan.osResults.heatmapImage) || null;
+
+    t("FUNDUS", odX + boxSize / 2, y + 3, 6.5, 107, 114, 128, "normal", "center");
+    t("FUNDUS", osX + boxSize / 2, y + 3, 6.5, 107, 114, 128, "normal", "center");
+    y += 5;
+    addImageToBox(odFundus, odX, y, boxSize, boxSize, pad, "No image");
+    addImageToBox(osFundus, osX, y, boxSize, boxSize, pad, "No image");
+    y += boxSize + rowGap;
+
+    t("GRAD-CAM", odX + boxSize / 2, y + 3, 6.5, 107, 114, 128, "normal", "center");
+    t("GRAD-CAM", osX + boxSize / 2, y + 3, 6.5, 107, 114, 128, "normal", "center");
+    y += 5;
+    addImageToBox(odHeatmap, odX, y, boxSize, boxSize, pad, "Not available");
+    addImageToBox(osHeatmap, osX, y, boxSize, boxSize, pad, "Not available");
+    y += boxSize + 4;
+  }
+
+  // ── FIX 2: STATUS BADGES REFLECT ACTUAL RESULTS ──
+  function drBadge(grade) {
+    const table = [
+      { text: "NO DR", tc: [6, 95, 70], bg: [240, 253, 244] },
+      { text: "MILD", tc: [146, 64, 14], bg: [255, 251, 235] },
+      { text: "REFER", tc: [180, 83, 9], bg: [255, 253, 247] },
+      { text: "URGENT", tc: [153, 27, 27], bg: [255, 245, 245] },
+      { text: "EMERGENCY", tc: [127, 29, 29], bg: [254, 242, 242] },
+    ];
+    return table[grade] || { text: "—", tc: [55, 65, 81], bg: null };
+  }
+  function glaucomaBadge(cdr) {
+    if (typeof cdr !== "number") return { text: "ASSESSED", tc: [55, 65, 81], bg: null };
+    if (cdr < 0.5) return { text: "NORMAL", tc: [6, 95, 70], bg: [240, 253, 244] };
+    if (cdr <= 0.6) return { text: "MONITOR", tc: [29, 78, 216], bg: [239, 246, 255] };
+    return { text: "REFER", tc: [180, 83, 9], bg: [255, 253, 247] };
+  }
+  function hrBadge(probability) {
+    const p = probability || 0;
+    if (p > 0.9) return { text: "HIGH RISK", tc: [127, 29, 29], bg: [254, 242, 242] };
+    if (p > 0.6) return { text: "DETECTED", tc: [153, 27, 27], bg: [255, 245, 245] };
+    if (p >= 0.2) return { text: "BORDERLINE", tc: [146, 64, 14], bg: [255, 251, 235] };
+    return { text: "CLEAR", tc: [6, 95, 70], bg: [240, 253, 244] };
+  }
+
+  // ── CONDITION BLOCKS (single-eye) ──
+  function conditionBlock(opts) {
+    const { title, bg, borderColor, badge, rows } = opts;
+    y += 3;
+    const rowH = 4.1;
+    const blockH = 6.5 + rows.length * rowH + 1;
+    ensureSpace(blockH + 2);
+
+    box(M, y, W - M * 2, blockH, bg[0], bg[1], bg[2], 229, 231, 235, 0.3);
+    doc.setFillColor(...borderColor); doc.rect(M, y, 1.5, blockH, "F");
+
+    t(title, M + 6, y + 5, 9, 0, 0, 0, "bold");
+    const badgeW = doc.getTextWidth(badge.text) + 6;
+    const badgeH = 6;
+    const badgeX = W - M - 4 - badgeW;
+    pillBadge(badgeX, y + 1.7, badgeW, badgeH, badge.bg, badge.tc, badge.text, 7);
+
+    let ry = y + 9.5;
+    rows.forEach(([label, value, ref]) => {
+      t(label, M + 6, ry, 6.5, 107, 114, 128, "bold");
+      const lx = M + 26;
+      t(value, lx, ry, 7.5, 15, 23, 42, "normal");
+      if (ref) {
+        t(ref, lx + doc.getTextWidth(value) + 3, ry, 6.5, 156, 163, 175, "normal");
       }
-    }
-    if (eyeScan.glaucomaResult && eyeScan.glaucomaResult.performed) {
-      ensureSpace(15);
-      const cdr = eyeScan.glaucomaResult.cdr || 0;
-      const cdrC = cdr > 0.7 ? [153, 27, 27] : cdr > 0.5 ? [154, 52, 18] : cdr > 0.3 ? [146, 64, 14] : [6, 95, 70];
-      const cdrBg = cdr > 0.7 ? [254, 226, 226] : cdr > 0.5 ? [255, 237, 213] : cdr > 0.3 ? [254, 243, 199] : [209, 250, 229];
-      box(M, y, W - M * 2, 14, cdrBg[0], cdrBg[1], cdrBg[2], 224, 231, 240);
-      doc.setFillColor(...cdrC); doc.rect(M, y, 2.5, 14, "F");
-      t("GLAUCOMA SCREENING — CUP-TO-DISC RATIO", M + 6, y + 5, 5.5, 100, 116, 139, "bold");
-      t("CDR " + cdr.toFixed(2) + " · " + (eyeScan.glaucomaResult.riskLevel || "Normal"), M + 6, y + 11, 9.5, ...cdrC, "bold");
-      y += 17;
-    }
-    if (eyeScan.hrResult && eyeScan.hrResult.performed) {
-      ensureSpace(15);
-      const hrDet = eyeScan.hrResult.detected || false;
-      const hrP = Math.round((eyeScan.hrResult.probability || 0) * 100);
-      const hrC = hrDet ? [153, 27, 27] : [6, 95, 70];
-      const hrBg = hrDet ? [254, 226, 226] : [209, 250, 229];
-      box(M, y, W - M * 2, 14, hrBg[0], hrBg[1], hrBg[2], 224, 231, 240);
-      doc.setFillColor(...hrC); doc.rect(M, y, 2.5, 14, "F");
-      t("HYPERTENSIVE RETINOPATHY SCREENING", M + 6, y + 5, 5.5, 100, 116, 139, "bold");
-      t((hrDet ? "HR DETECTED" : "NO HR DETECTED") + " · Probability " + hrP + "%", M + 6, y + 11, 9.5, ...hrC, "bold");
-      y += 17;
-    }
-  }
-
-  if (hasEyeResults(scan.odResults) || hasEyeResults(scan.osResults)) {
-    drawEyeResults("OD — RIGHT EYE", scan.odResults);
-    drawEyeResults("OS — LEFT EYE", scan.osResults);
-  } else {
-    drawEyeResults(null, scan);
-  }
-
-  if (settings.includeHeatmapInPdf && heatmapForPdf) {
-    ensureSpace(42);
-    sectionHeading("GRAD-CAM ATTENTION HEATMAP");
-    try {
-      doc.addImage("data:image/png;base64," + heatmapForPdf, "PNG", M, y, 38, 38);
-      t("Red/orange regions indicate areas where the AI detected", M + 44, y + 8, 7.5, 15, 23, 42);
-      t("signs of diabetic retinopathy, generated using Gradient-", M + 44, y + 13.5, 7.5, 15, 23, 42);
-      t("weighted Class Activation Mapping (Grad-CAM).", M + 44, y + 19, 7.5, 15, 23, 42);
-      y += 42;
-    } catch (e) { y += 3; }
-  }
-
-  if (scan.triage) {
-    ensureSpace(26);
-    sectionHeading("CLINICAL RECOMMENDATION");
-    box(M, y, W - M * 2, 19, 254, 226, 226, 220, 38, 38);
-    doc.setFillColor(220, 38, 38); doc.rect(M, y, 2.5, 19, "F");
-    t(scan.triage.level, M + 6, y + 5, 5.5, 100, 116, 139, "bold");
-    t(scan.triage.mainMessage, M + 6, y + 10.5, 9, 15, 23, 42, "bold");
-    const descLines = doc.splitTextToSize(scan.triage.description || "", W - M * 2 - 14).slice(0, 1);
-    doc.setFontSize(6.8); doc.setTextColor(55, 65, 81); doc.setFont("helvetica", "normal");
-    doc.text(descLines, M + 6, y + 15.5);
-    y += 23;
-  }
-
-  if (scan.status === "reviewed" || scan.referredTo || scan.followUpDate) {
-    ensureSpace(18);
-    sectionHeading("DOCTOR REVIEW");
-    if (scan.status === "reviewed" && scan.reviewedBy) {
-      t("Reviewed by: " + scan.reviewedBy + " · Approved by attending clinician", M, y, 7.5, 15, 23, 42, "bold"); y += 5.5;
-    }
-    if (scan.referredTo) {
-      t("Referred to: " + scan.referredTo + (scan.referralUrgency ? " (" + scan.referralUrgency + ")" : ""), M, y, 7.5, 153, 27, 27, "bold"); y += 5.5;
-    }
-    if (scan.followUpDate) {
-      t("Follow-up date: " + new Date(scan.followUpDate).toLocaleDateString("en-GB"), M, y, 7.5, 15, 23, 42, "bold"); y += 5.5;
-    }
-    y += 1;
-  }
-
-  if (scan.generatedReport) {
-    ensureSpace(18);
-    sectionHeading("CLINICAL REPORT");
-    doc.setFontSize(7.2); doc.setTextColor(15, 23, 42); doc.setFont("helvetica", "normal");
-    const reportLines = doc.splitTextToSize(scan.generatedReport, W - M * 2);
-    reportLines.forEach((line) => {
-      ensureSpace(4.2);
-      const isHeading = /^(CLINICAL FINDINGS|INTERPRETATION|RECOMMENDATION|FOLLOW-UP):?\s*$/i.test(line.trim());
-      if (isHeading) {
-        doc.setFont("helvetica", "bold"); doc.setTextColor(11, 31, 58); doc.setFontSize(7.6);
-        y += 1.5;
-      } else {
-        doc.setFont("helvetica", "normal"); doc.setTextColor(15, 23, 42); doc.setFontSize(7.2);
-      }
-      doc.text(line, M, y);
-      y += 4.2;
+      ry += rowH;
     });
-    y += 2;
+
+    y += blockH;
   }
 
-  // ── DISCLAIMER + FOOTER (pinned to bottom of the page they land on) ──
-  ensureSpace(24);
-  box(M, y, W - M * 2, 15, 255, 251, 235, 249, 168, 37);
-  t("CLINICAL DISCLAIMER", M + 3.5, y + 4.5, 5.5, 230, 81, 0, "bold");
-  const disc = "This AI-assisted screening report supports, not replaces, the judgment of a qualified ophthalmologist. All findings must be independently reviewed by a licensed clinician before any clinical decision is made.";
-  const dlines = doc.splitTextToSize(disc, W - M * 2 - 7);
-  doc.setFontSize(6); doc.setTextColor(93, 64, 55); doc.setFont("helvetica", "normal");
-  doc.text(dlines, M + 3.5, y + 9);
-  y += 19;
+  // ── CONDITION BLOCKS (dual-eye: OD / OS sub-blocks side by side) ──
+  function conditionBlockDual(opts) {
+    const { title, bg, borderColor, odBadge, osBadge, odRows, osRows } = opts;
+    y += 3;
+    const rowH = 4.2;
+    const maxRows = Math.max(odRows.length, osRows.length);
+    const blockH = 13 + maxRows * rowH + 1.5;
+    ensureSpace(blockH + 3);
 
-  ensureSpace(8);
-  ln(M, y, W - M, y, 10, 38, 71, 0.4);
-  y += 4;
-  const footerText = settings.footerText || (hospitalName + "  ·  RetinalScan AI v2.0");
-  t(footerText, W / 2, y, 6, 100, 116, 139, "normal", "center");
-  t("Generated " + new Date().toLocaleDateString("en-GB") + " " + new Date().toLocaleTimeString("en-GB"), W - M, y, 6, 100, 116, 139, "normal", "right");
+    box(M, y, W - M * 2, blockH, bg[0], bg[1], bg[2], 229, 231, 235, 0.3);
+    doc.setFillColor(...borderColor); doc.rect(M, y, 1.5, blockH, "F");
+    t(title, M + 6, y + 5.5, 9, 0, 0, 0, "bold");
 
-  doc.save("RetinalScan_Report_" + (scan.patientId ? scan.patientId + "_" : "") + scan.scanId + ".pdf");
+    const colW = (W - M * 2 - 12) / 2;
+    const odX = M + 6, osX = M + 6 + colW + 6;
+    const subY = y + 10;
+
+    [{ x: odX, label: "OD", badge: odBadge, rows: odRows }, { x: osX, label: "OS", badge: osBadge, rows: osRows }].forEach((col) => {
+      t(col.label, col.x, subY, 7.5, 28, 43, 58, "bold");
+      const badgeW = doc.getTextWidth(col.badge.text) + 6, badgeH = 5.5;
+      pillBadge(col.x + colW - badgeW, subY - 4, badgeW, badgeH, col.badge.bg, col.badge.tc, col.badge.text, 6.5);
+      let ry = subY + 4.5;
+      col.rows.forEach(([label, value]) => {
+        t(label, col.x, ry, 6.5, 107, 114, 128, "bold");
+        t(value, col.x + 15, ry, 7, 15, 23, 42, "normal");
+        ry += rowH;
+      });
+    });
+
+    y += blockH;
+  }
+
+  function drawDrBlock() {
+    if (isDualEye) {
+      const odDr = scan.odResults && scan.odResults.drResult;
+      const osDr = scan.osResults && scan.osResults.drResult;
+      if (!(odDr && odDr.performed) && !(osDr && osDr.performed)) return;
+      const rowsFor = (dr) => !dr || !dr.performed ? [["Grade:", "Not screened"]] : [
+        ["Grade:", dr.grade + " — " + (dr.severityLabel || DR_LABELS[dr.grade] || "")],
+        ["Confidence:", Math.round((dr.confidence || 0) * 100) + "%"],
+        ["Notes:", DR_GRADES[dr.grade] || dr.severityLabel || "—"],
+      ];
+      conditionBlockDual({
+        title: "DIABETIC RETINOPATHY",
+        bg: [255, 253, 247], borderColor: [180, 83, 9],
+        odBadge: odDr && odDr.performed ? drBadge(odDr.grade) : { text: "—", tc: [156, 163, 175], bg: null },
+        osBadge: osDr && osDr.performed ? drBadge(osDr.grade) : { text: "—", tc: [156, 163, 175], bg: null },
+        odRows: rowsFor(odDr), osRows: rowsFor(osDr),
+      });
+      return;
+    }
+    const dr = scan.drResult;
+    if (!dr || !dr.performed) return;
+    const grade = dr.grade;
+    conditionBlock({
+      title: "DIABETIC RETINOPATHY",
+      bg: [255, 253, 247],
+      borderColor: [180, 83, 9],
+      badge: drBadge(grade),
+      rows: [
+        ["Grade:", (grade ?? "—") + " — " + (dr.severityLabel || DR_LABELS[grade] || ""), "[range: 0–4 · refer at Grade 2+]"],
+        ["Confidence:", Math.round((dr.confidence || 0) * 100) + "%", ""],
+        ["Notes:", DR_GRADES[grade] || dr.severityLabel || "—", "[DME risk elevated at Grade 2+]"],
+      ],
+    });
+  }
+
+  function drawGlaucomaBlock() {
+    if (isDualEye) {
+      const odGl = scan.odResults && scan.odResults.glaucomaResult;
+      const osGl = scan.osResults && scan.osResults.glaucomaResult;
+      if (!(odGl && odGl.performed) && !(osGl && osGl.performed)) return;
+      const rowsFor = (gl) => !gl || !gl.performed ? [["CDR:", "Not screened"]] : [
+        ["CDR:", typeof gl.cdr === "number" ? gl.cdr.toFixed(2) : "—"],
+        ["Notes:", gl.riskDetail || gl.riskLevel || "—"],
+      ];
+      conditionBlockDual({
+        title: "GLAUCOMA",
+        bg: [248, 250, 252], borderColor: [75, 108, 183],
+        odBadge: odGl && odGl.performed ? glaucomaBadge(odGl.cdr) : { text: "—", tc: [156, 163, 175], bg: null },
+        osBadge: osGl && osGl.performed ? glaucomaBadge(osGl.cdr) : { text: "—", tc: [156, 163, 175], bg: null },
+        odRows: rowsFor(odGl), osRows: rowsFor(osGl),
+      });
+      return;
+    }
+    const gl = scan.glaucomaResult;
+    if (!gl || !gl.performed) return;
+    const cdrOD = typeof gl.cdr === "number" ? gl.cdr.toFixed(2) : "—";
+    conditionBlock({
+      title: "GLAUCOMA",
+      bg: [248, 250, 252],
+      borderColor: [75, 108, 183],
+      badge: glaucomaBadge(gl.cdr),
+      rows: [
+        ["CDR:", "OD " + cdrOD + " / OS —", "[normal <0.5 · concern >0.6]"],
+        ["RNFL:", "OD — / OS —", "[normal 90–120 µm]"],
+        ["Symmetry:", "—", "[normal >85%]"],
+        ["Notes:", gl.riskDetail || gl.riskLevel || "—", "[correlate with IOP]"],
+      ],
+    });
+  }
+
+  function drawHrBlock() {
+    if (isDualEye) {
+      const odHr = scan.odResults && scan.odResults.hrResult;
+      const osHr = scan.osResults && scan.osResults.hrResult;
+      if (!(odHr && odHr.performed) && !(osHr && osHr.performed)) return;
+      const rowsFor = (hr) => !hr || !hr.performed ? [["Status:", "Not screened"]] : [
+        ["Status:", hr.detected ? "Detected" : "Not detected"],
+        ["Probability:", Math.round((hr.probability || 0) * 100) + "%"],
+        ["Notes:", hr.recommendation || "—"],
+      ];
+      conditionBlockDual({
+        title: "HYPERTENSIVE RETINOPATHY",
+        bg: [248, 255, 254], borderColor: [45, 125, 90],
+        odBadge: odHr && odHr.performed ? hrBadge(odHr.probability) : { text: "—", tc: [156, 163, 175], bg: null },
+        osBadge: osHr && osHr.performed ? hrBadge(osHr.probability) : { text: "—", tc: [156, 163, 175], bg: null },
+        odRows: rowsFor(odHr), osRows: rowsFor(osHr),
+      });
+      return;
+    }
+    const hr = scan.hrResult;
+    if (!hr || !hr.performed) return;
+    const prob = Math.round((hr.probability || 0) * 100);
+    const bp = scan.bloodPressure || "—";
+    conditionBlock({
+      title: "HYPERTENSIVE RETINOPATHY",
+      bg: [248, 255, 254],
+      borderColor: [45, 125, 90],
+      badge: hrBadge(hr.probability),
+      rows: [
+        ["Status:", hr.detected ? "Detected" : "Not detected", "[flag if probability >20%]"],
+        ["Probability:", prob + "%", ""],
+        ["Notes:", hr.recommendation || "No AV changes noted", "[BP: " + bp + "]"],
+      ],
+    });
+  }
+
+  // ── FOLLOW-UP (Fix 3: urgency-based interval, not a flat +1 year) ──
+  function computeNextScreening() {
+    const level = (scan.triage && scan.triage.level) || "";
+    const grade = scan.drResult && scan.drResult.performed ? scan.drResult.grade : null;
+    if (/EMERGENCY/i.test(level) || grade === 4) {
+      return "Immediate — within 24–48 hours (Emergency)";
+    }
+    if (/URGENT REFERRAL/i.test(level) || grade === 3) {
+      return "Within 2–4 weeks";
+    }
+    if (/NON-URGENT|MONITORING/i.test(level) || grade === 2) {
+      const d = new Date(now); d.setMonth(d.getMonth() + 6);
+      return "6 months — " + d.toLocaleDateString("en-GB");
+    }
+    const d = new Date(now); d.setMonth(d.getMonth() + 12);
+    return "12 months — " + d.toLocaleDateString("en-GB");
+  }
+
+  function drawFollowUp() {
+    sectionTitle("FOLLOW-UP");
+    ensureSpace(10);
+    const urgency = (scan.triage && scan.triage.level) || "Routine";
+    t("Next screening: " + computeNextScreening() + "     Urgency: " + urgency, M, y, 8, 15, 23, 42, "bold");
+    y += 5;
+    t("Follow-up notes: " + "_".repeat(60), M, y, 8, 107, 114, 128, "normal");
+    y += 5;
+  }
+
+  // ── DISCLAIMER ──
+  function drawDisclaimer() {
+    y += 4;
+    ensureSpace(10);
+    t("AI-assisted preliminary screening. Clinical correlation required. This report does not constitute a final diagnosis.", M, y, 7, 156, 163, 175, "normal");
+    y += 3.2;
+    t("All findings must be reviewed and countersigned by a qualified clinician before clinical action.", M, y, 7, 156, 163, 175, "normal");
+    y += 4.5;
+  }
+
+  // ── SIGNATURES (Fix 4: official stamp centered BELOW the three columns) ──
+  function drawSignatures() {
+    y += 4;
+    const stampW = 60, stampH = 16;
+    ensureSpace(5 + 13 + stampH);
+    ln(M, y, W - M, y, 209, 213, 219, 0.3);
+    y += 5;
+    const colW = (W - M * 2) / 3;
+    const cols = [
+      ["Reviewed by", "Designation", "Date"],
+      ["Referring doctor", "Designation", "Date"],
+      ["Specialist", "Designation", "Date"],
+    ];
+    cols.forEach((col, i) => {
+      const cx = M + i * colW;
+      ln(cx, y, cx + colW - 10, y, 156, 163, 175, 0.3);
+      t(col[0], cx, y + 3, 7, 107, 114, 128, "normal");
+      t(col[1] + ": ____________", cx, y + 6.8, 7, 107, 114, 128, "normal");
+      t(col[2] + ": ____________", cx, y + 10.6, 7, 107, 114, 128, "normal");
+    });
+    y += 13;
+
+    const stampX = M + ((W - M * 2) - stampW) / 2;
+    doc.setLineDashPattern([1, 1], 0);
+    box(stampX, y, stampW, stampH, undefined, undefined, undefined, 156, 163, 175, 0.4);
+    doc.setLineDashPattern([], 0);
+    t("OFFICIAL STAMP", stampX + stampW / 2, y + stampH / 2 + 1, 6.5, 156, 163, 175, "normal", "center");
+    y += stampH;
+  }
+
+  // ═══ PAGE 1 ═══
+  drawHeader("Retinal Disease Screening Report  ·  AFIO ScanAI v2.0");
+  drawPatientStrip();
+  if (isDualEye) drawImagesRowDualEye(); else drawImagesRowSingleEye();
+
+  sectionTitle("SCREENING RESULTS");
+  drawDrBlock();
+  drawGlaucomaBlock();
+  drawHrBlock();
+
+  drawFollowUp();
+  drawDisclaimer();
+  drawSignatures();
+
+  // ═══ PAGE 2 — CLINICAL NOTES (only if a generated report exists) ═══
+  if (hasReport) {
+    doc.addPage();
+    drawHeader("Clinical Notes — AI Generated");
+    drawPatientStrip();
+
+    sectionTitle("CLINICAL NOTES");
+    t("Generated by AFIO ScanAI NLP · Requires physician review before use", M, y, 7, 156, 163, 175, "normal");
+    y += 7;
+
+    const reportLines = String(scan.generatedReport).split("\n");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+    reportLines.forEach((rawLine) => {
+      const line = rawLine.trim();
+      if (!line) { y += 4; return; }
+      const isHeading = /^(CLINICAL FINDINGS|INTERPRETATION|RECOMMENDATION|FOLLOW-UP):?\s*$/i.test(line);
+      const wrapped = doc.splitTextToSize(line, W - M * 2);
+      ensureSpace(wrapped.length * 5 + 2);
+      if (isHeading) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(28, 43, 58);
+        y += 2;
+      } else {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+      }
+      doc.text(wrapped, M, y, { lineHeightFactor: 1.4 });
+      y += wrapped.length * 5;
+    });
+    y += 4;
+
+    drawDisclaimer();
+    ensureSpace(10);
+    t("Verified by: ______________________     Designation: ______________________     Date: ________", M, y, 7.5, 55, 65, 81, "normal");
+  }
+
+  // Page numbers are stamped last, once the true page count is known —
+  // Fix 1/5/6 can push content to extra pages depending on image sizes and
+  // eye mode, so this can't be precomputed up front.
+  const totalPagesActual = doc.getNumberOfPages();
+  for (let p = 1; p <= totalPagesActual; p++) {
+    doc.setPage(p);
+    t("Page " + p + " of " + totalPagesActual, W / 2, H - 8, 7, 107, 114, 128, "normal", "center");
+  }
+
+  const idPart = scan.patientId ? scan.patientId + "_" : "";
+  doc.save("AFIO_Report_" + idPart + scan.scanId + ".pdf");
 }
 
 /* ============================================================
