@@ -17,6 +17,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="/socket.io/socket.io.js"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   :root{
@@ -488,6 +489,25 @@
   .ocr-summary-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border);}
   .ocr-loading-inline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:10px;}
   .ocr-loading-inline .spin-ring{width:14px;height:14px;border:2px solid rgba(14,165,233,.25);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;}
+
+  /* ============ SHARED FOLDER MONITOR ============ */
+  .folder-monitor-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+  .folder-monitor-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .folder-monitor-title{font-size:12.5px;font-weight:700;color:var(--text);}
+  .folder-monitor-path{font-size:11px;color:var(--muted);margin-bottom:10px;font-family:"SF Mono",Consolas,monospace;}
+  .folder-monitor-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:11.5px;background:var(--surface);}
+  .folder-monitor-item-name{font-weight:600;color:var(--text);word-break:break-all;}
+  .folder-monitor-item-meta{color:var(--muted);font-size:10.5px;margin-top:2px;}
+  .folder-monitor-item-time{color:var(--muted);font-size:10.5px;white-space:nowrap;flex-shrink:0;}
+
+  /* ============ FOLDER-WATCHER NOTIFICATIONS (bottom-right) ============ */
+  .folder-toast-container{position:fixed;bottom:20px;right:20px;z-index:1250;display:flex;flex-direction:column;gap:10px;max-width:340px;pointer-events:none;}
+  .folder-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;background:#065F46;color:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:12px 14px;animation:toastIn .25s cubic-bezier(.4,0,.2,1);}
+  .folder-toast.leaving{animation:toastOut .2s ease forwards;}
+  .folder-toast-icon{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .folder-toast-icon i{width:14px;height:14px;stroke:#fff;}
+  .folder-toast-title{font-size:12.5px;font-weight:800;margin-bottom:2px;}
+  .folder-toast-msg{font-size:11px;opacity:.9;line-height:1.4;}
 
   .triage-banner{
     border-radius:var(--radius-lg);padding:18px 22px;display:flex;align-items:flex-start;gap:16px;
@@ -1396,6 +1416,17 @@
               <span class="spin-ring" id="ocrSummarySpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;"></span>
               <i data-lucide="sparkles" id="ocrSummaryBtnIcon"></i> Generate AI Summary
             </button>
+
+            <div class="folder-monitor-section">
+              <div class="folder-monitor-head">
+                <span class="status-dot"></span>
+                <span class="folder-monitor-title">Shared Folder Monitor</span>
+              </div>
+              <div class="folder-monitor-path">Watching: backend/shared_folder/</div>
+              <div id="folderMonitorList">
+                <div class="empty-note" id="folderMonitorEmpty">No files processed from the shared folder yet.</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1707,6 +1738,9 @@
 <!-- ============ TOASTS ============ -->
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- ============ FOLDER WATCHER NOTIFICATIONS ============ -->
+<div class="folder-toast-container" id="folderToastContainer"></div>
+
 <!-- ============ IMAGE LIGHTBOX ============ -->
 <div class="image-lightbox" id="imageLightbox" onclick="closeImageLightbox()">
   <button class="image-lightbox-close" onclick="closeImageLightbox()"><i data-lucide="x"></i></button>
@@ -1915,6 +1949,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSidebar();
   initFileUpload();
   initOcrUpload();
+  initFolderWatcherSocket();
   initDobAutoAge();
   initGlobalSearch();
   initPatientSearch();
@@ -5203,6 +5238,70 @@ function downloadOcrSummaryPdf() {
   t("AI-generated interpretation — requires physician review before clinical use.", M, y, 6.5, 156, 163, 175, "normal");
 
   doc.save("AFIO_MachineReport_" + Date.now() + ".pdf");
+}
+
+/* ============================================================
+   SHARED FOLDER WATCHER — live notifications via Socket.IO
+   ============================================================ */
+let folderMonitorFiles = [];
+
+function initFolderWatcherSocket() {
+  if (typeof io === "undefined") {
+    console.warn("Socket.IO client not available — shared folder notifications disabled.");
+    return;
+  }
+
+  const socket = io();
+
+  socket.on("new_scan_from_folder", (data) => {
+    const machineType = (data.structured && data.structured.machine_type) || "Unknown Machine";
+    showFolderNotification(data.filename, machineType);
+    addFolderMonitorEntry(data.filename, machineType, data.timestamp);
+  });
+}
+
+function showFolderNotification(filename, machineType) {
+  const container = document.getElementById("folderToastContainer");
+  const el = document.createElement("div");
+  el.className = "folder-toast";
+  el.innerHTML = `
+    <div class="folder-toast-icon"><i data-lucide="folder-check"></i></div>
+    <div>
+      <div class="folder-toast-title">New report processed from shared folder</div>
+      <div class="folder-toast-msg">${escapeHtml(machineType)} · ${escapeHtml(filename)}</div>
+    </div>
+  `;
+  container.appendChild(el);
+  lucide.createIcons();
+
+  setTimeout(() => {
+    el.classList.add("leaving");
+    setTimeout(() => el.remove(), 200);
+  }, 5000);
+}
+
+function addFolderMonitorEntry(filename, machineType, timestamp) {
+  folderMonitorFiles.unshift({ filename, machineType, timestamp });
+  folderMonitorFiles = folderMonitorFiles.slice(0, 5);
+  renderFolderMonitorList();
+}
+
+function renderFolderMonitorList() {
+  const empty = document.getElementById("folderMonitorEmpty");
+  const list = document.getElementById("folderMonitorList");
+  if (!folderMonitorFiles.length) {
+    if (empty) empty.style.display = "block";
+    return;
+  }
+  list.innerHTML = folderMonitorFiles.map((f) => `
+    <div class="folder-monitor-item">
+      <div>
+        <div class="folder-monitor-item-name">${escapeHtml(f.filename)}</div>
+        <div class="folder-monitor-item-meta">${escapeHtml(f.machineType)}</div>
+      </div>
+      <div class="folder-monitor-item-time">${formatDateTime(f.timestamp)}</div>
+    </div>
+  `).join("");
 }
 </script>
 </body>
