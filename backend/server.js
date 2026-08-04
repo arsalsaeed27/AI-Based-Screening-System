@@ -11,6 +11,8 @@ const FormData = require("form-data");
 const fetch = require("node-fetch");
 const { spawn } = require("child_process");
 const Groq = require("groq-sdk");
+const { Server: SocketIOServer } = require("socket.io");
+const { startWatcher } = require("./folder_watcher");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -871,6 +873,121 @@ function checkModelInputSize(label, session, expectedSize) {
   }
 }
 
+// OCR upload endpoint
+app.post("/ocr-report", upload.single("report"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No report image uploaded" });
+  }
+
+  const { execFile, spawnSync } = require("child_process");
+
+  const uploadsDir = path.join(__dirname, "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+  }
+
+  const tmpPath = path.join(uploadsDir, Date.now() + "_" + req.file.originalname);
+  fs.writeFileSync(tmpPath, req.file.buffer);
+
+  const PYTHON = getGradCamPython();
+  const OCR_SCRIPT = path.join(__dirname, "ocr_report.py");
+  const PARSER_SCRIPT = path.join(__dirname, "ocr_parser.py");
+
+  execFile(
+    PYTHON,
+    [OCR_SCRIPT, tmpPath],
+    { timeout: 120000 },
+    (err, stdout, stderr) => {
+      try { fs.unlinkSync(tmpPath); } catch (e) {}
+
+      if (err) {
+        return res.status(500).json({
+          error: "OCR failed",
+          details: err.message,
+        });
+      }
+
+      try {
+        const lines = JSON.parse(stdout);
+
+        // also run parser
+        const parserProc = spawnSync(PYTHON, [PARSER_SCRIPT], {
+          input: JSON.stringify(lines),
+          encoding: "utf8",
+          timeout: 10000,
+        });
+
+        let structured = {};
+        try {
+          structured = JSON.parse(parserProc.stdout);
+        } catch (e) {}
+
+        res.json({ lines, structured });
+      } catch (e) {
+        res.status(500).json({ error: "Parse failed", raw: stdout });
+      }
+    },
+  );
+});
+
+// OCR AI summary endpoint
+app.post("/ocr-summary", express.json(), async (req, res) => {
+  try {
+    const { lines, structured, machineType } = req.body;
+
+    const structuredText = Object.entries(structured || {})
+      .filter(([k]) => k !== "machine_type")
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
+
+    const rawText = (lines || []).join("\n");
+
+    const prompt = `You are a senior ophthalmologist writing
+a clinical interpretation of a machine-generated report.
+
+Machine: ${machineType || (structured && structured.machine_type) || "Ophthalmic device"}
+
+EXTRACTED VALUES:
+${structuredText}
+
+RAW OCR TEXT (for context):
+${rawText.substring(0, 2000)}
+
+Write a brief clinical interpretation with:
+
+FINDINGS:
+[2-3 sentences describing what the measurements show.
+Use clinical terminology. Reference specific values.]
+
+CLINICAL SIGNIFICANCE:
+[1-2 sentences on what this means for the patient.]
+
+RECOMMENDATION:
+[1-2 specific actionable recommendations.]
+
+Do not mention OCR, AI, or software.
+Write as a clinician interpreting the report directly.
+Keep it concise — under 200 words total.`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 400,
+      temperature: 0.2,
+    });
+
+    res.json({
+      summary: completion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error("OCR summary generation error:", err);
+    res.status(500).json({
+      error: "Summary generation failed",
+      details: err.message,
+    });
+  }
+});
+
 async function start() {
   try {
     await mongoose.connect(MONGODB_URI, {
@@ -898,9 +1015,14 @@ async function start() {
   checkModelInputSize("Glaucoma (glaucoma_model.onnx)", glaucomaSession, 640);
   checkModelInputSize("HR (hr_efficientnet_model.onnx)", hrSession, 300);
 
-  app.listen(PORT, () => {
+  const httpServer = app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
+
+  const io = new SocketIOServer(httpServer);
+  global.io = io;
+
+  startWatcher();
 }
 
 process.on("exit", () => {

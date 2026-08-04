@@ -453,6 +453,42 @@
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
 
+  /* ============ OCR REPORT PAGE ============ */
+  .ocr-layout{display:grid;grid-template-columns:40% 1fr;gap:20px;align-items:start;}
+  .btn-teal{background:#0D9488;color:#fff;border:none;}
+  .btn-teal:hover{background:#0F766E;}
+  .btn-teal:disabled,.btn-navy:disabled{opacity:.5;cursor:not-allowed;}
+  .ocr-preview-wrap{display:none;text-align:center;margin-bottom:14px;}
+  .ocr-preview-wrap.visible{display:block;}
+  .ocr-preview-wrap img{max-height:200px;max-width:100%;border-radius:8px;border:1px solid var(--border);object-fit:contain;}
+  .ocr-preview-filename{font-size:11.5px;color:var(--muted);margin-top:6px;word-break:break-all;}
+  .ocr-progress-wrap{display:none;margin:14px 0;}
+  .ocr-progress-wrap.visible{display:block;}
+  .ocr-progress-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+  .ocr-progress-fill{height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--cyan));animation:ocrProgressSlide 1.4s ease-in-out infinite;}
+  @keyframes ocrProgressSlide{0%{margin-left:-40%;}100%{margin-left:100%;}}
+  .ocr-progress-text{font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
+  .ocr-results-block{display:none;}
+  .ocr-results-block.visible{display:block;}
+  .ocr-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ocr-table th{text-align:left;padding:8px 10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);}
+  .ocr-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+  .ocr-table tr:nth-child(even) td{background:var(--bg);}
+  .ocr-table td:first-child{font-weight:600;color:var(--text);text-transform:capitalize;}
+  .ocr-raw-box{max-height:300px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:"SF Mono",Consolas,monospace;font-size:11.5px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
+  .ocr-summary-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:360px;color:var(--muted);gap:10px;text-align:center;padding:20px;}
+  .ocr-summary-empty i{width:40px;height:40px;stroke:var(--border);}
+  .ocr-summary-card{display:none;}
+  .ocr-summary-card.visible{display:block;}
+  .ocr-summary-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+  .ocr-summary-sub{font-size:11.5px;color:var(--muted);margin-bottom:14px;}
+  .ocr-summary-body{font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;margin-bottom:16px;}
+  .ocr-summary-body .ocr-section-heading{display:block;font-weight:800;color:var(--navy);margin:14px 0 3px;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .ocr-summary-body .ocr-section-heading:first-child{margin-top:0;}
+  .ocr-summary-actions{display:flex;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border);}
+  .ocr-loading-inline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:10px;}
+  .ocr-loading-inline .spin-ring{width:14px;height:14px;border:2px solid rgba(14,165,233,.25);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;}
+
   .triage-banner{
     border-radius:var(--radius-lg);padding:18px 22px;display:flex;align-items:flex-start;gap:16px;
     border-left:5px solid var(--accent,var(--success));background:var(--bg2,#F0FDF4);margin-bottom:20px;
@@ -845,6 +881,7 @@
       <div class="nav-item" data-page="screening"><i data-lucide="scan"></i><span class="nav-label">New Screening</span></div>
       <div class="nav-item" data-page="patients"><i data-lucide="users"></i><span class="nav-label">Patients</span></div>
       <div class="nav-item" data-page="history"><i data-lucide="clock"></i><span class="nav-label">Scan History</span></div>
+      <div class="nav-item" data-page="ocr"><i data-lucide="scan-text"></i><span class="nav-label">OCR Report</span></div>
       <div class="nav-item" data-page="analytics"><i data-lucide="bar-chart-3"></i><span class="nav-label">Analytics</span></div>
       <div class="nav-item" data-page="performance"><i data-lucide="activity"></i><span class="nav-label">AI Performance</span></div>
       <div class="nav-item" data-page="doctor"><i data-lucide="stethoscope"></i><span class="nav-label">Doctor Review</span></div>
@@ -1296,6 +1333,95 @@
           <div class="history-detail-empty">
             <i data-lucide="mouse-pointer-click"></i>
             <span>Select a scan from the left to view details</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE: OCR REPORT ================= -->
+    <section class="page" id="page-ocr">
+      <div class="page-head">
+        <div class="page-eyebrow">Machine Reports</div>
+        <div class="page-title">Machine Report OCR</div>
+        <div class="page-sub">Upload any machine report to extract clinical values and generate AI interpretation</div>
+      </div>
+
+      <div class="ocr-layout">
+        <!-- LEFT COLUMN — Upload and Results -->
+        <div class="card">
+          <div class="card-body">
+            <div class="upload-zone" id="ocrUploadZone">
+              <input type="file" id="ocrFileInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" />
+              <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+              <p class="upload-title">Drop report image here</p>
+              <p class="upload-hint">JPEG or PNG · Topcon · Galilei · Optos · Heidelberg · Humphrey</p>
+            </div>
+
+            <div class="ocr-preview-wrap" id="ocrPreviewWrap">
+              <img id="ocrPreviewImg" src="" alt="report preview" />
+              <div class="ocr-preview-filename" id="ocrPreviewFilename">—</div>
+            </div>
+
+            <div class="inline-error" id="ocrError"></div>
+
+            <button class="btn btn-teal" id="ocrExtractBtn" style="width:100%;display:none;margin-bottom:6px;" onclick="runOcrExtraction()">
+              <i data-lucide="scan-text"></i> Extract Text
+            </button>
+
+            <div class="ocr-progress-wrap" id="ocrProgressWrap">
+              <div class="ocr-progress-track"><div class="ocr-progress-fill"></div></div>
+              <div class="ocr-progress-text">Running OCR analysis... this may take 30-60 seconds</div>
+            </div>
+
+            <div class="ocr-results-block" id="ocrResultsBlock">
+              <div class="tabs" id="ocrResultTabs">
+                <div class="tab-btn active" data-tab="structured" onclick="switchOcrTab('structured')">Structured Data</div>
+                <div class="tab-btn" data-tab="raw" onclick="switchOcrTab('raw')">Raw OCR Text</div>
+              </div>
+              <div id="ocrResultPanels">
+                <div class="tab-panel active" id="ocr-tab-structured">
+                  <div style="margin-bottom:10px;" id="ocrMachineBadgeWrap"></div>
+                  <div style="overflow-x:auto;">
+                    <table class="ocr-table" id="ocrStructuredTable"></table>
+                  </div>
+                  <div class="empty-note" id="ocrStructuredEmpty" style="display:none;">No structured values could be detected in this report.</div>
+                </div>
+                <div class="tab-panel" id="ocr-tab-raw">
+                  <div class="ocr-raw-box" id="ocrRawText"></div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-navy" id="ocrSummaryBtn" style="width:100%;margin-top:16px;" disabled onclick="generateOcrSummary()">
+              <span class="spin-ring" id="ocrSummarySpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;"></span>
+              <i data-lucide="sparkles" id="ocrSummaryBtnIcon"></i> Generate AI Summary
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN — AI Summary -->
+        <div class="card">
+          <div class="card-body">
+            <div class="ocr-summary-empty" id="ocrSummaryEmpty">
+              <i data-lucide="file-search"></i>
+              <span>Upload a report and click Generate AI Summary to see the clinical interpretation here</span>
+            </div>
+
+            <div class="ocr-summary-card" id="ocrSummaryCard">
+              <div class="ocr-summary-head">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="badge" id="ocrSummaryMachineBadge" style="background:#DBEAFE;color:var(--blue);">—</span>
+                  <span style="font-size:14px;font-weight:800;color:var(--navy);">Clinical Interpretation</span>
+                </div>
+              </div>
+              <div class="ocr-summary-sub">AI-generated · Requires physician review</div>
+              <div class="ocr-summary-body" id="ocrSummaryBody"></div>
+              <div class="ocr-summary-actions">
+                <button class="btn" onclick="copyOcrSummary()"><i data-lucide="copy"></i>Copy Summary</button>
+                <button class="btn" onclick="addOcrSummaryToPatientReport()"><i data-lucide="file-plus"></i>Add to Patient Report</button>
+                <button class="btn btn-navy" onclick="downloadOcrSummaryPdf()"><i data-lucide="file-down"></i>Download as PDF</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1788,6 +1914,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(clock, 1000);
   initSidebar();
   initFileUpload();
+  initOcrUpload();
   initDobAutoAge();
   initGlobalSearch();
   initPatientSearch();
@@ -4801,6 +4928,281 @@ function renderAnalytics() {
     data: { labels: ["Routine", "Monitoring", "Non-urgent", "Urgent", "Emergency"], datasets: [{ label: "Scans", data: triageCounts, backgroundColor: triageColors, borderRadius: 4 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
   });
+}
+
+/* ============================================================
+   OCR REPORT PAGE
+   ============================================================ */
+let ocrSelectedFile = null;
+let ocrLines = null;
+let ocrStructured = null;
+let ocrSummaryText = null;
+
+function initOcrUpload() {
+  const fileInput = document.getElementById("ocrFileInput");
+  const uploadZone = document.getElementById("ocrUploadZone");
+
+  fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleOcrFile(e.target.files[0]); });
+  uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+  uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleOcrFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleOcrFile(file) {
+  if (!/^image\/(jpeg|png)$/.test(file.type)) {
+    showInlineError("ocrError", "Please upload a JPEG or PNG image.");
+    return;
+  }
+  hideInlineError("ocrError");
+  ocrSelectedFile = file;
+
+  const reader = new FileReader();
+  reader.onload = (e) => { document.getElementById("ocrPreviewImg").src = e.target.result; };
+  reader.readAsDataURL(file);
+
+  document.getElementById("ocrPreviewFilename").textContent = file.name + " · " + (file.size / 1024).toFixed(1) + " KB";
+  document.getElementById("ocrPreviewWrap").classList.add("visible");
+  document.getElementById("ocrExtractBtn").style.display = "flex";
+
+  // reset any previous extraction/summary state for the new file
+  ocrLines = null; ocrStructured = null; ocrSummaryText = null;
+  document.getElementById("ocrResultsBlock").classList.remove("visible");
+  document.getElementById("ocrSummaryBtn").disabled = true;
+  resetOcrSummaryPanel();
+}
+
+async function runOcrExtraction() {
+  if (!ocrSelectedFile) return;
+  hideInlineError("ocrError");
+  document.getElementById("ocrExtractBtn").disabled = true;
+  document.getElementById("ocrProgressWrap").classList.add("visible");
+  document.getElementById("ocrResultsBlock").classList.remove("visible");
+
+  try {
+    const form = new FormData();
+    form.append("report", ocrSelectedFile);
+    const res = await fetch("/ocr-report", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "OCR failed");
+
+    ocrLines = data.lines || [];
+    ocrStructured = data.structured || {};
+    renderOcrResults();
+    document.getElementById("ocrSummaryBtn").disabled = false;
+    showToast("Text extracted successfully.", "success");
+  } catch (err) {
+    showInlineError("ocrError", "OCR extraction failed: " + err.message);
+    showToast("OCR extraction failed: " + err.message, "error");
+  } finally {
+    document.getElementById("ocrExtractBtn").disabled = false;
+    document.getElementById("ocrProgressWrap").classList.remove("visible");
+  }
+}
+
+const OCR_FIELD_LABELS = {
+  simk: "SimK", flat_simk: "Flat SimK", steep_simk: "Steep SimK", kmax: "Kmax",
+  cct: "Central Corneal Thickness", thinnest_cornea: "Thinnest Cornea", wtw: "White-to-White",
+  aqd: "Anterior Chamber Depth", mean_k: "Mean K", linear_cdr_od: "Linear CDR",
+  vertical_cdr_od: "Vertical CDR", disc_area: "Disc Area", rim_area: "Rim Area",
+  rnfl_symmetry: "RNFL Symmetry", rnfl_total: "RNFL Total Thickness",
+  patient_name: "Patient Name", patient_age: "Patient Age", patient_id: "Patient ID",
+  eye: "Eye", date: "Date",
+};
+
+function renderOcrResults() {
+  document.getElementById("ocrResultsBlock").classList.add("visible");
+
+  const machineType = (ocrStructured && ocrStructured.machine_type) || "Unknown Machine";
+  document.getElementById("ocrMachineBadgeWrap").innerHTML =
+    `<span class="badge" style="background:#DBEAFE;color:var(--blue);">${escapeHtml(machineType)}</span>`;
+
+  const entries = Object.entries(ocrStructured || {}).filter(([k]) => k !== "machine_type");
+  const table = document.getElementById("ocrStructuredTable");
+  const empty = document.getElementById("ocrStructuredEmpty");
+  if (!entries.length) {
+    table.innerHTML = "";
+    empty.style.display = "block";
+  } else {
+    empty.style.display = "none";
+    table.innerHTML = `
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tbody>${entries.map(([k, v]) => `
+        <tr><td>${escapeHtml(OCR_FIELD_LABELS[k] || k.replace(/_/g, " "))}</td><td>${escapeHtml(String(v))}</td></tr>
+      `).join("")}</tbody>
+    `;
+  }
+
+  document.getElementById("ocrRawText").textContent = (ocrLines || []).join("\n") || "No text detected.";
+  lucide.createIcons();
+}
+
+function switchOcrTab(tab) {
+  document.querySelectorAll("#ocrResultTabs .tab-btn").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+  document.querySelectorAll("#ocrResultPanels .tab-panel").forEach((p) => p.classList.toggle("active", p.id === "ocr-tab-" + tab));
+}
+
+function resetOcrSummaryPanel() {
+  document.getElementById("ocrSummaryCard").classList.remove("visible");
+  document.getElementById("ocrSummaryEmpty").style.display = "flex";
+}
+
+async function generateOcrSummary() {
+  if (!ocrLines || !ocrStructured) return;
+  const btn = document.getElementById("ocrSummaryBtn");
+  btn.disabled = true;
+  document.getElementById("ocrSummarySpinner").style.display = "inline-block";
+  document.getElementById("ocrSummaryBtnIcon").style.display = "none";
+  hideInlineError("ocrError");
+
+  try {
+    const res = await fetch("/ocr-summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lines: ocrLines,
+        structured: ocrStructured,
+        machineType: ocrStructured.machine_type,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Summary generation failed");
+
+    ocrSummaryText = data.summary;
+    renderOcrSummary();
+    showToast("Clinical interpretation generated.", "success");
+  } catch (err) {
+    showInlineError("ocrError", "Summary generation failed: " + err.message);
+    showToast("Summary generation failed: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    document.getElementById("ocrSummarySpinner").style.display = "none";
+    document.getElementById("ocrSummaryBtnIcon").style.display = "";
+    lucide.createIcons();
+  }
+}
+
+function formatOcrSummaryHtml(text) {
+  const headings = ["FINDINGS:", "CLINICAL SIGNIFICANCE:", "RECOMMENDATION:"];
+  let html = escapeHtml(text).trim();
+  headings.forEach((h) => {
+    html = html.replace(new RegExp(escapeRegExp(h), "g"), `<span class="ocr-section-heading">${h.slice(0, -1)}</span>`);
+  });
+  return html;
+}
+
+function renderOcrSummary() {
+  const machineType = (ocrStructured && ocrStructured.machine_type) || "Unknown Machine";
+  document.getElementById("ocrSummaryMachineBadge").textContent = machineType;
+  document.getElementById("ocrSummaryBody").innerHTML = formatOcrSummaryHtml(ocrSummaryText);
+  document.getElementById("ocrSummaryEmpty").style.display = "none";
+  document.getElementById("ocrSummaryCard").classList.add("visible");
+}
+
+function copyOcrSummary() {
+  if (!ocrSummaryText) return;
+  navigator.clipboard.writeText(ocrSummaryText)
+    .then(() => showToast("Summary copied to clipboard.", "success"))
+    .catch(() => showToast("Could not copy to clipboard.", "error"));
+}
+
+async function addOcrSummaryToPatientReport() {
+  if (!ocrSummaryText) return;
+  if (!scanId) { showToast("No active scan — run a screening first.", "warning"); return; }
+  if (!scanSaved) { showToast("Save the current scan to the database first.", "warning"); return; }
+
+  const machineType = (ocrStructured && ocrStructured.machine_type) || "Machine Report";
+  const addition = `\n\n[${machineType} — Machine Report Interpretation]\n${ocrSummaryText}`;
+
+  try {
+    const existing = allScans.find((s) => s.scanId === scanId);
+    const combined = ((existing && existing.generatedReport) || lastGeneratedReport || "") + addition;
+
+    const res = await fetch("/scans/" + encodeURIComponent(scanId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generatedReport: combined }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update scan");
+
+    lastGeneratedReport = combined;
+    await fetchScans(true);
+    showToast("Summary added to the active patient report.", "success");
+  } catch (err) {
+    showToast("Failed to add to patient report: " + err.message, "error");
+  }
+}
+
+function downloadOcrSummaryPdf() {
+  if (!ocrSummaryText) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const W = 210, M = 14;
+  let y = 0;
+
+  const t = (s, x, y, sz, r, g, b, style, align) => {
+    doc.setFontSize(sz || 10);
+    doc.setTextColor(r || 0, g || 0, b || 0);
+    doc.setFont("helvetica", style || "normal");
+    doc.text(String(s), x, y, { align: align || "left" });
+  };
+  const ln = (x1, y1, x2, y2) => { doc.setDrawColor(209, 213, 219); doc.setLineWidth(0.3); doc.line(x1, y1, x2, y2); };
+
+  doc.setFillColor(28, 43, 58); doc.rect(0, 0, W, 18, "F");
+  t("AFIO ScanAI — Machine Report Interpretation", M, 8, 11, 255, 255, 255, "bold");
+  t("Generated " + new Date().toLocaleDateString("en-GB") + "  " + new Date().toLocaleTimeString("en-GB"), M, 14, 8, 156, 163, 175);
+  y = 26;
+
+  const machineType = (ocrStructured && ocrStructured.machine_type) || "Unknown Machine";
+  t("MACHINE TYPE", M, y, 6.5, 100, 116, 128, "bold"); y += 5;
+  t(machineType, M, y, 11, 15, 23, 42, "bold"); y += 8;
+
+  ln(M, y, W - M, y); y += 6;
+
+  t("EXTRACTED VALUES", M, y, 8, 28, 43, 58, "bold"); y += 6;
+  const entries = Object.entries(ocrStructured || {}).filter(([k]) => k !== "machine_type");
+  if (!entries.length) {
+    t("No structured values detected.", M, y, 8.5, 55, 65, 81, "normal"); y += 6;
+  } else {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(15, 23, 42);
+    entries.forEach(([k, v]) => {
+      const label = OCR_FIELD_LABELS[k] || k.replace(/_/g, " ");
+      doc.text(label + ": " + v, M, y);
+      y += 5;
+    });
+  }
+  y += 4;
+
+  ln(M, y, W - M, y); y += 6;
+
+  t("CLINICAL INTERPRETATION", M, y, 8, 28, 43, 58, "bold"); y += 6;
+  const lines = String(ocrSummaryText).split("\n");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) { y += 4; return; }
+    const isHeading = /^(FINDINGS|CLINICAL SIGNIFICANCE|RECOMMENDATION):?\s*$/i.test(line);
+    const wrapped = doc.splitTextToSize(line, W - M * 2);
+    if (y + wrapped.length * 5 > 280) { doc.addPage(); y = 16; }
+    if (isHeading) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(28, 43, 58);
+      y += 2;
+    } else {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+    }
+    doc.text(wrapped, M, y);
+    y += wrapped.length * 5;
+  });
+
+  y += 8;
+  if (y > 275) { doc.addPage(); y = 16; }
+  t("AI-generated interpretation — requires physician review before clinical use.", M, y, 6.5, 156, 163, 175, "normal");
+
+  doc.save("AFIO_MachineReport_" + Date.now() + ".pdf");
 }
 </script>
 </body>
