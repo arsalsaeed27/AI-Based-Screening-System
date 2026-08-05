@@ -490,6 +490,17 @@
   .ocr-loading-inline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:10px;}
   .ocr-loading-inline .spin-ring{width:14px;height:14px;border:2px solid rgba(14,165,233,.25);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;}
 
+  /* ============ DICOM VIEWER ============ */
+  .dicom-layout{display:grid;grid-template-columns:40% 1fr;gap:20px;align-items:start;}
+  .dicom-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:360px;color:var(--muted);gap:10px;text-align:center;padding:20px;}
+  .dicom-empty-state i{width:40px;height:40px;stroke:var(--border);}
+  .dicom-urgency-banner{border-radius:10px;padding:16px 18px;margin-bottom:18px;color:#fff;}
+  .dicom-urgency-banner .lvl{font-size:16px;font-weight:800;letter-spacing:.02em;}
+  .dicom-urgency-banner .reason{font-size:12.5px;margin-top:4px;opacity:.95;}
+  .status-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap;}
+  .dicom-pattern-card{background:var(--navy);color:#fff;border-radius:10px;padding:14px 16px;margin:16px 0;font-size:12.5px;line-height:1.6;}
+  .dicom-summary-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.7;color:var(--text);}
+
   /* ============ SHARED FOLDER MONITOR ============ */
   .folder-monitor-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
   .folder-monitor-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
@@ -902,6 +913,7 @@
       <div class="nav-item" data-page="patients"><i data-lucide="users"></i><span class="nav-label">Patients</span></div>
       <div class="nav-item" data-page="history"><i data-lucide="clock"></i><span class="nav-label">Scan History</span></div>
       <div class="nav-item" data-page="ocr"><i data-lucide="scan-text"></i><span class="nav-label">OCR Report</span></div>
+      <div class="nav-item" data-page="dicom"><i data-lucide="file-scan"></i><span class="nav-label">DICOM Viewer</span></div>
       <div class="nav-item" data-page="analytics"><i data-lucide="bar-chart-3"></i><span class="nav-label">Analytics</span></div>
       <div class="nav-item" data-page="performance"><i data-lucide="activity"></i><span class="nav-label">AI Performance</span></div>
       <div class="nav-item" data-page="doctor"><i data-lucide="stethoscope"></i><span class="nav-label">Doctor Review</span></div>
@@ -1456,6 +1468,128 @@
           </div>
         </div>
       </div>
+
+      <div class="card" style="margin-top:20px;">
+        <div class="card-head"><i data-lucide="history"></i><span class="card-head-title">Folder Scan History</span></div>
+        <div class="card-body" style="overflow-x:auto;padding-bottom:0;">
+          <table class="data-table" id="folderScansTable">
+            <thead><tr><th>Scan ID</th><th>Filename</th><th>Machine</th><th>Patient</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="folderScansBody"></tbody>
+          </table>
+          <div class="table-empty" id="folderScansEmpty" style="display:none;">No folder scans yet — drop a file into the shared folder to get started.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAGE: DICOM VIEWER ================= -->
+    <section class="page" id="page-dicom">
+      <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-eyebrow">DICOM Prototype</div>
+          <div class="page-title">DICOM Report Analyzer</div>
+          <div class="page-sub">Upload any DICOM file — AI extracts clinical values and identifies abnormalities</div>
+        </div>
+        <button class="btn btn-navy" onclick="openExportDicomModal()"><i data-lucide="download"></i>Export Existing Scan as DICOM</button>
+      </div>
+
+      <div class="dicom-layout">
+        <!-- LEFT COLUMN — Upload and Extracted Values -->
+        <div class="card">
+          <div class="card-body">
+            <div class="upload-zone" id="dicomUploadZone">
+              <input type="file" id="dicomFileInput" accept=".dcm" />
+              <div class="upload-icon"><i data-lucide="file-scan"></i></div>
+              <p class="upload-title">Drop DICOM file here</p>
+              <p class="upload-hint">.dcm files from Topcon · Galilei · Optos · Heidelberg · Humphrey</p>
+            </div>
+
+            <div class="file-chip" id="dicomFileChip" style="margin-top:12px;">
+              <div class="file-chip-icon"><i data-lucide="file-scan"></i></div>
+              <span id="dicomFileName">—</span>
+            </div>
+
+            <div class="inline-error" id="dicomError"></div>
+
+            <button class="btn btn-teal" id="dicomAnalyzeBtn" style="width:100%;display:none;margin-top:10px;" onclick="runDicomAnalysis()">
+              <i data-lucide="sparkles"></i> Analyze DICOM
+            </button>
+
+            <div id="dicomProgressWrap" style="display:none;margin-top:16px;">
+              <div id="dicomProgressList"></div>
+            </div>
+
+            <div id="dicomPatientCard" style="display:none;margin-top:16px;">
+              <div style="margin-bottom:10px;" id="dicomMachineBadgeWrap"></div>
+              <div class="hd-patient-grid">
+                <div class="history-detail-item"><div class="lbl">Patient Name</div><div class="val" id="dicomPatientName">—</div></div>
+                <div class="history-detail-item"><div class="lbl">Patient ID</div><div class="val" id="dicomPatientId">—</div></div>
+                <div class="history-detail-item"><div class="lbl">Study Date</div><div class="val" id="dicomStudyDate">—</div></div>
+                <div class="history-detail-item"><div class="lbl">Laterality</div><div class="val" id="dicomLaterality">—</div></div>
+              </div>
+              <div style="overflow-x:auto;margin-top:14px;">
+                <table class="data-table" id="dicomValuesTable">
+                  <thead><tr><th>Field</th><th>Value</th></tr></thead>
+                  <tbody id="dicomValuesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN — AI Analysis -->
+        <div class="card">
+          <div class="card-body">
+            <div class="dicom-empty-state" id="dicomAnalysisEmpty">
+              <i data-lucide="brain-circuit"></i>
+              <span>Upload a DICOM file to see AI clinical analysis</span>
+            </div>
+
+            <div id="dicomAnalysisResult" style="display:none;">
+              <div class="dicom-urgency-banner" id="dicomUrgencyBanner">
+                <div class="lvl" id="dicomUrgencyLevel">—</div>
+                <div class="reason" id="dicomUrgencyReason">—</div>
+              </div>
+
+              <div style="overflow-x:auto;">
+                <table class="data-table" id="dicomAnalysisTable">
+                  <thead><tr><th>Measurement</th><th>Value</th><th>Status</th><th>Meaning</th></tr></thead>
+                  <tbody id="dicomAnalysisBody"></tbody>
+                </table>
+              </div>
+
+              <div class="dicom-pattern-card" id="dicomPatternCard" style="display:none;">
+                <b>Clinical Pattern:</b> <span id="dicomPatternText"></span>
+              </div>
+
+              <div class="dicom-summary-card">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.04em;margin-bottom:6px;">AI Summary</div>
+                <div id="dicomSummaryText" style="margin-bottom:10px;"></div>
+                <div><b>Action:</b> <span id="dicomActionText"></span></div>
+              </div>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+                <button class="btn btn-primary" onclick="saveDicomToDatabase()"><i data-lucide="save"></i>Save to Database</button>
+                <button class="btn" onclick="downloadDicomAnalysisPdf()"><i data-lucide="file-down"></i>Download as PDF</button>
+                <button class="btn" onclick="viewDicomInScanHistory()"><i data-lucide="list"></i>View in Scan History</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <div class="card-head">
+          <i data-lucide="history"></i><span class="card-head-title">DICOM Scan History</span>
+          <button class="btn" style="margin-left:auto;padding:5px 10px;" onclick="loadDicomScans()"><i data-lucide="refresh-cw"></i>Refresh</button>
+        </div>
+        <div class="card-body" style="overflow-x:auto;padding-bottom:0;">
+          <table class="data-table" id="dicomScansTable">
+            <thead><tr><th>Scan ID</th><th>Machine</th><th>Patient</th><th>Date</th><th>Urgency</th><th>Actions</th></tr></thead>
+            <tbody id="dicomScansBody"></tbody>
+          </table>
+          <div class="table-empty" id="dicomScansEmpty" style="display:none;">No DICOM scans yet — upload a .dcm file to get started.</div>
+        </div>
+      </div>
     </section>
 
     <!-- ================= PAGE 5: ANALYTICS ================= -->
@@ -1950,6 +2084,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initFileUpload();
   initOcrUpload();
   initFolderWatcherSocket();
+  initDicomUpload();
   initDobAutoAge();
   initGlobalSearch();
   initPatientSearch();
@@ -2082,6 +2217,8 @@ function switchPage(page) {
   if (page === "analytics") renderAnalytics();
   if (page === "doctor") renderDoctorTable();
   if (page === "admin") renderAdmin();
+  if (page === "ocr") loadFolderScans();
+  if (page === "dicom") loadDicomScans();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -5257,6 +5394,7 @@ function initFolderWatcherSocket() {
     const machineType = (data.structured && data.structured.machine_type) || "Unknown Machine";
     showFolderNotification(data.filename, machineType);
     addFolderMonitorEntry(data.filename, machineType, data.timestamp);
+    loadFolderScans();
   });
 }
 
@@ -5302,6 +5440,487 @@ function renderFolderMonitorList() {
       <div class="folder-monitor-item-time">${formatDateTime(f.timestamp)}</div>
     </div>
   `).join("");
+}
+
+/* ============================================================
+   FOLDER SCAN HISTORY — GET /folder-scans
+   ============================================================ */
+let folderScansCache = [];
+let expandedFolderScanId = null;
+
+async function loadFolderScans() {
+  try {
+    const res = await fetch("/folder-scans");
+    if (!res.ok) throw new Error("Failed to load folder scans");
+    folderScansCache = await res.json();
+    renderFolderScansTable();
+  } catch (err) {
+    console.error("Failed to load folder scans:", err.message);
+  }
+}
+
+function renderFolderScansTable() {
+  const tbody = document.getElementById("folderScansBody");
+  const empty = document.getElementById("folderScansEmpty");
+  if (!tbody) return;
+
+  if (!folderScansCache.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  tbody.innerHTML = folderScansCache.map((s) => {
+    const rows = [`
+      <tr>
+        <td>${escapeHtml(s.scanId)}</td>
+        <td>${escapeHtml(s.filename || "—")}</td>
+        <td>${escapeHtml(s.machineType || "—")}</td>
+        <td>${escapeHtml(s.patientName || "—")}</td>
+        <td>${formatDateTime(s.timestamp)}</td>
+        <td><span class="badge" style="background:#D1FAE5;color:#065F46;">${escapeHtml(s.status || "ocr_complete")}</span></td>
+        <td><button class="link-btn" onclick="toggleFolderScanDetails('${s.scanId}')">${expandedFolderScanId === s.scanId ? "Hide" : "View"}</button></td>
+      </tr>
+    `];
+
+    if (expandedFolderScanId === s.scanId) {
+      const entries = Object.entries(s.extractedData || {});
+      const detailHtml = entries.length
+        ? entries.map(([k, v]) => `
+            <div class="history-detail-item"><div class="lbl">${escapeHtml(k.replace(/_/g, " "))}</div><div class="val">${escapeHtml(String(v))}</div></div>
+          `).join("")
+        : '<div class="empty-note">No extracted values for this scan.</div>';
+
+      rows.push(`
+        <tr>
+          <td colspan="7" style="background:var(--bg);">
+            <div class="hd-patient-grid" style="padding:10px 4px;">${detailHtml}</div>
+          </td>
+        </tr>
+      `);
+    }
+
+    return rows.join("");
+  }).join("");
+
+  lucide.createIcons();
+}
+
+function toggleFolderScanDetails(scanId) {
+  expandedFolderScanId = expandedFolderScanId === scanId ? null : scanId;
+  renderFolderScansTable();
+}
+
+/* ============================================================
+   DICOM VIEWER
+   ============================================================ */
+let dicomSelectedFile = null;
+let dicomExtracted = null;
+let dicomAiAnalysis = null;
+let dicomScanId = null;
+let dicomScansCache = [];
+
+const DICOM_URGENCY_COLORS = { ROUTINE: "#10B981", MONITOR: "#F59E0B", REFER: "#EF4444", URGENT: "#7F1D1D" };
+const DICOM_STATUS_COLORS = {
+  NORMAL: { bg: "#D1FAE5", color: "#065F46" },
+  BORDERLINE: { bg: "#FEF3C7", color: "#92400E" },
+  ABNORMAL: { bg: "#FEE2E2", color: "#991B1B" },
+};
+const DICOM_STATUS_SORT = { ABNORMAL: 0, BORDERLINE: 1, NORMAL: 2 };
+const DICOM_SKIP_KEYS = new Set([
+  "patient_name", "patient_id", "dob", "sex", "study_date", "modality",
+  "manufacturer", "device_model", "laterality", "machine_type", "has_image", "image_jpeg_bytes",
+]);
+
+function initDicomUpload() {
+  const fileInput = document.getElementById("dicomFileInput");
+  const uploadZone = document.getElementById("dicomUploadZone");
+
+  fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleDicomFile(e.target.files[0]); });
+  uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+  uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleDicomFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleDicomFile(file) {
+  hideInlineError("dicomError");
+  dicomSelectedFile = file;
+  dicomExtracted = null; dicomAiAnalysis = null; dicomScanId = null;
+
+  document.getElementById("dicomFileName").textContent = file.name + " · " + (file.size / 1024).toFixed(1) + " KB";
+  document.getElementById("dicomFileChip").classList.add("visible");
+  document.getElementById("dicomAnalyzeBtn").style.display = "flex";
+  document.getElementById("dicomPatientCard").style.display = "none";
+  document.getElementById("dicomAnalysisResult").style.display = "none";
+  document.getElementById("dicomAnalysisEmpty").style.display = "flex";
+}
+
+function renderDicomProgressList(steps) {
+  const list = document.getElementById("dicomProgressList");
+  list.innerHTML = steps.map((s) => `
+    <div class="progress-step" id="pstep-${s.key}">
+      <div class="progress-step-icon" id="picon-${s.key}"></div>
+      <div class="progress-step-label">${s.label}</div>
+    </div>`).join("");
+}
+
+function dicomTickStep(key, delay) {
+  return new Promise((resolve) => {
+    const row = document.getElementById("pstep-" + key);
+    const icon = document.getElementById("picon-" + key);
+    row.classList.add("active");
+    icon.innerHTML = '<span class="spin-ring"></span>';
+    setTimeout(() => {
+      row.classList.remove("active");
+      row.classList.add("done");
+      icon.innerHTML = '<i data-lucide="check"></i>';
+      lucide.createIcons();
+      resolve();
+    }, delay);
+  });
+}
+
+async function runDicomAnalysis() {
+  if (!dicomSelectedFile) return;
+  hideInlineError("dicomError");
+  document.getElementById("dicomAnalyzeBtn").disabled = true;
+  document.getElementById("dicomProgressWrap").style.display = "block";
+  document.getElementById("dicomPatientCard").style.display = "none";
+  document.getElementById("dicomAnalysisResult").style.display = "none";
+  document.getElementById("dicomAnalysisEmpty").style.display = "none";
+
+  renderDicomProgressList([
+    { key: "dcm-received", label: "File received" },
+    { key: "dcm-parsing", label: "Parsing DICOM tags..." },
+    { key: "dcm-extracting", label: "Extracting clinical values..." },
+    { key: "dcm-analyzing", label: "Running AI analysis..." },
+    { key: "dcm-complete", label: "Complete" },
+  ]);
+
+  const form = new FormData();
+  form.append("dicom", dicomSelectedFile);
+  const uploadPromise = fetch("/dicom-upload", { method: "POST", body: form }).then(async (res) => {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "DICOM analysis failed");
+    return data;
+  });
+
+  try {
+    await dicomTickStep("dcm-received", 300);
+    await dicomTickStep("dcm-parsing", 500);
+    await dicomTickStep("dcm-extracting", 500);
+
+    const analyzingRow = document.getElementById("pstep-dcm-analyzing");
+    const analyzingIcon = document.getElementById("picon-dcm-analyzing");
+    analyzingRow.classList.add("active");
+    analyzingIcon.innerHTML = '<span class="spin-ring"></span>';
+
+    const data = await uploadPromise;
+
+    analyzingRow.classList.remove("active");
+    analyzingRow.classList.add("done");
+    analyzingIcon.innerHTML = '<i data-lucide="check"></i>';
+    lucide.createIcons();
+
+    await dicomTickStep("dcm-complete", 200);
+
+    dicomExtracted = data.extracted || {};
+    dicomAiAnalysis = data.aiAnalysis || {};
+    dicomScanId = data.scanId;
+
+    renderDicomPatientCard(dicomExtracted);
+    renderDicomAnalysis(dicomAiAnalysis);
+    loadDicomScans();
+    showToast("DICOM analysis complete.", "success");
+  } catch (err) {
+    showInlineError("dicomError", "DICOM analysis failed: " + err.message);
+    showToast("DICOM analysis failed: " + err.message, "error");
+    document.getElementById("dicomAnalysisEmpty").style.display = "flex";
+  } finally {
+    document.getElementById("dicomAnalyzeBtn").disabled = false;
+    document.getElementById("dicomProgressWrap").style.display = "none";
+  }
+}
+
+function renderDicomPatientCard(extracted) {
+  document.getElementById("dicomPatientCard").style.display = "block";
+
+  const machineType = extracted.machine_type || "Unknown Machine";
+  document.getElementById("dicomMachineBadgeWrap").innerHTML =
+    `<span class="badge" style="background:#DBEAFE;color:var(--blue);">${escapeHtml(machineType)}</span>`;
+  document.getElementById("dicomPatientName").textContent = extracted.patient_name || "—";
+  document.getElementById("dicomPatientId").textContent = extracted.patient_id || "—";
+  document.getElementById("dicomStudyDate").textContent = extracted.study_date || "—";
+  document.getElementById("dicomLaterality").textContent = extracted.laterality || "—";
+
+  const rows = [];
+  Object.entries(extracted).forEach(([k, v]) => {
+    if (DICOM_SKIP_KEYS.has(k)) return;
+    if (v === null || v === undefined || v === "") return;
+    if (typeof v === "object" && !Array.isArray(v)) {
+      Object.entries(v).forEach(([k2, v2]) => {
+        if (v2 === null || v2 === undefined || v2 === "") return;
+        rows.push([`${k.replace(/_/g, " ")} · ${k2.replace(/_/g, " ")}`, v2]);
+      });
+    } else {
+      rows.push([k.replace(/_/g, " "), v]);
+    }
+  });
+
+  const tbody = document.getElementById("dicomValuesBody");
+  tbody.innerHTML = rows.length
+    ? rows.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(String(value))}</td></tr>`).join("")
+    : `<tr><td colspan="2" style="text-align:center;color:var(--muted);">No extracted values</td></tr>`;
+  lucide.createIcons();
+}
+
+function renderDicomAnalysis(analysis) {
+  document.getElementById("dicomAnalysisEmpty").style.display = "none";
+  document.getElementById("dicomAnalysisResult").style.display = "block";
+
+  if (analysis.error) {
+    showToast("AI analysis error: " + analysis.error, "warning");
+  }
+
+  const urgency = (analysis.urgency || "MONITOR").toUpperCase();
+  const color = DICOM_URGENCY_COLORS[urgency] || DICOM_URGENCY_COLORS.MONITOR;
+  document.getElementById("dicomUrgencyBanner").style.background = color;
+  document.getElementById("dicomUrgencyLevel").textContent = urgency;
+  document.getElementById("dicomUrgencyReason").textContent = analysis.urgency_reason || "";
+
+  const values = (analysis.value_analysis || []).slice().sort((a, b) =>
+    (DICOM_STATUS_SORT[(a.status || "").toUpperCase()] ?? 3) - (DICOM_STATUS_SORT[(b.status || "").toUpperCase()] ?? 3)
+  );
+  const tbody = document.getElementById("dicomAnalysisBody");
+  tbody.innerHTML = values.length
+    ? values.map((v) => {
+        const status = (v.status || "").toUpperCase();
+        const sc = DICOM_STATUS_COLORS[status] || DICOM_STATUS_COLORS.NORMAL;
+        return `<tr>
+          <td>${escapeHtml(v.measurement || "—")}</td>
+          <td>${escapeHtml(v.value ?? "—")}</td>
+          <td><span class="status-pill" style="background:${sc.bg};color:${sc.color};">${escapeHtml(status || "—")}</span></td>
+          <td>${escapeHtml(v.clinical_meaning || "—")}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="4" style="text-align:center;color:var(--muted);">No measurements analyzed</td></tr>`;
+
+  const patternCard = document.getElementById("dicomPatternCard");
+  if (analysis.clinical_pattern) {
+    patternCard.style.display = "block";
+    document.getElementById("dicomPatternText").textContent = analysis.clinical_pattern;
+  } else {
+    patternCard.style.display = "none";
+  }
+
+  document.getElementById("dicomSummaryText").textContent = analysis.summary || "No summary available.";
+  document.getElementById("dicomActionText").textContent = analysis.action || "—";
+
+  lucide.createIcons();
+}
+
+function saveDicomToDatabase() {
+  if (!dicomScanId) { showToast("No DICOM analysis to save yet.", "warning"); return; }
+  showToast("This scan is already saved to the database as " + dicomScanId + ".", "success");
+}
+
+function viewDicomInScanHistory() {
+  if (!dicomScanId) { showToast("No DICOM scan to view yet.", "warning"); return; }
+  const row = document.getElementById("dicom-scan-row-" + dicomScanId);
+  if (row) {
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    row.style.outline = "2px solid var(--cyan)";
+    setTimeout(() => { row.style.outline = ""; }, 1500);
+  } else {
+    showToast("Scan not found in history yet — refreshing...", "info");
+    loadDicomScans();
+  }
+}
+
+function downloadDicomAnalysisPdf() {
+  if (!dicomAiAnalysis || !dicomExtracted) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const W = 210, M = 14;
+  let y = 0;
+
+  const t = (s, x, y, sz, r, g, b, style) => {
+    doc.setFontSize(sz || 10);
+    doc.setTextColor(r || 0, g || 0, b || 0);
+    doc.setFont("helvetica", style || "normal");
+    doc.text(String(s), x, y);
+  };
+  const ln = (x1, y1, x2, y2) => { doc.setDrawColor(209, 213, 219); doc.setLineWidth(0.3); doc.line(x1, y1, x2, y2); };
+
+  doc.setFillColor(28, 43, 58); doc.rect(0, 0, W, 18, "F");
+  t("AFIO ScanAI — DICOM Clinical Analysis", M, 8, 11, 255, 255, 255, "bold");
+  t("Generated " + new Date().toLocaleDateString("en-GB") + "  " + new Date().toLocaleTimeString("en-GB"), M, 14, 8, 156, 163, 175);
+  y = 26;
+
+  const machineType = dicomExtracted.machine_type || "Unknown Machine";
+  t("MACHINE TYPE", M, y, 6.5, 100, 116, 128, "bold"); y += 5;
+  t(machineType, M, y, 11, 15, 23, 42, "bold"); y += 8;
+  t("Patient: " + (dicomExtracted.patient_name || "—") + "   ·   ID: " + (dicomExtracted.patient_id || "—"), M, y, 9, 55, 65, 81); y += 8;
+
+  ln(M, y, W - M, y); y += 6;
+
+  const urgency = (dicomAiAnalysis.urgency || "—").toUpperCase();
+  t("URGENCY: " + urgency, M, y, 10, 220, 38, 38, "bold"); y += 6;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+  const reasonWrapped = doc.splitTextToSize(dicomAiAnalysis.urgency_reason || "", W - M * 2);
+  doc.text(reasonWrapped, M, y); y += reasonWrapped.length * 5 + 4;
+
+  ln(M, y, W - M, y); y += 6;
+
+  t("VALUE ANALYSIS", M, y, 8, 28, 43, 58, "bold"); y += 6;
+  (dicomAiAnalysis.value_analysis || []).forEach((v) => {
+    if (y > 265) { doc.addPage(); y = 16; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+    doc.text(`${v.measurement}: ${v.value} — ${v.status}`, M, y); y += 5;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(75, 85, 99);
+    const wrapped = doc.splitTextToSize(v.clinical_meaning || "", W - M * 2);
+    doc.text(wrapped, M, y); y += wrapped.length * 4.5 + 2;
+  });
+  y += 2;
+
+  if (y > 260) { doc.addPage(); y = 16; }
+  ln(M, y, W - M, y); y += 6;
+
+  if (dicomAiAnalysis.clinical_pattern) {
+    t("CLINICAL PATTERN", M, y, 8, 28, 43, 58, "bold"); y += 6;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+    const patternWrapped = doc.splitTextToSize(dicomAiAnalysis.clinical_pattern, W - M * 2);
+    doc.text(patternWrapped, M, y); y += patternWrapped.length * 5 + 6;
+  }
+
+  if (y > 260) { doc.addPage(); y = 16; }
+  t("AI SUMMARY", M, y, 8, 28, 43, 58, "bold"); y += 6;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+  const summaryWrapped = doc.splitTextToSize(dicomAiAnalysis.summary || "", W - M * 2);
+  doc.text(summaryWrapped, M, y); y += summaryWrapped.length * 5 + 6;
+
+  if (y > 270) { doc.addPage(); y = 16; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+  const actionWrapped = doc.splitTextToSize("Action: " + (dicomAiAnalysis.action || "—"), W - M * 2);
+  doc.text(actionWrapped, M, y); y += actionWrapped.length * 5 + 8;
+
+  if (y > 275) { doc.addPage(); y = 16; }
+  t("AI-generated interpretation — requires physician review before clinical use.", M, y, 6.5, 156, 163, 175, "normal");
+
+  doc.save("AFIO_DICOM_" + (dicomScanId || Date.now()) + ".pdf");
+}
+
+/* ============================================================
+   DICOM SCAN HISTORY — GET /dicom-scans
+   ============================================================ */
+async function loadDicomScans() {
+  try {
+    const res = await fetch("/dicom-scans");
+    if (!res.ok) throw new Error("Failed to load DICOM scans");
+    dicomScansCache = await res.json();
+    renderDicomScansTable();
+  } catch (err) {
+    console.error("Failed to load DICOM scans:", err.message);
+  }
+}
+
+function renderDicomScansTable() {
+  const tbody = document.getElementById("dicomScansBody");
+  const empty = document.getElementById("dicomScansEmpty");
+  if (!tbody) return;
+
+  if (!dicomScansCache.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  tbody.innerHTML = dicomScansCache.map((s) => {
+    const urgency = (s.urgency || "—").toUpperCase();
+    const color = DICOM_URGENCY_COLORS[urgency] || "#94A3B8";
+    return `
+    <tr id="dicom-scan-row-${escapeHtml(s.scanId)}">
+      <td>${escapeHtml(s.scanId)}</td>
+      <td>${escapeHtml(s.machineType || "—")}</td>
+      <td>${escapeHtml(s.patientName || "—")}</td>
+      <td>${formatDateTime(s.timestamp)}</td>
+      <td><span class="status-pill" style="background:${color};color:#fff;">${escapeHtml(urgency)}</span></td>
+      <td><button class="link-btn" onclick="selectDicomScan('${escapeHtml(s.scanId)}')">View</button></td>
+    </tr>`;
+  }).join("");
+
+  lucide.createIcons();
+}
+
+async function selectDicomScan(scanId) {
+  try {
+    const res = await fetch("/dicom-scans/" + encodeURIComponent(scanId));
+    if (!res.ok) throw new Error("Failed to load scan");
+    const scan = await res.json();
+
+    dicomExtracted = scan.extracted || {};
+    dicomAiAnalysis = scan.aiAnalysis || {};
+    dicomScanId = scan.scanId;
+
+    renderDicomPatientCard(dicomExtracted);
+    renderDicomAnalysis(dicomAiAnalysis);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    showToast("Failed to load DICOM scan: " + err.message, "error");
+  }
+}
+
+/* ============================================================
+   EXPORT EXISTING SCAN AS DICOM — modal
+   ============================================================ */
+function openExportDicomModal() {
+  document.getElementById("modalTitle").textContent = "Export Existing Scan as DICOM";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="field">
+      <label class="field-label">Scan ID</label>
+      <input class="field-input" id="exportDicomScanIdInput" placeholder="e.g. SCN-XXXXXXXX" />
+    </div>
+    <div class="inline-error" id="exportDicomError"></div>
+    <button class="btn btn-navy" style="width:100%;margin-top:14px;" onclick="exportScanAsDicom()"><i data-lucide="download"></i>Export as DICOM</button>
+  `;
+  document.getElementById("modalOverlay").classList.add("visible");
+  lucide.createIcons();
+}
+
+async function exportScanAsDicom() {
+  const input = document.getElementById("exportDicomScanIdInput");
+  const idVal = (input.value || "").trim();
+  if (!idVal) { showInlineError("exportDicomError", "Please enter a Scan ID."); return; }
+  hideInlineError("exportDicomError");
+
+  try {
+    const res = await fetch("/scans/" + encodeURIComponent(idVal) + "/export-dicom");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Export failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "AFIO_" + idVal + ".dcm";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("DICOM file exported and downloaded successfully.", "success");
+    closeModal();
+  } catch (err) {
+    showInlineError("exportDicomError", err.message);
+    showToast("Export failed: " + err.message, "error");
+  }
 }
 </script>
 </body>
