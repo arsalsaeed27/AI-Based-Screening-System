@@ -9,3 +9,5 @@ flask
 timm
 segmentation-models-pytorch
 easyocr
+pydicom
+groq

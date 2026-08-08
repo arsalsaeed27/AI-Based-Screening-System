@@ -9,7 +9,7 @@ const sharp = require("sharp");
 const ort = require("onnxruntime-node");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
-const { spawn } = require("child_process");
+const { spawn, execFile, spawnSync } = require("child_process");
 const Groq = require("groq-sdk");
 const { Server: SocketIOServer } = require("socket.io");
 const { startWatcher } = require("./folder_watcher");
@@ -194,6 +194,30 @@ scanSchema.index({ patientId: 1 });
 scanSchema.index({ status: 1 });
 
 const Scan = mongoose.model("Scan", scanSchema);
+
+const dicomScanSchema = new mongoose.Schema(
+  {
+    scanId: { type: String, required: true, unique: true },
+    filename: String,
+    machineType: String,
+    patientName: String,
+    patientId: String,
+    studyDate: String,
+    laterality: String,
+    extracted: Object,
+    aiAnalysis: Object,
+    urgency: String,
+    status: { type: String, default: "analyzed" },
+    timestamp: { type: Date, default: Date.now },
+  },
+  { timestamps: true },
+);
+
+const DicomScan = mongoose.model("DicomScan", dicomScanSchema);
+
+function generateDicomScanId() {
+  return "DCM-" + Date.now().toString(36).toUpperCase();
+}
 
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
@@ -986,6 +1010,174 @@ Keep it concise — under 200 words total.`;
       error: "Summary generation failed",
       details: err.message,
     });
+  }
+});
+
+app.get("/folder-scans", async (req, res) => {
+  try {
+    const FolderScan = mongoose.model("FolderScan");
+    const scans = await FolderScan.find()
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean();
+    res.json(scans);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── DICOM prototype feature ──
+
+const DICOM_INCOMING_DIR = path.join(__dirname, "dicom_incoming");
+
+app.post("/dicom-upload", upload.single("dicom"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No DICOM file uploaded" });
+  }
+
+  if (!fs.existsSync(DICOM_INCOMING_DIR)) {
+    fs.mkdirSync(DICOM_INCOMING_DIR, { recursive: true });
+  }
+
+  const filename = req.file.originalname;
+  const filePath = path.join(DICOM_INCOMING_DIR, Date.now() + "_" + filename);
+
+  try {
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    const PYTHON = getGradCamPython();
+    const PARSER_SCRIPT = path.join(__dirname, "dicom_parser.py");
+    const ANALYZER_SCRIPT = path.join(__dirname, "dicom_analyzer.py");
+    const IMAGE_EXTRACTOR_SCRIPT = path.join(__dirname, "dicom_image_extractor.py");
+
+    const parserProc = spawnSync(PYTHON, [PARSER_SCRIPT, filePath], {
+      encoding: "utf8",
+      timeout: 60000,
+      maxBuffer: 1024 * 1024 * 50,
+    });
+
+    if (parserProc.error || parserProc.status !== 0) {
+      try { fs.unlinkSync(filePath); } catch (e) {}
+      return res.status(500).json({
+        error: "DICOM parsing failed",
+        details: parserProc.stderr || (parserProc.error && parserProc.error.message),
+      });
+    }
+
+    let extracted;
+    try {
+      extracted = JSON.parse(parserProc.stdout);
+    } catch (e) {
+      try { fs.unlinkSync(filePath); } catch (e2) {}
+      return res.status(500).json({ error: "Failed to parse extracted DICOM values", raw: parserProc.stdout });
+    }
+
+    const analyzerProc = spawnSync(PYTHON, [ANALYZER_SCRIPT], {
+      input: JSON.stringify(extracted),
+      encoding: "utf8",
+      timeout: 60000,
+      maxBuffer: 1024 * 1024 * 20,
+    });
+
+    let aiAnalysis = {};
+    try {
+      aiAnalysis = JSON.parse(analyzerProc.stdout);
+    } catch (e) {
+      aiAnalysis = { error: "AI analysis failed", raw: analyzerProc.stdout };
+    }
+
+    let imageJpegPath = null;
+    if (extracted.has_image) {
+      const imageOutPath = filePath + ".jpg";
+      const imgProc = spawnSync(PYTHON, [IMAGE_EXTRACTOR_SCRIPT, filePath, imageOutPath], {
+        timeout: 30000,
+      });
+      if (!imgProc.error && imgProc.status === 0 && fs.existsSync(imageOutPath)) {
+        imageJpegPath = imageOutPath;
+      }
+    }
+
+    const scanId = generateDicomScanId();
+    const record = new DicomScan({
+      scanId,
+      filename,
+      machineType: extracted.machine_type,
+      patientName: extracted.patient_name,
+      patientId: extracted.patient_id,
+      studyDate: extracted.study_date,
+      laterality: extracted.laterality,
+      extracted,
+      aiAnalysis,
+      urgency: aiAnalysis.urgency,
+      status: "analyzed",
+    });
+
+    await record.save();
+
+    res.json({ scanId, extracted, aiAnalysis });
+  } catch (err) {
+    console.error("DICOM upload error:", err);
+    res.status(500).json({ error: "DICOM upload failed", details: err.message });
+  }
+});
+
+app.get("/dicom-scans", async (req, res) => {
+  try {
+    const scans = await DicomScan.find()
+      .select("-extracted.other_numeric_tags -extracted.image_jpeg_bytes -aiAnalysis.value_analysis")
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean()
+      .allowDiskUse(true);
+    res.json(scans);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch DICOM scans" });
+  }
+});
+
+app.get("/dicom-scans/:scanId", async (req, res) => {
+  try {
+    const scan = await DicomScan.findOne({ scanId: req.params.scanId }).lean();
+    if (!scan) {
+      return res.status(404).json({ error: "DICOM scan not found" });
+    }
+    res.json(scan);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch DICOM scan" });
+  }
+});
+
+app.get("/scans/:scanId/export-dicom", async (req, res) => {
+  try {
+    const scan = await Scan.findOne({ scanId: req.params.scanId }).lean();
+    if (!scan) {
+      return res.status(404).json({ error: "Scan not found" });
+    }
+
+    const PYTHON = getGradCamPython();
+    const EXPORT_SCRIPT = path.join(__dirname, "dicom_export.py");
+
+    const exportProc = spawnSync(PYTHON, [EXPORT_SCRIPT], {
+      input: JSON.stringify(scan),
+      timeout: 60000,
+      maxBuffer: 1024 * 1024 * 50,
+    });
+
+    if (exportProc.error || exportProc.status !== 0) {
+      return res.status(500).json({
+        error: "DICOM export failed",
+        details: exportProc.stderr ? exportProc.stderr.toString() : (exportProc.error && exportProc.error.message),
+      });
+    }
+
+    res.set("Content-Type", "application/dicom");
+    res.set("Content-Disposition", `attachment; filename="AFIO_${req.params.scanId}.dcm"`);
+    res.send(exportProc.stdout);
+  } catch (err) {
+    console.error("DICOM export error:", err);
+    res.status(500).json({ error: "DICOM export failed", details: err.message });
   }
 });
 
