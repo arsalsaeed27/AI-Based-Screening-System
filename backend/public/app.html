@@ -605,6 +605,12 @@
   .report-body[contenteditable="true"]{outline:2px dashed var(--cyan);background:var(--bg);border-radius:8px;}
   .report-body .report-section-heading{display:block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:16px 0 4px;}
   .report-body .report-section-heading:first-child{margin-top:0;}
+  .report-dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 22px;}
+  @media (max-width:900px){.report-dual-grid{grid-template-columns:1fr;}}
+  .report-eye-block{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);}
+  .report-eye-block-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface);}
+  .report-eye-block-title{font-size:12.5px;font-weight:800;color:var(--navy);}
+  .report-eye-block .report-body{padding:14px 16px;background:var(--surface);}
 
   /* ============ TABLE / FILTERS ============ */
   .table-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
@@ -1365,6 +1371,38 @@
           </div>
           <div class="report-body" id="reportBody" contenteditable="false"></div>
         </div>
+
+        <div class="report-panel" id="reportPanelDual" style="display:none;">
+          <div class="report-panel-head">
+            <div>
+              <div class="report-panel-title">AI-Generated Clinical Report — Both Eyes</div>
+              <div class="report-panel-sub">Draft for physician review — edit before finalizing</div>
+            </div>
+            <div class="report-panel-actions">
+              <label class="report-include-toggle">
+                <input type="checkbox" id="reportIncludeInPdfDual" checked />
+                Include in PDF
+              </label>
+              <button class="btn btn-primary" onclick="finalizeReportDual()"><i data-lucide="check-circle"></i>Finalize &amp; Save</button>
+            </div>
+          </div>
+          <div class="report-dual-grid">
+            <div class="report-eye-block">
+              <div class="report-eye-block-head">
+                <span class="report-eye-block-title">Right Eye (OD) — Clinical Notes</span>
+                <button class="btn" id="reportEditBtnOD" onclick="toggleReportEditDual('OD')"><i data-lucide="pencil"></i>Edit</button>
+              </div>
+              <div class="report-body" id="reportBodyOD" contenteditable="false"></div>
+            </div>
+            <div class="report-eye-block">
+              <div class="report-eye-block-head">
+                <span class="report-eye-block-title">Left Eye (OS) — Clinical Notes</span>
+                <button class="btn" id="reportEditBtnOS" onclick="toggleReportEditDual('OS')"><i data-lucide="pencil"></i>Edit</button>
+              </div>
+              <div class="report-body" id="reportBodyOS" contenteditable="false"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1598,6 +1636,7 @@
                 <div class="history-detail-item"><div class="lbl">Patient ID</div><div class="val" id="dicomPatientId">—</div></div>
                 <div class="history-detail-item"><div class="lbl">Study Date</div><div class="val" id="dicomStudyDate">—</div></div>
                 <div class="history-detail-item"><div class="lbl">Laterality</div><div class="val" id="dicomLaterality">—</div></div>
+                <div class="history-detail-item"><div class="lbl">Saved At</div><div class="val" id="dicomSavedAt">—</div></div>
               </div>
               <div style="overflow-x:auto;margin-top:14px;">
                 <table class="data-table" id="dicomValuesTable">
@@ -1618,6 +1657,8 @@
             </div>
 
             <div id="dicomAnalysisResult" style="display:none;">
+              <div id="dicomSavedBanner" style="display:none;margin-bottom:14px;"></div>
+
               <div class="dicom-urgency-banner" id="dicomUrgencyBanner">
                 <div class="lvl" id="dicomUrgencyLevel">—</div>
                 <div class="reason" id="dicomUrgencyReason">—</div>
@@ -2158,6 +2199,8 @@ let scanId = null;
 let lastRunSelection = { dr: true, gl: true, hr: true };
 let scanSaved = false;
 let lastGeneratedReport = null;
+let lastGeneratedReportOD = null;
+let lastGeneratedReportOS = null;
 
 let patientsPage = 1;
 const PATIENTS_PER_PAGE = 10;
@@ -3586,6 +3629,7 @@ function formatReportHtml(text) {
 
 async function generateClinicalReport() {
   if (!scanId) { showToast("Run an analysis before generating a report.", "warning"); return; }
+  if (dualEyeMode) return generateClinicalReportDual();
 
   const btn = document.getElementById("generateReportBtn");
   btn.disabled = true;
@@ -3632,6 +3676,122 @@ async function generateClinicalReport() {
   } finally {
     btn.disabled = false;
     document.getElementById("reportLoading").style.display = "none";
+  }
+}
+
+async function generateClinicalReportDual() {
+  const btn = document.getElementById("generateReportBtn");
+  btn.disabled = true;
+  document.getElementById("reportPanel").style.display = "none";
+  document.getElementById("reportPanelDual").style.display = "none";
+  document.getElementById("reportLoading").style.display = "flex";
+
+  try {
+    const sel = lastRunSelection;
+    const patient = collectPatientData();
+    const bloodPressure = document.getElementById("pBp").value || undefined;
+    const institution = settings.hospitalName || "Military College of Signals, NUST";
+    const baseNotes = document.getElementById("pNotes").value || "";
+
+    const odBlock = buildEyeResultBlock(sel, resultsOD, null, null);
+    const osBlock = buildEyeResultBlock(sel, resultsOS, null, null);
+
+    const odPayload = Object.assign({}, patient, {
+      patientEye: "OD",
+      bloodPressure, institution,
+      drResult: odBlock.drResult, glaucomaResult: odBlock.glaucomaResult, hrResult: odBlock.hrResult,
+      notes: baseNotes ? baseNotes + " (Right Eye)" : "(Right Eye)",
+    });
+    const osPayload = Object.assign({}, patient, {
+      patientEye: "OS",
+      bloodPressure, institution,
+      drResult: osBlock.drResult, glaucomaResult: osBlock.glaucomaResult, hrResult: osBlock.hrResult,
+      notes: baseNotes ? baseNotes + " (Left Eye)" : "(Left Eye)",
+    });
+
+    const postReport = (payload) => fetch("/generate-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const [odRes, osRes] = await Promise.all([postReport(odPayload), postReport(osPayload)]);
+    const [odData, osData] = await Promise.all([odRes.json(), osRes.json()]);
+    if (!odRes.ok || !odData.success) throw new Error(odData.error || odData.details || "Right eye report generation failed");
+    if (!osRes.ok || !osData.success) throw new Error(osData.error || osData.details || "Left eye report generation failed");
+
+    lastGeneratedReportOD = odData.report;
+    lastGeneratedReportOS = osData.report;
+    lastGeneratedReport = lastGeneratedReportOD + "\n\n---\n\n" + lastGeneratedReportOS;
+
+    document.getElementById("reportBodyOD").innerHTML = formatReportHtml(lastGeneratedReportOD);
+    document.getElementById("reportBodyOD").setAttribute("contenteditable", "false");
+    document.getElementById("reportEditBtnOD").innerHTML = '<i data-lucide="pencil"></i>Edit';
+    document.getElementById("reportBodyOS").innerHTML = formatReportHtml(lastGeneratedReportOS);
+    document.getElementById("reportBodyOS").setAttribute("contenteditable", "false");
+    document.getElementById("reportEditBtnOS").innerHTML = '<i data-lucide="pencil"></i>Edit';
+
+    document.getElementById("reportPanelDual").style.display = "block";
+    lucide.createIcons();
+    showToast("Clinical report generated for both eyes.", "success");
+  } catch (err) {
+    showToast("Failed to generate report: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    document.getElementById("reportLoading").style.display = "none";
+  }
+}
+
+function toggleReportEditDual(eye) {
+  const body = document.getElementById(eye === "OS" ? "reportBodyOS" : "reportBodyOD");
+  const btn = document.getElementById(eye === "OS" ? "reportEditBtnOS" : "reportEditBtnOD");
+  const editing = body.getAttribute("contenteditable") === "true";
+
+  if (editing) {
+    body.setAttribute("contenteditable", "false");
+    btn.innerHTML = '<i data-lucide="pencil"></i>Edit';
+    if (eye === "OS") lastGeneratedReportOS = body.innerText.trim();
+    else lastGeneratedReportOD = body.innerText.trim();
+    lastGeneratedReport = (lastGeneratedReportOD || "") + "\n\n---\n\n" + (lastGeneratedReportOS || "");
+  } else {
+    body.setAttribute("contenteditable", "true");
+    body.focus();
+    btn.innerHTML = '<i data-lucide="check"></i>Done';
+  }
+  lucide.createIcons();
+}
+
+async function finalizeReportDual() {
+  const odText = document.getElementById("reportBodyOD").innerText.trim();
+  const osText = document.getElementById("reportBodyOS").innerText.trim();
+  if (!odText && !osText) { showToast("Nothing to save — generate a report first.", "warning"); return; }
+  if (!scanId) { showToast("Run an analysis before finalizing a report.", "warning"); return; }
+  if (!scanSaved) { showToast("Save the scan to the database first, then finalize the report.", "warning"); return; }
+
+  lastGeneratedReportOD = odText;
+  lastGeneratedReportOS = osText;
+  const combined = odText + "\n\n---\n\n" + osText;
+  lastGeneratedReport = combined;
+
+  try {
+    const res = await fetch("/scans/" + encodeURIComponent(scanId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generatedReport: combined }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save report");
+
+    document.getElementById("reportBodyOD").setAttribute("contenteditable", "false");
+    document.getElementById("reportBodyOS").setAttribute("contenteditable", "false");
+    document.getElementById("reportEditBtnOD").innerHTML = '<i data-lucide="pencil"></i>Edit';
+    document.getElementById("reportEditBtnOS").innerHTML = '<i data-lucide="pencil"></i>Edit';
+    lucide.createIcons();
+
+    await fetchScans(true);
+    showToast("Clinical report finalized and saved for both eyes.", "success");
+  } catch (err) {
+    showToast("Failed to save report: " + err.message, "error");
   }
 }
 
@@ -3692,10 +3852,17 @@ function resetScreening() {
   scanSaved = false; dualEyeMode = false; activeResultEye = "OD";
   activeSubTab = "overview";
   lastGeneratedReport = null;
+  lastGeneratedReportOD = null;
+  lastGeneratedReportOS = null;
   document.getElementById("reportPanel").style.display = "none";
+  document.getElementById("reportPanelDual").style.display = "none";
   document.getElementById("reportLoading").style.display = "none";
   document.getElementById("reportBody").innerHTML = "";
   document.getElementById("reportBody").setAttribute("contenteditable", "false");
+  document.getElementById("reportBodyOD").innerHTML = "";
+  document.getElementById("reportBodyOD").setAttribute("contenteditable", "false");
+  document.getElementById("reportBodyOS").innerHTML = "";
+  document.getElementById("reportBodyOS").setAttribute("contenteditable", "false");
 
   ["", "OD", "OS"].forEach((suffix) => {
     const fi = document.getElementById("fileInput" + suffix); if (fi) fi.value = "";
@@ -3745,7 +3912,7 @@ function resetScreening() {
 function generatePDF() {
   if (!scanId) { showToast("Run an analysis before generating a report.", "warning"); return; }
   const payload = buildScanPayload(lastRunSelection);
-  const includeToggle = document.getElementById("reportIncludeInPdf");
+  const includeToggle = document.getElementById(dualEyeMode ? "reportIncludeInPdfDual" : "reportIncludeInPdf");
   if (lastGeneratedReport && includeToggle && includeToggle.checked) {
     payload.generatedReport = lastGeneratedReport;
   }
@@ -4190,23 +4357,37 @@ function generatePDFReport(scan, heatmapForPdf) {
     t("Generated by AFIO ScanAI NLP · Requires physician review before use", M, y, 7, 156, 163, 175, "normal");
     y += 7;
 
-    const reportLines = String(scan.generatedReport).split("\n");
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
-    reportLines.forEach((rawLine) => {
-      const line = rawLine.trim();
-      if (!line) { y += 4; return; }
-      const isHeading = /^(CLINICAL FINDINGS|INTERPRETATION|RECOMMENDATION|FOLLOW-UP):?\s*$/i.test(line);
-      const wrapped = doc.splitTextToSize(line, W - M * 2);
-      ensureSpace(wrapped.length * 5 + 2);
-      if (isHeading) {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(28, 43, 58);
-        y += 2;
-      } else {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
-      }
-      doc.text(wrapped, M, y, { lineHeightFactor: 1.4 });
-      y += wrapped.length * 5;
-    });
+    const renderNotesLines = (lines) => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+      lines.forEach((rawLine) => {
+        const line = rawLine.trim();
+        if (!line) { y += 4; return; }
+        const isHeading = /^(CLINICAL FINDINGS|INTERPRETATION|RECOMMENDATION|FOLLOW-UP):?\s*$/i.test(line);
+        const wrapped = doc.splitTextToSize(line, W - M * 2);
+        ensureSpace(wrapped.length * 5 + 2);
+        if (isHeading) {
+          doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(28, 43, 58);
+          y += 2;
+        } else {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(55, 65, 81);
+        }
+        doc.text(wrapped, M, y, { lineHeightFactor: 1.4 });
+        y += wrapped.length * 5;
+      });
+    };
+
+    const eyeReportParts = String(scan.generatedReport).split(/\n\n---\n\n/);
+    if (isDualEye && eyeReportParts.length === 2) {
+      ensureSpace(8);
+      t("RIGHT EYE (OD) — CLINICAL NOTES", M, y, 9.5, 28, 43, 58, "bold"); y += 6;
+      renderNotesLines(eyeReportParts[0].split("\n"));
+      y += 6;
+      ensureSpace(8);
+      t("LEFT EYE (OS) — CLINICAL NOTES", M, y, 9.5, 28, 43, 58, "bold"); y += 6;
+      renderNotesLines(eyeReportParts[1].split("\n"));
+    } else {
+      renderNotesLines(String(scan.generatedReport).split("\n"));
+    }
     y += 4;
 
     drawDisclaimer();
@@ -4541,6 +4722,7 @@ async function renderHistoryDetail(scanId) {
         <button class="btn" onclick="quickStatusUpdate('${s.scanId}','reviewed')"><i data-lucide="check"></i>Mark Reviewed</button>
         <button class="btn" onclick="quickStatusUpdate('${s.scanId}','referred')"><i data-lucide="alert-triangle"></i>Mark Urgent</button>
         <button class="btn" onclick="addQuickNote('${s.scanId}')"><i data-lucide="message-square-plus"></i>Add Note</button>
+        <button class="btn" style="background:#fff;border:1px solid var(--border);" onclick="downloadDICOM('${s.scanId}', this)"><i data-lucide="download"></i>Export DICOM</button>
       </div>
     </div>
   `;
@@ -4755,6 +4937,9 @@ async function openReviewModal(id) {
     <div class="hd-section">
       <div class="hd-section-title">AI Results</div>
       ${renderHistoryResultBlock(s)}
+    </div>
+    <div class="hd-action-row">
+      <button class="btn" style="background:#fff;border:1px solid var(--border);" onclick="downloadDICOM('${s.scanId}', this)"><i data-lucide="download"></i>Export DICOM</button>
     </div>
     ${buildStatusPanel(s)}
   `;
@@ -6058,8 +6243,80 @@ const DICOM_STATUS_COLORS = {
 };
 const DICOM_STATUS_SORT = { ABNORMAL: 0, BORDERLINE: 1, NORMAL: 2 };
 const DICOM_SKIP_KEYS = new Set([
-  "patient_name", "patient_id", "dob", "sex", "study_date", "modality",
-  "manufacturer", "device_model", "laterality", "machine_type", "has_image", "image_jpeg_bytes",
+  // internal/binary fields
+  "image_jpeg_bytes",
+  "has_image",
+  "all_text_values",
+
+  // patient identity (shown in header, not table)
+  "patient_name",
+  "patient_id",
+  "patient_dob",
+  "patient_sex",
+  "PatientName",
+  "PatientID",
+  "PatientBirthDate",
+  "PatientSex",
+
+  // study admin (shown in header)
+  "machine_type",
+  "manufacturer",
+  "manufacturer_model",
+  "ManufacturerModelName",
+  "Manufacturer",
+  "study_date",
+  "study_time",
+  "StudyDate",
+  "StudyTime",
+  "laterality",
+  "Laterality",
+  "ImageLaterality",
+
+  // DICOM technical metadata (not clinical)
+  "SOPClassUID",
+  "SOPInstanceUID",
+  "StudyInstanceUID",
+  "SeriesInstanceUID",
+  "MediaStorageSOPClassUID",
+  "MediaStorageSOPInstanceUID",
+  "TransferSyntaxUID",
+  "ImplementationClassUID",
+  "ImplementationVersionName",
+  "SpecificCharacterSet",
+  "InstanceCreationDate",
+  "InstanceCreationTime",
+  "ContentDate",
+  "ContentTime",
+  "AccessionNumber",
+  "Modality",
+  "modality",
+  "SeriesNumber",
+  "InstanceNumber",
+  "SamplesPerPixel",
+  "PhotometricInterpretation",
+  "Rows",
+  "Columns",
+  "BitsAllocated",
+  "BitsStored",
+  "HighBit",
+  "PixelRepresentation",
+  "PixelData",
+  "PlanarConfiguration",
+  "NumberOfFrames",
+  "PixelSpacing",
+  "ImageOrientationPatient",
+  "ImagePositionPatient",
+  "SliceThickness",
+  "SliceLocation",
+  "WindowCenter",
+  "WindowWidth",
+  "RescaleIntercept",
+  "RescaleSlope",
+
+  // institution (shown in header)
+  "InstitutionName",
+  "institution",
+  "ReferringPhysicianName",
 ]);
 
 function initDicomUpload() {
@@ -6086,6 +6343,7 @@ function handleDicomFile(file) {
   document.getElementById("dicomAnalyzeBtn").style.display = "flex";
   document.getElementById("dicomPatientCard").style.display = "none";
   document.getElementById("dicomAnalysisResult").style.display = "none";
+  document.getElementById("dicomSavedBanner").style.display = "none";
   document.getElementById("dicomAnalysisEmpty").style.display = "flex";
 }
 
@@ -6164,6 +6422,8 @@ async function runDicomAnalysis() {
 
     renderDicomPatientCard(dicomExtracted);
     renderDicomAnalysis(dicomAiAnalysis);
+    setDicomSavedAt(new Date());
+    showDicomSavedBanner(dicomScanId);
     loadDicomScans();
     showToast("DICOM analysis complete.", "success");
   } catch (err) {
@@ -6187,10 +6447,16 @@ function renderDicomPatientCard(extracted) {
   document.getElementById("dicomStudyDate").textContent = extracted.study_date || "—";
   document.getElementById("dicomLaterality").textContent = extracted.laterality || "—";
 
+  const clinicalValues = Object.entries(extracted).filter(([k, v]) =>
+    !DICOM_SKIP_KEYS.has(k) &&
+    v !== null &&
+    v !== undefined &&
+    String(v).trim() !== "" &&
+    String(v).length < 200
+  );
+
   const rows = [];
-  Object.entries(extracted).forEach(([k, v]) => {
-    if (DICOM_SKIP_KEYS.has(k)) return;
-    if (v === null || v === undefined || v === "") return;
+  clinicalValues.forEach(([k, v]) => {
     if (typeof v === "object" && !Array.isArray(v)) {
       Object.entries(v).forEach(([k2, v2]) => {
         if (v2 === null || v2 === undefined || v2 === "") return;
@@ -6202,9 +6468,9 @@ function renderDicomPatientCard(extracted) {
   });
 
   const tbody = document.getElementById("dicomValuesBody");
-  tbody.innerHTML = rows.length
+  tbody.innerHTML = clinicalValues.length
     ? rows.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(String(value))}</td></tr>`).join("")
-    : `<tr><td colspan="2" style="text-align:center;color:var(--muted);">No extracted values</td></tr>`;
+    : `<tr><td colspan="2" style="text-align:center;color:var(--muted);">No clinical measurements found in this DICOM file. This may be a structural or administrative DICOM.</td></tr>`;
   lucide.createIcons();
 }
 
@@ -6250,6 +6516,19 @@ function renderDicomAnalysis(analysis) {
   document.getElementById("dicomSummaryText").textContent = analysis.summary || "No summary available.";
   document.getElementById("dicomActionText").textContent = analysis.action || "—";
 
+  lucide.createIcons();
+}
+
+function setDicomSavedAt(value) {
+  const el = document.getElementById("dicomSavedAt");
+  if (el) el.textContent = value ? formatDateTime(value) : "—";
+}
+
+function showDicomSavedBanner(scanId) {
+  const banner = document.getElementById("dicomSavedBanner");
+  banner.innerHTML = themedBanner("#16A34A", "#F0FDF4", "check-circle", "✓ Results saved to database — Scan ID: " + escapeHtml(scanId)) +
+    `<button class="btn" style="margin-top:8px;" onclick="viewDicomInScanHistory()"><i data-lucide="list"></i>View in History</button>`;
+  banner.style.display = "block";
   lucide.createIcons();
 }
 
@@ -6380,7 +6659,10 @@ function renderDicomScansTable() {
       <td>${escapeHtml(s.patientName || "—")}</td>
       <td>${formatDateTime(s.timestamp)}</td>
       <td><span class="status-pill" style="background:${color};color:#fff;">${escapeHtml(urgency)}</span></td>
-      <td><button class="link-btn" onclick="selectDicomScan('${escapeHtml(s.scanId)}')">View</button></td>
+      <td>
+        <button class="link-btn" onclick="selectDicomScan('${escapeHtml(s.scanId)}')">View</button>
+        <button class="link-btn" style="margin-left:10px;" onclick="reanalyzeDicomScan('${escapeHtml(s.scanId)}', this)">Re-analyze</button>
+      </td>
     </tr>`;
   }).join("");
 
@@ -6397,11 +6679,39 @@ async function selectDicomScan(scanId) {
     dicomAiAnalysis = scan.aiAnalysis || {};
     dicomScanId = scan.scanId;
 
+    document.getElementById("dicomSavedBanner").style.display = "none";
     renderDicomPatientCard(dicomExtracted);
     renderDicomAnalysis(dicomAiAnalysis);
+    setDicomSavedAt(scan.timestamp || scan.createdAt);
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (err) {
     showToast("Failed to load DICOM scan: " + err.message, "error");
+  }
+}
+
+async function reanalyzeDicomScan(scanId, btn) {
+  const originalHTML = btn ? btn.innerHTML : null;
+  if (btn) { btn.disabled = true; btn.textContent = "Analyzing…"; }
+
+  try {
+    const res = await fetch("/dicom-scans/" + encodeURIComponent(scanId) + "/analyze", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Re-analysis failed");
+
+    await loadDicomScans();
+
+    if (dicomScanId === scanId) {
+      dicomAiAnalysis = data.aiAnalysis || {};
+      document.getElementById("dicomSavedBanner").style.display = "none";
+      renderDicomAnalysis(dicomAiAnalysis);
+      setDicomSavedAt(data.timestamp || data.createdAt);
+    }
+
+    showToast("DICOM scan re-analyzed.", "success");
+  } catch (err) {
+    showToast("Re-analysis failed: " + err.message, "error");
+  } finally {
+    if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = originalHTML; }
   }
 }
 
@@ -6449,6 +6759,44 @@ async function exportScanAsDicom() {
   } catch (err) {
     showInlineError("exportDicomError", err.message);
     showToast("Export failed: " + err.message, "error");
+  }
+}
+
+/* ============================================================
+   EXPORT DICOM — direct download button (Scan History / Doctor Review)
+   ============================================================ */
+async function downloadDICOM(scanId, btn) {
+  if (!scanId) return;
+  const originalHTML = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin-ring" style="width:12px;height:12px;border:2px solid rgba(15,23,42,.15);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;"></span>Exporting...';
+  }
+  try {
+    const res = await fetch("/scans/" + encodeURIComponent(scanId) + "/export-dicom");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Export failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "AFIO_" + scanId + ".dcm";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("DICOM file exported and downloaded successfully.", "success");
+  } catch (err) {
+    showToast("DICOM export failed: " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+      lucide.createIcons();
+    }
   }
 }
 </script>

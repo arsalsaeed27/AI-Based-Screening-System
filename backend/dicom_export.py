@@ -177,4 +177,7 @@ if __name__ == '__main__':
     ds = create_dicom_from_scan(scan_data)
     buf = io.BytesIO()
     pydicom.dcmwrite(buf, ds)
+    # SOPInstanceUID goes to stderr (not stdout) since stdout carries the raw
+    # DICOM bytes that the caller pipes straight to disk/response body.
+    sys.stderr.write("SOPInstanceUID:" + str(ds.SOPInstanceUID))
     sys.stdout.buffer.write(buf.getvalue())

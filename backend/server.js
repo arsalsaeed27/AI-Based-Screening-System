@@ -14,7 +14,13 @@ const Groq = require("groq-sdk");
 const { Server: SocketIOServer } = require("socket.io");
 const { startWatcher } = require("./folder_watcher");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+if (!GROQ_API_KEY) {
+  console.error("ERROR: GROQ_API_KEY not set in .env");
+  process.exit(1);
+}
+
+const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 // Node's default DNS resolver can fail SRV lookups (mongodb+srv://) on
 // machines where a local stub resolver/VPN doesn't support that record
@@ -37,9 +43,11 @@ const HR_MODEL_PATH = path.join(
   "hr_efficientnet_model.onnx",
 );
 const GRADCAM_SERVICE_URL = "http://localhost:5000/gradcam";
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://ai_retinal_screening:D8jaYBNFn0kURWcg@cluster0.hzqnb4s.mongodb.net/retinal_system?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("ERROR: MONGODB_URI not set in .env");
+  process.exit(1);
+}
 
 const CLASS_LABELS = {
   0: "No DR",
@@ -185,6 +193,11 @@ const scanSchema = new mongoose.Schema(
 
     // AI-drafted clinical report (edited/finalized by the reviewing clinician)
     generatedReport: String,
+
+    // DICOM export tracking
+    dicomExported: { type: Boolean, default: false },
+    dicomExportedAt: Date,
+    dicomSOPInstanceUID: String,
   },
   { timestamps: true },
 );
@@ -194,6 +207,28 @@ scanSchema.index({ patientId: 1 });
 scanSchema.index({ status: 1 });
 
 const Scan = mongoose.model("Scan", scanSchema);
+
+// strict: false so an analyzer failure (which stores {error, raw} instead of
+// the normal shape below) still persists instead of being silently dropped.
+const dicomAiAnalysisSchema = new mongoose.Schema(
+  {
+    value_analysis: [
+      {
+        measurement: String,
+        value: String,
+        status: String,
+        clinical_meaning: String,
+      },
+    ],
+    abnormal_count: Number,
+    clinical_pattern: String,
+    urgency: String,
+    urgency_reason: String,
+    action: String,
+    summary: String,
+  },
+  { _id: false, strict: false },
+);
 
 const dicomScanSchema = new mongoose.Schema(
   {
@@ -205,8 +240,10 @@ const dicomScanSchema = new mongoose.Schema(
     studyDate: String,
     laterality: String,
     extracted: Object,
-    aiAnalysis: Object,
+    aiAnalysis: dicomAiAnalysisSchema,
     urgency: String,
+    dicomExported: { type: Boolean, default: false },
+    dicomExportedAt: Date,
     status: { type: String, default: "analyzed" },
     timestamp: { type: Date, default: Date.now },
   },
@@ -1030,6 +1067,22 @@ app.get("/folder-scans", async (req, res) => {
 
 const DICOM_INCOMING_DIR = path.join(__dirname, "dicom_incoming");
 
+function cleanupDicomIncoming() {
+  const dir = path.join(__dirname, "dicom_incoming");
+  if (!fs.existsSync(dir)) return;
+  const files = fs.readdirSync(dir);
+  let cleaned = 0;
+  files.forEach((file) => {
+    try {
+      fs.unlinkSync(path.join(dir, file));
+      cleaned++;
+    } catch (e) {}
+  });
+  if (cleaned > 0) {
+    console.log(`[DICOM] Cleaned up ${cleaned} leftover files`);
+  }
+}
+
 app.post("/dicom-upload", upload.single("dicom"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No DICOM file uploaded" });
@@ -1114,6 +1167,19 @@ app.post("/dicom-upload", upload.single("dicom"), async (req, res) => {
 
     await record.save();
 
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      // also delete extracted JPEG if it exists
+      const jpgPath = filePath + ".jpg";
+      if (fs.existsSync(jpgPath)) {
+        fs.unlinkSync(jpgPath);
+      }
+    } catch (cleanupErr) {
+      console.warn("[DICOM] Cleanup warning:", cleanupErr.message);
+    }
+
     res.json({ scanId, extracted, aiAnalysis });
   } catch (err) {
     console.error("DICOM upload error:", err);
@@ -1172,12 +1238,72 @@ app.get("/scans/:scanId/export-dicom", async (req, res) => {
       });
     }
 
+    const stderrText = exportProc.stderr ? exportProc.stderr.toString() : "";
+    const uidMatch = stderrText.match(/SOPInstanceUID:(\S+)/);
+
+    try {
+      await Scan.findOneAndUpdate(
+        { scanId: req.params.scanId },
+        {
+          dicomExported: true,
+          dicomExportedAt: new Date(),
+          ...(uidMatch ? { dicomSOPInstanceUID: uidMatch[1] } : {}),
+        },
+      );
+    } catch (updateErr) {
+      // The .dcm file was already generated successfully — don't fail the
+      // download over a bookkeeping write failing.
+      console.error("Failed to record DICOM export on scan:", updateErr);
+    }
+
     res.set("Content-Type", "application/dicom");
     res.set("Content-Disposition", `attachment; filename="AFIO_${req.params.scanId}.dcm"`);
     res.send(exportProc.stdout);
   } catch (err) {
     console.error("DICOM export error:", err);
     res.status(500).json({ error: "DICOM export failed", details: err.message });
+  }
+});
+
+app.post("/dicom-scans/:scanId/analyze", async (req, res) => {
+  try {
+    const record = await DicomScan.findOne({ scanId: req.params.scanId });
+    if (!record) {
+      return res.status(404).json({ error: "DICOM scan not found" });
+    }
+
+    const PYTHON = getGradCamPython();
+    const ANALYZER_SCRIPT = path.join(__dirname, "dicom_analyzer.py");
+
+    const analyzerProc = spawnSync(PYTHON, [ANALYZER_SCRIPT], {
+      input: JSON.stringify(record.extracted || {}),
+      encoding: "utf8",
+      timeout: 60000,
+      maxBuffer: 1024 * 1024 * 20,
+    });
+
+    if (analyzerProc.error || analyzerProc.status !== 0) {
+      return res.status(500).json({
+        error: "DICOM re-analysis failed",
+        details: analyzerProc.stderr || (analyzerProc.error && analyzerProc.error.message),
+      });
+    }
+
+    let aiAnalysis;
+    try {
+      aiAnalysis = JSON.parse(analyzerProc.stdout);
+    } catch (e) {
+      return res.status(500).json({ error: "Failed to parse AI analysis result", raw: analyzerProc.stdout });
+    }
+
+    record.aiAnalysis = aiAnalysis;
+    record.urgency = aiAnalysis.urgency;
+    await record.save();
+
+    res.json(record);
+  } catch (err) {
+    console.error("DICOM re-analyze error:", err);
+    res.status(500).json({ error: "DICOM re-analysis failed", details: err.message });
   }
 });
 
@@ -1188,6 +1314,7 @@ async function start() {
       family: 4,
     });
     console.log("MongoDB connected");
+    cleanupDicomIncoming();
   } catch (err) {
     console.error(
       "MongoDB connection failed, continuing without it:",
