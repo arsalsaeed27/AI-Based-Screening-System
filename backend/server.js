@@ -896,7 +896,7 @@ app.post("/ocr-report", upload.single("report"), async (req, res) => {
   execFile(
     PYTHON,
     [OCR_SCRIPT, tmpPath],
-    { timeout: 120000 },
+    { timeout: 120000, env: { ...process.env, PYTHONIOENCODING: "utf-8" } },
     (err, stdout, stderr) => {
       try { fs.unlinkSync(tmpPath); } catch (e) {}
 
@@ -915,6 +915,7 @@ app.post("/ocr-report", upload.single("report"), async (req, res) => {
           input: JSON.stringify(lines),
           encoding: "utf8",
           timeout: 10000,
+          env: { ...process.env, PYTHONIOENCODING: "utf-8" },
         });
 
         let structured = {};
